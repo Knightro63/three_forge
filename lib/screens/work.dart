@@ -1,0 +1,1744 @@
+import 'dart:async';
+import 'dart:math' as math;
+import 'dart:io';
+
+import 'package:css/css.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:three_js_advanced_exporters/usdz_exporter.dart';
+import '../src/navigation/right_click.dart';
+import '../src/styles/savedWidgets.dart';
+
+import 'package:three_js/three_js.dart' as three;
+import 'package:three_js_helpers/three_js_helpers.dart';
+import 'package:three_js_geometry/three_js_geometry.dart';
+import 'package:three_js_transform_controls/three_js_transform_controls.dart';
+import 'package:three_js_objects/three_js_objects.dart';
+import 'package:three_js_exporters/three_js_exporters.dart';
+
+import '../src/navigation/navigation.dart';
+import '../src/styles/globals.dart';
+
+enum ShadingType{wireframe,solid,material}
+enum EditType{point,edge,face}
+class GridInfo{
+  int divisions = 10;
+  double size = 10;
+  int color = Colors.grey[900]!.value;
+  double x = 0;
+  double y = 0;
+}
+class IntersectsInfo{
+  IntersectsInfo(this.intersects,this.oInt);
+  List<three.Intersection> intersects = [];
+  List<int> oInt = [];
+}
+class EditInfo{
+  bool active = false;
+  EditType type = EditType.point;
+  three.Object3D? object;
+}
+class UIScreen extends StatefulWidget {
+  const UIScreen({Key? key, required this.currentProject, required this.setProject}):super(key: key);
+  final Map<String,dynamic> currentProject;
+  final void Function(Map<String,dynamic>?) setProject;
+
+  @override
+  _UIPageState createState() => _UIPageState();
+}
+
+class _UIPageState extends State<UIScreen> {
+  bool consoleSelected = false;
+  EditInfo editInfo = EditInfo();
+  bool resetNav = false;
+  late three.ThreeJS threeJs;
+
+  three.Raycaster raycaster = three.Raycaster();
+  three.Vector2 mousePosition = three.Vector2.zero();
+  three.Object3D? intersected;
+  three.AnimationMixer? mixer;
+  three.AnimationClip? currentAnimation;
+
+  Map<String,List> animationClips = {};
+
+  bool didClick = false;
+  bool usingMouse = false;
+
+  late TransformControls control;
+  late three.OrbitControls orbit;
+  late three.PerspectiveCamera cameraPersp;
+  three.Group helper = three.Group();
+  GridHelper grid = GridHelper( 500, 500, Colors.grey[900]!.value, Colors.grey[900]!.value);
+  GridInfo gridInfo = GridInfo();
+  final three.Vector3 sun = three.Vector3();
+
+  three.Vector3 resetCamPos = three.Vector3(5, 2.5, 5);
+
+  bool holdingControl = false;
+  three.Object3D? copy;
+
+  late RightClick rightClick;
+  three.Scene scene = three.Scene();
+
+  List<bool> expands = [false,false,false,false];
+  List<TextEditingController> transfromControllers = [
+    TextEditingController(),
+    TextEditingController(),
+    TextEditingController(),
+    TextEditingController(),
+    TextEditingController(),
+    TextEditingController(),
+    TextEditingController(),
+    TextEditingController(),
+    TextEditingController()
+  ];
+
+  ShadingType shading = ShadingType.solid;
+  three.Group editObject = three.Group();
+  three.TTFFont? font;
+
+  @override
+  void initState(){
+    threeJs = three.ThreeJS(
+      onSetupComplete: (){setState(() {});},
+      setup: setup,
+    );
+    rightClick = RightClick(
+      context: context,
+      style: null,
+      onTap: rightClickActions,
+    );
+    super.initState();
+  }
+  @override
+  void dispose(){
+    control.dispose();
+    orbit.dispose();
+    rightClick.dispose();
+    threeJs.dispose();
+    super.dispose();
+  }
+  void rightClickActions(RightClickOptions options){
+    switch (options) {
+      case RightClickOptions.delete:
+        control.detach();
+        scene.remove(intersected!);
+        intersected = null;
+        break;
+      case RightClickOptions.copy:
+        copy = intersected;
+        break;
+      case RightClickOptions.paste:
+        scene.add(intersected);
+        break;
+      default:
+    }
+    rightClick.closeMenu();
+    setState(() {});
+  }
+
+  static Future<void>? _writeToFile(String path, {String? spark, Uint8List? image}){
+    final file = File(path);
+    if(spark != null){
+      return file.writeAsString(spark);
+    }
+    else if(image != null){
+      return file.writeAsBytes(image);
+    }
+    return null;
+  }
+
+  Future<void> setup() async{
+    final aspect = threeJs.width / threeJs.height;
+    cameraPersp = three.PerspectiveCamera( 50, aspect, 0.1, 100 );
+    threeJs.camera = cameraPersp;
+
+    threeJs.camera.position.setFrom(resetCamPos);
+
+    threeJs.scene = three.Scene();
+    threeJs.scene.background = three.Color.fromHex32(CSS.darkTheme.canvasColor.value);
+    threeJs.scene.fog = three.Fog(CSS.darkTheme.canvasColor.value, 10,500);
+    threeJs.scene.add( grid );
+
+    final ambientLight = three.AmbientLight( 0xffffff, 0 );
+    threeJs.scene.add( ambientLight );
+
+    final light = three.DirectionalLight( 0xffffff, 0.5 );
+    light.position = threeJs.camera.position;
+    threeJs.scene.add( light );
+
+    orbit = three.OrbitControls(threeJs.camera, threeJs.globalKey);
+    control = TransformControls(threeJs.camera, threeJs.globalKey);
+
+    control.addEventListener( 'dragging-changed', (event) {
+      orbit.enabled = ! event.value;
+    });
+    creteHelpers();
+    threeJs.scene.add( control );
+    threeJs.scene.add(helper);
+    threeJs.scene.add(editObject);
+    //generateSky();
+    threeJs.scene.add(scene);
+
+    threeJs.domElement.addEventListener(three.PeripheralType.keydown,(event) {
+      event as LogicalKeyboardKey;
+      switch (event.keyLabel.toLowerCase()) {
+        case 'meta left':
+          holdingControl = true;
+        case 'q':
+          control.setSpace( control.space == 'local' ? 'world' : 'local' );
+          break;
+        case 'shift right':
+        case 'shift left':
+          control.setTranslationSnap( 1 );
+          control.setRotationSnap( three.MathUtils.degToRad( 15 ) );
+          control.setScaleSnap( 0.25 );
+          break;
+        case 'w':
+          control.setMode(GizmoType.translate);
+          break;
+        case 'e':
+          control.setMode(GizmoType.rotate);
+          break;
+        case 'r':
+          control.setMode(GizmoType.scale);
+          break;
+        case 'c':
+          if(holdingControl){
+            copy = intersected;
+          }
+          break;
+        case 'v':
+          if(holdingControl){
+            if(copy != null){
+              scene.add(copy?.clone());
+            }
+          }
+          break;
+        case '+':
+        case '=':
+          control.setSize( control.size + 0.1 );
+          break;
+        case '-':
+        case '_':
+          control.setSize( math.max( control.size - 0.1, 0.1 ) );
+          break;
+        case 'delete':
+        case 'x':
+          if(intersected != null){
+            rightClick.openMenu('',Offset(mousePosition.x,mousePosition.y),[RightClickOptions.delete]);
+          }
+          break;
+        case 'tab':
+          if(intersected != null){
+            editModes([intersected!]);
+            editInfo.active = true;
+          }
+          else if(editInfo.active){
+            for(int i = 0; i < editObject.children.length; i++){
+              editObject.children[i].dispose();
+            }
+            editInfo.active = false;
+          }
+          break;
+        case 'y':
+          break;
+        case 'z':
+          break;
+        case ' ':
+          break;
+        case 'escape':
+          break;
+      }
+    });
+    threeJs.domElement.addEventListener(three.PeripheralType.keyup, (event) {
+      event as LogicalKeyboardKey;
+      switch ( event.keyLabel.toLowerCase() ) {
+        case 'meta left':
+          holdingControl = false;
+        case 'shift right':
+        case 'shift left':
+          control.setTranslationSnap( null );
+          control.setRotationSnap( null );
+          control.setScaleSnap( null );
+          break;
+      }
+    });
+    threeJs.domElement.addEventListener(three.PeripheralType.pointerdown, (details){
+      mousePosition = three.Vector2(details.clientX, details.clientY);
+      if(!control.dragging){
+        checkIntersection(scene.children);
+        mixer = null;
+        currentAnimation = null;
+      }
+    });
+    threeJs.domElement.addEventListener(three.PeripheralType.pointermove, (details){
+      mousePosition = three.Vector2(details.clientX, details.clientY);
+      if(control.dragging){}
+    });
+
+    threeJs.addAnimationEvent((dt){
+      mixer?.update(dt);
+      orbit.update();
+    });
+  }
+  void generateSky(){
+    threeJs.scene.add(threeJs.camera);
+    threeJs.camera.lookAt(threeJs.scene.position);
+
+    final sky = Sky.create();
+    sky.scale.setScalar( 10000 );
+    threeJs.scene.add( sky );
+
+    final skyUniforms = sky.material!.uniforms;
+
+    skyUniforms[ 'turbidity' ]['value'] = 20.0;
+    skyUniforms[ 'rayleigh' ]['value'] = 0.08;
+    skyUniforms[ 'mieCoefficient' ]['value'] = 0.0;
+    skyUniforms[ 'mieDirectionalG' ]['value'] = 0.0;
+
+    final parameters = {
+      'elevation': 90.0,
+      'azimuth': 180.0
+    };
+
+    threeJs.scene.add( sky );
+
+    void updateSun(r) {
+      final phi = three.MathUtils.degToRad( 90 - parameters['elevation']!);
+      final theta = three.MathUtils.degToRad( parameters['azimuth']!);
+
+      sun.setFromSphericalCoords( 1, phi, theta );
+      sky.material!.uniforms[ 'sunPosition' ]['value'].setFrom( sun );
+    }
+
+    updateSun('');
+  }
+  void creteHelpers(){
+    List<double> vertices = [500,0,0,-500,0,0,0,0,500,0,0,-500];
+    List<double> colors = [1,0,0,1,0,0,0,0,1,0,0,1];
+    final geometry = three.BufferGeometry();
+    geometry.setAttributeFromString('position',three.Float32BufferAttribute.fromList(vertices, 3, false));
+    geometry.setAttributeFromString('color',three.Float32BufferAttribute.fromList(colors, 3, false));
+
+    final material = three.LineBasicMaterial.fromMap({
+      "vertexColors": true, 
+      "toneMapped": true,
+    })
+      ..depthTest = false
+      ..linewidth = 5.0
+      ..depthWrite = true;
+
+    helper.add(
+      three.LineSegments(geometry,material)
+      ..computeLineDistances()
+      ..scale.setValues(1,1,1)
+    );
+    
+    final viewHelper = ViewHelper(
+      //size: 1.8,
+      offsetType: OffsetType.topRight,
+      offset: three.Vector2(-200, 10),
+      screenSize: const Size(120, 120), 
+      listenableKey: threeJs.globalKey,
+      camera: threeJs.camera,
+      //threeJs: threeJs
+    );
+
+    threeJs.renderer?.autoClear = false;
+    threeJs.postProcessor = ([double? dt]){
+      threeJs.renderer?.render( threeJs.scene, threeJs.camera );
+      viewHelper.render(threeJs.renderer!);
+    };
+  }
+
+  three.Vector2 convertPosition(three.Vector2 location){
+    double x = (location.x / (threeJs.width-MediaQuery.of(context).size.width/6)) * 2 - 1;
+    double y = -(location.y / (threeJs.height-20)) * 2 + 1;
+    return three.Vector2(x,y);
+  }
+
+  void callBacks({required LSICallbacks call}){
+    switch (call) {
+      case LSICallbacks.updatedNav:
+        setState(() {
+          resetNav = !resetNav;
+        });
+        break;
+      case LSICallbacks.clear:
+        setState(() {
+          resetNav = !resetNav;
+            for(final obj in scene.children){
+              obj.dispose();
+          }
+        });
+        break;
+      case LSICallbacks.updateLevel:
+        setState(() {
+
+        });
+        break;
+      default:
+    }
+  }
+  void materialReset(List<three.Object3D> objects){
+    for(final o in objects){
+      if(o is! BoundingBoxHelper && o is! SkeletonHelper){
+        o.material?.vertexColors = false;
+        o.material?.colorWrite = true;
+        o.material?.wireframe = false;
+        materialReset(o.children);
+      }
+    }
+  }
+  void materialWireframe(List<three.Object3D> objects){
+    for(final o in objects){
+      if(o is! BoundingBoxHelper && o is! SkeletonHelper){
+        o.material?.wireframe = true;
+        o.material?.vertexColors = false;
+        o.material?.colorWrite = true;
+        materialWireframe(o.children);
+      }
+    }
+  }
+  void materialWireframeAll(){
+    for(final o in scene.children){
+      if(o is! BoundingBoxHelper && o is! SkeletonHelper){
+        o.material?.wireframe = true;
+        o.material?.vertexColors = false;
+        o.material?.colorWrite = true;
+        materialWireframe(o.children);
+      }
+    }
+  }
+  void materialVertexMode(List<three.Object3D> objects){
+    for(final o in objects){
+      if(o is! BoundingBoxHelper && o is! SkeletonHelper){
+        o.material?.wireframe = false;
+        o.material?.vertexColors = true;
+        o.material?.colorWrite = true;
+        materialVertexMode(o.children);
+      }
+    }
+  }
+  void editModes(List<three.Object3D> obj){
+    for(final o in obj){
+      if(o is! BoundingBoxHelper && o is! SkeletonHelper){
+        o.material?.wireframe = true;
+        o.material?.colorWrite = true;
+        editModes(o.children);
+        if(editInfo.type == EditType.point){
+          three.Points particles = three.Points(o.geometry!.clone(), three.PointsMaterial.fromMap({"color": 0xffff00, "size": 4,'sizeAttenuation': false}));
+          editObject.add(particles);
+        }
+      }
+    }
+  }
+
+  IntersectsInfo getIntersections(List<three.Object3D> objects){
+    IntersectsInfo ii = IntersectsInfo([], []);
+    int i = 0;
+    for(final o in objects){
+      if(o is three.Group || o is three.AnimationObject || o.runtimeType == three.Object3D){
+        final inter = getIntersections(o.children);
+        ii.intersects.addAll(inter.intersects);
+        ii.oInt.addAll(List.filled(inter.intersects.length, i));
+      }
+      else if(o is! three.Bone && o is! BoundingBoxHelper){
+        final inter = raycaster.intersectObject(o, false);
+        ii.intersects.addAll(inter);
+        ii.oInt.addAll(List.filled(inter.length, i));
+      }
+      i++;
+    }
+    return ii;
+  }
+  void boxSelect(bool select){
+    if(intersected == null) return;
+    if(!select){
+      control.detach();
+      for(final o in intersected!.children){
+        if(o is BoundingBoxHelper || o is SkeletonHelper){
+          o.visible = false;
+        }
+      }
+    }
+    else{
+      for(final o in intersected!.children){
+        if(o is BoundingBoxHelper || o is SkeletonHelper){
+          o.visible = true;
+        }
+      }
+      control.attach( intersected );
+    }
+  }
+  void checkIntersection(List<three.Object3D> objects) {
+    IntersectsInfo ii = getIntersections(objects);
+    raycaster.setFromCamera(convertPosition(mousePosition), threeJs.camera);
+    if (ii.intersects.isNotEmpty ) {
+      if(intersected != objects[ii.oInt[0]]) {
+        if(intersected != null){
+          boxSelect(false);
+        }
+        intersected = objects[ii.oInt[0]];
+        boxSelect(true);
+      }
+    }
+    else if(intersected != null){
+      boxSelect(false);
+      intersected = null;
+    }
+
+    if(didClick && intersected != null){
+
+    }
+    else if(didClick && ii.intersects.isEmpty){
+      boxSelect(false);
+      intersected = null;
+    }
+
+    didClick = false;
+    setState(() {
+
+    });
+  }
+  Widget intersectedData(){
+    return ListView(
+      children: [
+        Container(
+          //height: MediaQuery.of(context).size.height - MediaQuery.of(context).size.height/3 - 40,
+          margin: const EdgeInsets.fromLTRB(5,5,5,5),
+          decoration: BoxDecoration(
+            color: CSS.darkTheme.cardColor,
+            borderRadius: BorderRadius.circular(5)
+          ),
+          child: Column(
+            children: [
+              InkWell(
+                onTap: (){
+                  setState(() {
+                    expands[0] = !expands[0];
+                  });
+                },
+                child: Row(
+                  children: [
+                    Icon(!expands[0]?Icons.expand_more:Icons.expand_less, size: 15,),
+                    const Text('\tTransform'),
+                  ],
+                )
+              ),
+              if(expands[0]) Padding(
+                padding: const EdgeInsets.fromLTRB(25,10,5,5),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Location'),
+                    const SizedBox(height: 5,),
+                    Row(
+                      children: [
+                        const Text('X'),
+                        EnterTextFormField(
+                          inputFormatters: [DecimalTextInputFormatter()],
+                          label: intersected!.position.x.toString(),
+                          width: 80,
+                          height: 20,
+                          maxLines: 1,
+                          textStyle: Theme.of(context).primaryTextTheme.bodySmall,
+                          color: Theme.of(context).canvasColor,
+                          onChanged: (val){
+                            intersected!.position.x = double.parse(val);
+                          },
+                          controller: transfromControllers[0],
+                        )
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        const Text('Y'),
+                        EnterTextFormField(
+                          inputFormatters: [DecimalTextInputFormatter()],
+                          label: intersected!.position.y.toString(),
+                          width: 80,
+                          height: 20,
+                          maxLines: 1,
+                          textStyle: Theme.of(context).primaryTextTheme.bodySmall,
+                          color: Theme.of(context).canvasColor,
+                          onChanged: (val){
+                            intersected!.position.y = double.parse(val);
+                          },
+                          controller: transfromControllers[1],
+                        )
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        const Text('Z'),
+                        EnterTextFormField(
+                          inputFormatters: [DecimalTextInputFormatter()],
+                          label: intersected!.position.z.toString(),
+                          width: 80,
+                          height: 20,
+                          maxLines: 1,
+                          textStyle: Theme.of(context).primaryTextTheme.bodySmall,
+                          color: Theme.of(context).canvasColor,
+                          onChanged: (val){
+                            intersected!.position.z = double.parse(val);
+                          },
+                          controller: transfromControllers[2],
+                        )
+                      ],
+                    ),
+
+                    const SizedBox(height: 10,),
+                    const Text('Rotate'),
+                    const SizedBox(height: 5,),
+                    Row(
+                      children: [
+                        const Text('X'),
+                        EnterTextFormField(
+                          inputFormatters: [DecimalTextInputFormatter()],
+                          label: intersected!.rotation.x.toString(),
+                          width: 80,
+                          height: 20,
+                          maxLines: 1,
+                          textStyle: Theme.of(context).primaryTextTheme.bodySmall,
+                          color: Theme.of(context).canvasColor,
+                          onChanged: (val){
+                            intersected!.rotation.x = double.parse(val);
+                          },
+                          controller: transfromControllers[3],
+                        )
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        const Text('Y'),
+                        EnterTextFormField(
+                          inputFormatters: [DecimalTextInputFormatter()],
+                          label: intersected!.rotation.y.toString(),
+                          width: 80,
+                          height: 20,
+                          maxLines: 1,
+                          textStyle: Theme.of(context).primaryTextTheme.bodySmall,
+                          color: Theme.of(context).canvasColor,
+                          onChanged: (val){
+                            intersected!.rotation.y = double.parse(val);
+                          },
+                          controller: transfromControllers[4],
+                        )
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        const Text('Z'),
+                        EnterTextFormField(
+                          inputFormatters: [DecimalTextInputFormatter()],
+                          label: intersected!.rotation.z.toString(),
+                          width: 80,
+                          height: 20,
+                          maxLines: 1,
+                          textStyle: Theme.of(context).primaryTextTheme.bodySmall,
+                          color: Theme.of(context).canvasColor,
+                          onChanged: (val){
+                            intersected!.rotation.z = double.parse(val);
+                          },
+                          controller: transfromControllers[5],
+                        )
+                      ],
+                    ),
+
+                    const SizedBox(height: 10,),
+                    const Text('Scale'),
+                    const SizedBox(height: 5,),
+                    Row(
+                      children: [
+                        const Text('X'),
+                        EnterTextFormField(
+                          inputFormatters: [DecimalTextInputFormatter()],
+                          label: intersected!.scale.x.toString(),
+                          width: 80,
+                          height: 20,
+                          maxLines: 1,
+                          textStyle: Theme.of(context).primaryTextTheme.bodySmall,
+                          color: Theme.of(context).canvasColor,
+                          onChanged: (val){
+                            intersected!.scale.x = double.parse(val);
+                          },
+                          controller: transfromControllers[6],
+                        )
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        const Text('Y'),
+                        EnterTextFormField(
+                          inputFormatters: [DecimalTextInputFormatter()],
+                          label: intersected!.scale.y.toString(),
+                          width: 80,
+                          height: 20,
+                          maxLines: 1,
+                          textStyle: Theme.of(context).primaryTextTheme.bodySmall,
+                          color: Theme.of(context).canvasColor,
+                          onChanged: (val){
+                            intersected!.scale.y = double.parse(val);
+                          },
+                          controller: transfromControllers[7],
+                        )
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        const Text('Z'),
+                        EnterTextFormField(
+                          inputFormatters: [DecimalTextInputFormatter()],
+                          label: intersected!.scale.z.toString(),
+                          width: 80,
+                          height: 20,
+                          maxLines: 1,
+                          textStyle: Theme.of(context).primaryTextTheme.bodySmall,
+                          color: Theme.of(context).canvasColor,
+                          onChanged: (val){
+                            intersected!.scale.z = double.parse(val);
+                          },
+                          controller: transfromControllers[8],
+                        )
+                      ],
+                    )
+                  ],
+                )
+              )
+            ],
+          ),
+        ),
+        Container(
+          //height: MediaQuery.of(context).size.height - MediaQuery.of(context).size.height/3 - 40,
+          margin: const EdgeInsets.fromLTRB(5,5,5,5),
+          decoration: BoxDecoration(
+            color: CSS.darkTheme.cardColor,
+            borderRadius: BorderRadius.circular(5)
+          ),
+          child: Column(
+            children: [
+              InkWell(
+                onTap: (){
+                  setState(() {
+                    expands[1] = !expands[1];
+                  });
+                },
+                child: Row(
+                  children: [
+                    Icon(!expands[1]?Icons.expand_more:Icons.expand_less, size: 15,),
+                    const Text('\tMaterial'),
+                  ],
+                )
+              ),
+              if(expands[1]) Padding(
+                padding: const EdgeInsets.fromLTRB(25,10,5,5),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+
+                  ]
+                )
+              )
+            ]
+          )
+        ),
+        if(animationClips[intersected?.name] != null) Container(
+          //height: MediaQuery.of(context).size.height - MediaQuery.of(context).size.height/3 - 40,
+          margin: const EdgeInsets.fromLTRB(5,5,5,5),
+          decoration: BoxDecoration(
+            color: CSS.darkTheme.cardColor,
+            borderRadius: BorderRadius.circular(5)
+          ),
+          child: Column(
+            children: [
+              InkWell(
+                onTap: (){
+                  setState(() {
+                    expands[3] = !expands[3];
+                  });
+                },
+                child: Row(
+                  children: [
+                    Icon(!expands[3]?Icons.expand_more:Icons.expand_less, size: 15,),
+                    const Text('\t Animation'),
+                  ],
+                )
+              ),
+              if(expands[3]) Padding(
+                padding: const EdgeInsets.fromLTRB(25,10,5,5),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: getAnimations()
+                )
+              )
+            ]
+          )
+        ),
+      ],
+    );
+  }
+  List<Widget> getAnimations(){
+    List<Widget> widgets = [];
+    List animations = animationClips[intersected?.name]!;
+
+    for(final animation in animations){
+      widgets.add(
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('${animation.name.toUpperCase()}:'),
+            InkWell(
+              onTap: (){
+                mixer = three.AnimationMixer(intersected!);
+                mixer?.clipAction(animation)?.play();
+                currentAnimation = animation;
+
+                setState(() {});
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  color: CSS.darkTheme.canvasColor,
+                  borderRadius: BorderRadius.circular(5)
+                ),
+                child: Text(mixer!=null && currentAnimation == animation?'STOP':'PLAY'),
+              ),
+            )
+          ],
+        )
+      );
+    }
+
+    return widgets;
+  }
+  Widget sceneCollection(){
+    List<Widget> widgets = [
+      Container(
+        margin: const EdgeInsets.fromLTRB(5, 0, 5, 0),
+        height: 25,
+        child: const Row(
+          //mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Icon(Icons.inventory ,size: 15,),
+            Text('\tScene Collection'),
+          ],
+        ),
+      ) 
+    ];
+
+    for(final obj in scene.children){
+      final child = obj;
+      widgets.add(
+        InkWell(
+          onTap: (){
+            boxSelect(false);
+            intersected = child;
+            boxSelect(true);
+            setState(() {
+              
+            });
+          },
+          child: Container(
+            margin: const EdgeInsets.fromLTRB(5, 0, 5, 0),
+            padding: const EdgeInsets.fromLTRB(15, 0, 5, 0),
+            height: 25,
+            color: child == intersected?CSS.darkTheme.secondaryHeaderColor:CSS.darkTheme.canvasColor,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(child.name),
+                InkWell(
+                  onTap: (){
+                    setState(() {
+                      child.visible = !child.visible;
+                    });
+                  },
+                  child: Icon(child.visible?Icons.visibility:Icons.visibility_off,size: 15,),
+                )
+              ],
+            ),
+          )
+        )
+      );
+    } 
+
+    return ListView(
+      children: widgets,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    deviceWidth = MediaQuery.of(context).size.width;
+    double safePadding = MediaQuery.of(context).padding.top;
+    deviceHeight = MediaQuery.of(context).size.height-safePadding-25;
+    return MaterialApp(
+      theme: CSS.darkTheme,
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        appBar: PreferredSize(
+          preferredSize: Size(deviceWidth,50), 
+          child:Navigation(
+            height: 25,
+            callback: callBacks,
+            reset: resetNav,
+            navData: [
+                NavItems(
+                  name: 'File',
+                  subItems:[ 
+                    NavItems(
+                      name: 'New',
+                      icon: Icons.new_label_outlined,
+                      function: (data){
+                        callBacks(call: LSICallbacks.clear);
+                      }
+                    ),
+                    NavItems(
+                      name: 'Open',
+                      icon: Icons.folder_open,
+                      function: (data){
+                        setState(() {
+                          callBacks(call: LSICallbacks.clear);
+                          GetFilePicker.pickFiles(['spark','jle']).then((value)async{
+                            if(value != null){
+                              for(int i = 0; i < value.files.length;i++){
+
+                              }
+                            }
+                          });
+                        });
+                      }
+                    ),
+                    NavItems(
+                      name: 'Save',
+                      icon: Icons.save,
+                      function: (data){
+                        callBacks(call: LSICallbacks.updatedNav);
+                        setState(() {
+
+                        });
+                      }
+                    ),
+                    NavItems(
+                      name: 'Save As',
+                      icon: Icons.save_outlined,
+                      function: (data){
+                        setState(() {
+                          callBacks(call: LSICallbacks.updatedNav);
+                          if(!kIsWeb){
+                            GetFilePicker.saveFile('untilted', 'jle').then((path){
+                              setState(() {
+
+                              });
+                            });
+                          }
+                          else if(kIsWeb){
+                          }
+                        });
+                      }
+                    ),
+                    NavItems(
+                      name: 'Import',
+                      icon: Icons.file_download_outlined,
+                      subItems: [
+                        NavItems(
+                          name: 'obj',
+                          icon: Icons.view_in_ar_rounded,
+                          function: (data) async{
+                            callBacks(call: LSICallbacks.updatedNav);
+                            final manager = three.LoadingManager();
+                            three.MaterialCreator? materials;
+                            final objs = await GetFilePicker.pickFiles(['obj']);
+                            final mtls = await GetFilePicker.pickFiles(['mtl']);
+                            if(mtls != null){
+                              for(int i = 0; i < mtls.files.length;i++){
+                                final mtlLoader = three.MTLLoader(manager);
+                                final last = mtls.files[i].path!.split('/').last;
+                                mtlLoader.setPath(mtls.files[i].path!.replaceAll(last,''));
+                                materials = await mtlLoader.fromPath(last);
+                                await materials?.preload();
+                              }
+                            }
+                            if(objs != null){
+                              for(int i = 0; i < objs.files.length;i++){
+                                final loader = three.OBJLoader();
+                                loader.setMaterials(materials);
+                                final object = await loader.fromPath(objs.files[i].path!);
+                                final three.BoundingBox box = three.BoundingBox();
+                                box.setFromObject(object!);
+                                object.scale = three.Vector3(0.01,0.01,0.01);        
+                                BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
+                                object.name = objs.files[i].name.split('.').first;
+                                scene.add(object.add(h));
+                              }
+                            }
+                            setState(() {});
+                          },
+                        ),
+                        NavItems(
+                          name: 'stl',
+                          icon: Icons.view_in_ar_rounded,
+                          function: (data){
+                            callBacks(call: LSICallbacks.updatedNav);
+                            GetFilePicker.pickFiles(['stl']).then((value)async{
+                              if(value != null){
+                                for(int i = 0; i < value.files.length;i++){
+                                  final object = await three.STLLoader().fromPath(value.files[i].path!);
+                                  final three.BoundingBox box = three.BoundingBox();
+                                  box.setFromObject(object!);
+                                  BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
+                                  object.name = value.files[i].name.split('.').first;
+                                  scene.add(object.add(h));
+                                }
+                              }
+                              setState(() {});
+                            });
+                          },
+                        ),
+                        NavItems(
+                          name: 'ply',
+                          icon: Icons.view_in_ar_rounded,
+                          function: (data){
+                            callBacks(call: LSICallbacks.updatedNav);
+                            GetFilePicker.pickFiles(['ply']).then((value)async{
+                              if(value != null){
+                                for(int i = 0; i < value.files.length;i++){
+                                  final buffer = await three.PLYLoader().fromPath(value.files[i].path!);
+                                  final object = three.Mesh(buffer,three.MeshPhongMaterial());
+                                  final three.BoundingBox box = three.BoundingBox();
+                                  box.setFromObject(object);
+                                  object.scale = three.Vector3(0.01,0.01,0.01);
+                                  BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
+                                  object.name = value.files[i].name.split('.').first;
+                                  scene.add(object.add(h));
+                                }
+                              }
+                              setState(() {});
+                            });
+                          },
+                        ),
+                        NavItems(
+                          name: 'glb/gltf',
+                          icon: Icons.view_in_ar_rounded,
+                          function: (data){
+                            callBacks(call: LSICallbacks.updatedNav);
+                            GetFilePicker.pickFiles(['glb','gltf']).then((value)async{
+                              if(value != null){
+                                for(int i = 0; i < value.files.length;i++){
+                                  final loader = three.GLTFLoader();
+                                  final String path = value.files[i].path!;
+                                  loader.setPath(path.replaceAll(path.split('/').last, ''));
+                                  final object = await three.GLTFLoader().fromPath(value.files[i].path!);
+                                  final three.BoundingBox box = three.BoundingBox();
+                                  box.setFromObject(object!.scene);
+                                  BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
+                                  object.scene.name = value.files[i].name.split('.').first;
+                                  if(object.animations != null) animationClips[object.scene.name] = object.animations!;
+                                  final skeleton = SkeletonHelper(object.scene);
+                                  skeleton.visible = false;
+                                  scene.add(object.scene..add(h)..add(skeleton));
+                                }
+                              }
+                              setState(() {});
+                            });
+                          },
+                        ),
+                        NavItems(
+                          name: 'fbx',
+                          icon: Icons.view_in_ar_rounded,
+                          function: (data){
+                            callBacks(call: LSICallbacks.updatedNav);
+                            setState(() {
+
+                            });
+                            GetFilePicker.pickFiles(['fbx']).then((value)async{
+                              if(value != null){
+                                for(int i = 0; i < value.files.length;i++){
+                                  final object = await three.FBXLoader(width: 1,height: 1).fromPath(value.files[i].path!);
+                                  final three.BoundingBox box = three.BoundingBox();
+                                  box.setFromObject(object!);
+                                  BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
+                                  final skeleton = SkeletonHelper(object)..visible = false;
+                                  object.scale = three.Vector3(0.01,0.01,0.01);
+                                  object.name = value.files[i].name.split('.').first;
+                                  animationClips[object.name] = object.animations;
+                                  scene.add(object..add(h)..add(skeleton));
+                                }
+                              }
+                            });
+                          },
+                        ),
+                        NavItems(
+                          name: 'usdz',
+                          icon: Icons.view_in_ar_rounded,
+                          function: (data){
+                            callBacks(call: LSICallbacks.updatedNav);
+                            setState(() {
+
+                            });
+                            GetFilePicker.pickFiles(['usdz']).then((value)async{
+                              if(value != null){
+                                for(int i = 0; i < value.files.length;i++){
+                                  final object = await three.USDZLoader().fromPath(value.files[i].path!);
+                                  final three.BoundingBox box = three.BoundingBox();
+                                  box.setFromObject(object!);
+                                  BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
+                                  object.scale = three.Vector3(0.01,0.01,0.01);
+                                  object.name = value.files[i].name.split('.').first;
+                                  scene.add(object.add(h));
+                                }
+                              }
+                            });
+                          },
+                        ),
+                        NavItems(
+                          name: 'collada',
+                          icon: Icons.view_in_ar_rounded,
+                          function: (data){
+                            callBacks(call: LSICallbacks.updatedNav);
+                            setState(() {
+
+                            });
+                            GetFilePicker.pickFiles(['dae']).then((value)async{
+                              if(value != null){
+                                for(int i = 0; i < value.files.length;i++){
+                                  final mesh = await three.ColladaLoader().fromPath(value.files[i].path!);
+                                  final object = mesh!.scene!;
+                                  final three.BoundingBox box = three.BoundingBox();
+                                  box.setFromObject(object);
+                                  BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
+                                  object.name = value.files[i].name.split('.').first;
+                                  scene.add(object.add(h));
+                                }
+                              }
+                            });
+                          },
+                        ),
+                        NavItems(
+                          name: 'xyz',
+                          icon: Icons.view_in_ar_rounded,
+                          function: (data){
+                            callBacks(call: LSICallbacks.updatedNav);
+                            setState(() {
+
+                            });
+                            GetFilePicker.pickFiles(['xyz']).then((value)async{
+                              if(value != null){
+                                for(int i = 0; i < value.files.length;i++){
+                                  final mesh = await three.XYZLoader().fromPath(value.files[i].path!);
+                                  final object = three.Mesh(mesh,three.MeshPhongMaterial());
+                                  final three.BoundingBox box = three.BoundingBox();
+                                  box.setFromObject(object);
+                                  BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
+                                  object.name = value.files[i].name.split('.').first;
+                                  scene.add(object.add(h));
+                                }
+                              }
+                            });
+                          },
+                        ),
+                        NavItems(
+                          name: 'vox',
+                          icon: Icons.view_in_ar_rounded,
+                          function: (data){
+                            callBacks(call: LSICallbacks.updatedNav);
+                            setState(() {
+
+                            });
+                            GetFilePicker.pickFiles(['vox']).then((value)async{
+                              if(value != null){
+                                for(int i = 0; i < value.files.length;i++){
+                                  final chunks = await three.VOXLoader().fromPath(value.files[i].path!);
+                                  final object = three.Group();
+                                  for (int i = 0; i < chunks!.length; i ++ ) {
+                                    final chunk = chunks[ i ];
+                                    final mesh = three.VOXMesh( chunk );
+                                    mesh.scale.setScalar( 0.0015 );
+                                    object.add( mesh );
+                                  }
+                                  final three.BoundingBox box = three.BoundingBox();
+                                  box.setFromObject(object);
+                                  BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
+                                  object.name = value.files[i].name.split('.').first;
+                                  scene.add(object.add(h));
+                                }
+                              }
+                            });
+                          },
+                        ),
+                      ]
+                    ),
+                    NavItems(
+                      name: 'Export',
+                      icon: Icons.file_upload_outlined,
+                      subItems: [
+                        NavItems(
+                          name: 'stl',
+                          icon: Icons.file_upload_outlined,
+                          subItems: [
+                            NavItems(
+                              name: 'ascii',
+                              icon: Icons.file_copy_outlined,
+                              function: (data){
+                                callBacks(call: LSICallbacks.updatedNav);
+                                STLExporter.exportScene('untilted', scene);
+                              }
+                            ),
+                            NavItems(
+                              name: 'binary',
+                              icon: Icons.image,
+                              function: (data){
+                                setState(() {
+                                  callBacks(call: LSICallbacks.updatedNav);
+                                  STLBinaryExporter.exportScene('untilted', scene);
+                                });
+                              }
+                            )
+                          ]
+                        ),
+                        NavItems(
+                          name: 'ply',
+                          icon: Icons.file_upload_outlined,
+                          subItems: [
+                            NavItems(
+                              name: 'ascii',
+                              icon: Icons.file_copy_outlined,
+                              function: (data){
+                                callBacks(call: LSICallbacks.updatedNav);
+                                PLYExporter.exportScene('untilted', scene);
+                              }
+                            ),
+                            NavItems(
+                              name: 'binary',
+                              icon: Icons.image,
+                              function: (data){
+                                setState(() {
+                                  callBacks(call: LSICallbacks.updatedNav);
+                                  PLYExporter.exportScene('untilted', scene, PLYOptions(type: ExportTypes.binary));
+                                });
+                              }
+                            )
+                          ]
+                        ),
+                        NavItems(
+                          name: 'obj',
+                          icon: Icons.file_copy_outlined,
+                          function: (data){
+                            callBacks(call: LSICallbacks.updatedNav);
+                            OBJExporter.exportScene('untilted', scene);
+                          }
+                        ),
+                        NavItems(
+                          name: 'usdz',
+                          icon: Icons.file_copy_outlined,
+                          function: (data){
+                            callBacks(call: LSICallbacks.updatedNav);
+                            USDZExporter().exportScene('untilted', scene);
+                          }
+                        ),
+                        NavItems(
+                          name: 'json',
+                          icon: Icons.file_copy_outlined,
+                          function: (data){
+                            callBacks(call: LSICallbacks.updatedNav);
+                            GetFilePicker.saveFile('untilted', 'json').then((path){
+
+                            });
+                          }
+                        ),
+                        NavItems(
+                          name: 'level image',
+                          icon: Icons.image,
+                          function: (data){
+                            setState(() {
+                              callBacks(call: LSICallbacks.updatedNav);
+                              GetFilePicker.saveFile('untilted', 'png').then((path){
+
+                              });
+                            });
+                          }
+                        )
+                      ]
+                    ),
+                    NavItems(
+                      name: 'Quit',
+                      icon: Icons.exit_to_app,
+                      function: (data){
+                        callBacks(call: LSICallbacks.updatedNav);
+                        widget.setProject(null);
+                      }
+                    ),
+                  ]
+                ),
+                NavItems(
+                  name: 'View',
+                  subItems:[
+                    NavItems(
+                      name: 'Reset Camera',
+                      icon: Icons.camera_indoor_outlined,
+                      function: (e){
+                        callBacks(call: LSICallbacks.updatedNav);
+                        threeJs.camera.position.setFrom(resetCamPos);
+                      }
+                    )
+                  ]
+                ),
+                NavItems(
+                  name: 'Add',
+                  subItems:[ 
+                    NavItems(
+                      name: 'Mesh',
+                      icon: Icons.share,
+                      subItems: [
+                        NavItems(
+                          name: 'Plane',
+                          icon: Icons.view_in_ar_rounded,
+                          function: (data) async{
+                            callBacks(call: LSICallbacks.updatedNav);
+                            final object = three.Mesh(three.PlaneGeometry(),three.MeshStandardMaterial.fromMap({'side': three.DoubleSide, 'flatShading': true}));
+                            final three.BoundingBox box = three.BoundingBox();
+                            box.setFromObject(object);     
+                            BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
+                            object.name = 'Plane';
+                            scene.add(object.add(h));
+                          },
+                        ),
+                        NavItems(
+                          name: 'Cube',
+                          icon: Icons.view_in_ar_rounded,
+                          function: (data){
+                            callBacks(call: LSICallbacks.updatedNav);
+                            final object = three.Mesh(three.BoxGeometry(),three.MeshStandardMaterial.fromMap({'flatShading': true}));
+                            final three.BoundingBox box = three.BoundingBox();
+                            box.setFromObject(object);     
+                            BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
+                            object.receiveShadow = true;
+                            object.name = 'Cube';
+                            scene.add(object.add(h));
+                          },
+                        ),
+                        NavItems(
+                          name: 'Circle',
+                          icon: Icons.view_in_ar_rounded,
+                          function: (data){
+                            callBacks(call: LSICallbacks.updatedNav);
+                            final object = three.Mesh(CircleGeometry(),three.MeshStandardMaterial.fromMap({'side': three.DoubleSide, 'flatShading': true}));
+                            final three.BoundingBox box = three.BoundingBox();
+                            box.setFromObject(object);     
+                            BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
+                            object.name = 'Circle';
+                            scene.add(object.add(h));
+                          },
+                        ),
+                        NavItems(
+                          name: 'Sphere',
+                          icon: Icons.view_in_ar_rounded,
+                          function: (data){
+                            callBacks(call: LSICallbacks.updatedNav);
+                            final object = three.Mesh(three.SphereGeometry(),three.MeshStandardMaterial.fromMap({'flatShading': true}));
+                            final three.BoundingBox box = three.BoundingBox();
+                            box.setFromObject(object);     
+                            BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
+                            object.name = 'Sphere';
+                            scene.add(object.add(h));
+                          },
+                        ),
+                        NavItems(
+                          name: 'Ico Sphere',
+                          icon: Icons.view_in_ar_rounded,
+                          function: (data){
+                            callBacks(call: LSICallbacks.updatedNav);
+                            final object = three.Mesh(IcosahedronGeometry(),three.MeshStandardMaterial.fromMap({'flatShading': true}));
+                            final three.BoundingBox box = three.BoundingBox();
+                            box.setFromObject(object);     
+                            BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
+                            object.name = 'Ico Sphere';
+                            scene.add(object.add(h));
+                          },
+                        ),
+                        NavItems(
+                          name: 'Cylinder',
+                          icon: Icons.view_in_ar_rounded,
+                          function: (data){
+                            callBacks(call: LSICallbacks.updatedNav);
+                            final object = three.Mesh(CylinderGeometry(),three.MeshStandardMaterial.fromMap({'flatShading': true}));
+                            final three.BoundingBox box = three.BoundingBox();
+                            box.setFromObject(object);     
+                            BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
+                            object.name = 'Cylinder';
+                            scene.add(object.add(h));
+                          },
+                        ),
+                        NavItems(
+                          name: 'Cone',
+                          icon: Icons.view_in_ar_rounded,
+                          function: (data){
+                            callBacks(call: LSICallbacks.updatedNav);
+                            final object = three.Mesh(ConeGeometry(),three.MeshStandardMaterial.fromMap({'flatShading': true}));
+                            final three.BoundingBox box = three.BoundingBox();
+                            box.setFromObject(object);     
+                            BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
+                            object.name = 'Cone';
+                            scene.add(object.add(h));
+                          },
+                        ),
+                        NavItems(
+                          name: 'Torus',
+                          icon: Icons.view_in_ar_rounded,
+                          function: (data){
+                            callBacks(call: LSICallbacks.updatedNav);
+                            final object = three.Mesh(TorusGeometry(),three.MeshStandardMaterial.fromMap({'flatShading': true}));
+                            final three.BoundingBox box = three.BoundingBox();
+                            box.setFromObject(object);     
+                            BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
+                            object.name = 'Torus';
+                            scene.add(object.add(h));
+                          },
+                        ),
+                      ]
+                    ),
+                    NavItems(
+                      name: 'Text',
+                      icon: Icons.view_in_ar_rounded,
+                      function: (e) async{
+                        if(font == null){
+                          final loader = three.FontLoader();
+                          font = await loader.fromAsset( 'assets/helvetiker_bold.typeface.json');
+                        }
+                        final text = three.TextGeometry( 'Text', three.TextGeometryOptions(
+                          font: font,
+                          size: 50,
+                          depth: 0,
+                          curveSegments: 10,
+                          bevelThickness: 5,
+                          bevelSize: 1.5,
+                          bevelEnabled: true,
+                          bevelSegments: 10,
+                        ));
+                        final obj = three.Mesh(text,three.MeshPhongMaterial.fromMap({'flatShading': true}));
+                        final three.BoundingBox box = three.BoundingBox();
+                        box.setFromObject(obj);     
+                        BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
+                        obj.name = 'Text';
+                        obj.scale = three.Vector3(0.01,0.01,0.01);
+                        scene.add(obj.add(h));
+                        setState(() {});
+                      }
+                    ),
+                  ]
+                ),
+              ]
+            ),
+        ),
+        body: Row(
+          children: [
+            Column(
+              children: [
+                Stack(
+                  children: [
+                    SizedBox(
+                      width: MediaQuery.of(context).size.width*.8,
+                      height: MediaQuery.of(context).size.height-285,
+                      child: threeJs.build(),
+                    ),
+                    Positioned(
+                      left: 10,
+                      top: 10,
+                      child: Column(
+                        children: [
+                          InkWell(
+                            onTap: (){
+                              setState(() {
+                                control.setMode(GizmoType.translate);
+                              });
+                            },
+                            child:Container(
+                              width: 35,
+                              height: 35,
+                              color: threeJs.mounted && control.enabled && control.mode == GizmoType.translate? CSS.darkTheme.secondaryHeaderColor.withAlpha(200):CSS.darkTheme.cardColor.withAlpha(200),
+                              alignment: Alignment.center,
+                              child: const Icon(
+                                Icons.control_camera,
+                                size: 30,
+                              ),
+                            ),
+                          ),
+                          InkWell(
+                            onTap: (){
+                              setState(() {
+                                control.setMode(GizmoType.rotate);
+                              });
+                            },
+                            child:Container(
+                              width: 35,
+                              height: 35,
+                              margin: const EdgeInsets.only(top: 2),
+                              color: threeJs.mounted && control.enabled && control.mode == GizmoType.rotate? CSS.darkTheme.secondaryHeaderColor.withAlpha(200):CSS.darkTheme.cardColor.withAlpha(200),
+                              alignment: Alignment.center,
+                              child: const Icon(
+                                Icons.cached,
+                                size: 30,
+                              ),
+                            ),
+                          ),
+                          InkWell(
+                            onTap: (){
+                              setState(() {
+                                control.setMode(GizmoType.scale);
+                              });
+                            },
+                            child: Container(
+                              width: 35,
+                              height: 35,
+                              margin: const EdgeInsets.only(top: 2),
+                              color: threeJs.mounted && control.enabled && control.mode == GizmoType.scale? CSS.darkTheme.secondaryHeaderColor.withAlpha(200):CSS.darkTheme.cardColor.withAlpha(200),
+                              alignment: Alignment.center,
+                              child: const Icon(
+                                Icons.aspect_ratio,
+                                size: 30,
+                              ),
+                            )
+                          )
+                        ],
+                      )
+                    ),
+                    Positioned(
+                      right: 10,
+                      top: 10,
+                      child: Row(
+                        children: [
+                          InkWell(
+                            onTap: (){
+                              materialWireframeAll();
+                              setState(() {
+                                shading = ShadingType.wireframe;
+                              });
+                            },
+                            child:Container(
+                              width: 25,
+                              height: 25,
+                              decoration: BoxDecoration(
+                                borderRadius: const BorderRadius.only(
+                                  topLeft: Radius.circular(5),
+                                  bottomLeft: Radius.circular(5)
+                                ),
+                                color: shading != ShadingType.wireframe?CSS.darkTheme.cardColor:CSS.darkTheme.secondaryHeaderColor,
+                              ),
+                              alignment: Alignment.center,
+                              child: const Icon(
+                                Icons.sports_basketball_outlined,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                          InkWell(
+                            onTap: (){
+                              materialReset(scene.children);
+                              setState(() {
+                                shading = ShadingType.solid;
+                              });
+                            },
+                            child:Container(
+                              margin: const EdgeInsets.fromLTRB(2,0,2,0),
+                              width: 25,
+                              height: 25,
+                              decoration: BoxDecoration(
+                                color: shading == ShadingType.solid?CSS.darkTheme.secondaryHeaderColor:CSS.darkTheme.cardColor,
+                              ),
+                              alignment: Alignment.center,
+                              child: const Icon(
+                                Icons.brightness_1,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                          InkWell(
+                            onTap: (){
+                              materialVertexMode(scene.children);
+                              setState(() {
+                                shading = ShadingType.material;
+                              });
+                            },
+                            child:Container(
+                              margin: const EdgeInsets.fromLTRB(0,0,2,0),
+                              width: 25,
+                              height: 25,
+                              decoration: BoxDecoration(
+                                color: shading == ShadingType.material?CSS.darkTheme.secondaryHeaderColor:CSS.darkTheme.cardColor,
+                              ),
+                              alignment: Alignment.center,
+                              child: const Icon(
+                                Icons.blur_on_rounded,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                          InkWell(
+                            onTap: (){
+
+                            },
+                            child:Container(
+                              width: 25,
+                              height: 25,
+                              decoration: BoxDecoration(
+                                borderRadius: const BorderRadius.only(
+                                  topRight: Radius.circular(5),
+                                  bottomRight: Radius.circular(5)
+                                ),
+                                color: CSS.darkTheme.cardColor,
+                              ),
+                              alignment: Alignment.center,
+                              child: const Icon(
+                                Icons.radio_button_off,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                        ]
+                      )
+                    ),
+                  ]
+                ),
+                Container(
+                  width: MediaQuery.of(context).size.width*.8,
+                  height: 260,
+                  child: Column(
+                    children: [
+                      Container(
+                        child: Row(
+                          children: [
+                            InkWell(
+                              onTap: (){
+                                consoleSelected = false;
+                                setState(() {
+                                  
+                                });
+                              },
+                              child: Container(
+                                margin: EdgeInsets.only(left: 5,right: 5),
+                                width: 80,
+                                height: 25,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: consoleSelected?Theme.of(context).cardColor:Theme.of(context).secondaryHeaderColor,
+                                  borderRadius: BorderRadius.circular(5)
+                                ),
+                                child: Text(
+                                  'Project',
+                                  style: Theme.of(context).primaryTextTheme.bodySmall,
+                                ),
+                              ),
+                            ),
+                            InkWell(
+                              onTap: (){
+                                consoleSelected = true;
+                                setState(() {
+                                  
+                                });
+                              },
+                              child: Container(
+                                width: 80,
+                                height: 25,
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: consoleSelected?Theme.of(context).secondaryHeaderColor:Theme.of(context).cardColor,
+                                  borderRadius: BorderRadius.circular(5)
+                                ),
+                                child: Text(
+                                  'Console',
+                                  style: Theme.of(context).primaryTextTheme.bodySmall,
+                                ),
+                              ),
+                            )
+                          ],
+                        ),
+                      ),
+                      Container(
+                        child: Row(
+                          children: [
+
+                          ],
+                        ),
+                      )
+                    ],
+                  ),
+                )
+             ],
+            ),
+            Container(
+              width: MediaQuery.of(context).size.width*.2,
+              color: CSS.darkTheme.cardColor,
+              child: Column(
+                children: [
+                  Container(
+                    height: MediaQuery.of(context).size.height/3,
+                    margin: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      color: CSS.darkTheme.canvasColor,
+                      borderRadius: BorderRadius.circular(5)
+                    ),
+                    child: threeJs.mounted?sceneCollection():Container(),
+                  ),
+                  Container(
+                    height: MediaQuery.of(context).size.height - MediaQuery.of(context).size.height/3 - 40,
+                    margin: const EdgeInsets.fromLTRB(5,0,5,5),
+                    decoration: BoxDecoration(
+                      color: CSS.darkTheme.canvasColor,
+                      borderRadius: BorderRadius.circular(5)
+                    ),
+                    child: threeJs.mounted && intersected != null?intersectedData():Container(),
+                  )
+                ],
+              ),
+            ),
+          ],
+        )
+      ),
+    );
+  }
+}
+
+
+class DecimalTextInputFormatter extends TextInputFormatter {
+  DecimalTextInputFormatter({this.decimalRange = 6});
+
+  final int decimalRange;
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue, // unused.
+    TextEditingValue newValue,
+  ) {
+    TextSelection newSelection = newValue.selection;
+    String truncated = newValue.text;
+
+    //if (decimalRange != null) {
+      String value = newValue.text;
+
+      if (value.contains(".") &&
+          value.substring(value.indexOf(".") + 1).length > decimalRange) {
+        truncated = oldValue.text;
+        newSelection = oldValue.selection;
+      } else if (value == ".") {
+        truncated = "0.";
+
+        newSelection = newValue.selection.copyWith(
+          baseOffset: math.min(truncated.length, truncated.length + 1),
+          extentOffset: math.min(truncated.length, truncated.length + 1),
+        );
+      }
+
+      return TextEditingValue(
+        text: truncated,
+        selection: newSelection,
+        composing: TextRange.empty,
+      );
+    //}
+    //return newValue;
+  }
+}
