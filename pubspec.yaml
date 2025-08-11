@@ -30,5 +30,9 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^5.0.0
 
+dependency_overrides:
+  three_js_advanced_loaders: 
+    path: ../../Apps/three_js-main/packages/three_js_advanced_loaders
+
 flutter:
   uses-material-design: true

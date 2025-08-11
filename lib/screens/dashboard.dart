@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:process_run/shell.dart';
 import 'package:css/css.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:three_forge/screens/thumbnail_creator.dart';
 //import 'package:package_info_plus/package_info_plus.dart';
 
 class Dashboard extends StatefulWidget {
@@ -141,6 +142,33 @@ class _CodePage extends State<Dashboard>{
     if(buildContext != null){
       Navigator.pop(buildContext);
     }
+  }
+
+  Widget createTumbnailModal() {
+    return StatefulBuilder(builder: (context1, setState) {
+      return Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          height: 320,
+          width: 260,
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: const BorderRadius.all(Radius.circular(10)),
+            boxShadow: [
+              BoxShadow(
+                color: Theme.of(context).shadowColor,
+                blurRadius: 5,
+                offset: const Offset(2, 2),
+              ),
+            ]
+          ),
+          child: LayoutBuilder(builder: (context, constraints) {
+            return ThumbnailCreator();
+          })
+        )
+      );
+    });
   }
 
   Widget editNewProjectModal() {
@@ -742,7 +770,19 @@ class _CodePage extends State<Dashboard>{
                           ],
                         ),
                       ),
-                      Icon(Icons.settings, size: 20,),
+                      InkWell(
+                        onTap: (){
+                          showDialog(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return createTumbnailModal();
+                            }
+                          ).then((value){
+                            modalReset(null);
+                          });
+                        },
+                        child: Icon(Icons.settings, size: 20,),
+                      ),
                       SizedBox(width: 10,)
                     ],
                   ),
