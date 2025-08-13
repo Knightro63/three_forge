@@ -89,7 +89,33 @@ class EnterTextFormField extends StatelessWidget{
   }
 }
 
-class LSIWidgets{
+class SavedWidgets{
+  static Widget checkBox(bool enable){
+    return Container(
+      margin: const EdgeInsets.only(right:10),
+      width: 15,
+      height: 15,
+      decoration: BoxDecoration(
+        borderRadius: const BorderRadius.all(Radius.circular(5)),
+        color: (enable)?CSS.darkTheme.secondaryHeaderColor:CSS.darkTheme.cardColor,
+        border: (enable)?Border.all(width: 2, color: CSS.darkTheme.secondaryHeaderColor):Border.all(width: 2, color: CSS.darkTheme.primaryTextTheme.bodyMedium!.color!),
+        boxShadow: [BoxShadow(
+          color: CSS.darkTheme.shadowColor,
+          blurRadius: 5,
+          offset: const Offset(0,2),
+        ),]
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children:[
+        Icon(
+          Icons.check,
+          color: CSS.darkTheme.cardColor,
+          size: 10,
+        ),
+      ]),
+    );
+  }
   static Widget squareButton({
     Key? key,
     bool iconFront = false,

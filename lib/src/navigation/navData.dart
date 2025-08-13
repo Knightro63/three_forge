@@ -9,7 +9,8 @@ class NavItems{
     this.reset = false,
     this.input,
     this.quarterTurns = 0,
-    this.show = true
+    this.show = true,
+    this.useName = true,
   });
 
   String name;
@@ -20,6 +21,7 @@ class NavItems{
   bool reset;
   int quarterTurns;
   bool show;
+  bool useName;
 }
 
 class NavTab{

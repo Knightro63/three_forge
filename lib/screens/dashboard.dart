@@ -1,17 +1,20 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
+import 'package:css/css.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:process_run/shell.dart';
-import 'package:css/css.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:three_forge/screens/thumbnail_creator.dart';
+import 'package:three_forge/src/navigation/navigation.dart';
+import 'package:three_forge/src/styles/globals.dart';
 //import 'package:package_info_plus/package_info_plus.dart';
 
 class Dashboard extends StatefulWidget {
-  Dashboard({super.key, required this.setProject});
+  Dashboard({super.key, required this.setProject, required this.onDone});
   final void Function(Map<String,dynamic>?) setProject;
+  final void Function() onDone;
   @override
   _CodePage createState() => _CodePage();
 }
@@ -131,6 +134,22 @@ class _CodePage extends State<Dashboard>{
       })
     );
 
+    bool exists = await Directory('$fileLocation/$projectName/assets').exists();
+    if(!exists) await Directory('$fileLocation/$projectName/assets').create();
+
+    await File('$fileLocation/$projectName/assets/gameScene.json').writeAsString(json.encode({
+        'title': newProjectController.text,
+        'name': projectName,
+        'dateCreated': DateTime.now().toString(),
+      })
+    );
+
+    exists = await Directory('$fileLocation/$projectName/assets/thumbnails').exists();
+    if(!exists) await Directory('$fileLocation/$projectName/assets/thumbnails').create();
+
+    exists = await Directory('$fileLocation/$projectName/assets/models').exists();
+    if(!exists) await Directory('$fileLocation/$projectName/assets/models').create();
+
     await addProject(newProjectController.text, '$fileLocation/$projectName', projectName!, DateTime.now().toString());
     setState(() {});
   }
@@ -175,7 +194,7 @@ class _CodePage extends State<Dashboard>{
     bool creating = false;
     newProjectController.text = 'My Project';
     projectName = 'my_project';
-    newProjectLocationController.text = '';
+    newProjectLocationController.text = Directory.current.path;
     errorMessage = null;
 
     return StatefulBuilder(builder: (context1, setState) {
@@ -579,14 +598,68 @@ class _CodePage extends State<Dashboard>{
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      theme: CSS.darkTheme,
+      theme: theme,
       debugShowCheckedModeBanner: false,
       home: Scaffold(
         body: Column(
           children: [
             Container(
-              margin: EdgeInsets.all(10),
-              height: 80,
+              margin: EdgeInsets.only(left:10, right: 10,top: 5),
+              height: 20,
+              alignment: Alignment.center,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Image.asset('assets/icons/three_forge_icon.png'),
+                  Container(
+                    height: 20,
+                    width: 35,
+                    margin: EdgeInsets.only(right: 80),
+                    child: Navigation(
+                      width: 45,
+                      radius: 10,
+                      navData: [
+                        NavItems(
+                          name: themeType.name.toUpperCase(),
+                          icon: themeType == LsiThemes.dark?Icons.nightlight_round_sharp:Icons.light_mode,
+                          useName: false,
+                          subItems: [
+                            NavItems(
+                              name: LsiThemes.dark.name.toUpperCase(),
+                              icon: Icons.nightlight_round_sharp,
+                              function: (_){
+                                prefs.setString('theme','dark');
+                                setState(() {
+                                  themeType = LsiThemes.dark;
+                                  theme = CSS.darkTheme;
+                                });
+                                widget.onDone();
+                              }
+                            ),
+                            NavItems(
+                              name: LsiThemes.light.name.toUpperCase(),
+                              icon: Icons.light_mode,
+                              function: (_){
+                                prefs.setString('theme','light');
+                                setState(() {
+                                  themeType = LsiThemes.light;
+                                  theme = CSS.lightTheme;
+                                });
+                                widget.onDone();
+                              }
+                            ),
+                          ]
+                        )
+                      ]
+                    )
+                  )
+                ]
+              )
+            ),
+            Container(
+              margin: EdgeInsets.fromLTRB(10,0,10,0),
+              height: 55,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -770,19 +843,20 @@ class _CodePage extends State<Dashboard>{
                           ],
                         ),
                       ),
-                      InkWell(
-                        onTap: (){
-                          showDialog(
-                            context: context,
-                            builder: (BuildContext context) {
-                              return createTumbnailModal();
-                            }
-                          ).then((value){
-                            modalReset(null);
-                          });
-                        },
-                        child: Icon(Icons.settings, size: 20,),
-                      ),
+                      // InkWell(
+                      //   onTap: (){
+                      //     showDialog(
+                      //       context: context,
+                      //       builder: (BuildContext context) {
+                      //         return createTumbnailModal();
+                      //       }
+                      //     ).then((value){
+                      //       modalReset(null);
+                      //     });
+                      //   },
+                      //   child: Icon(Icons.settings, size: 20,),
+                      // ),
+                      Icon(Icons.settings, size: 20,),
                       SizedBox(width: 10,)
                     ],
                   ),

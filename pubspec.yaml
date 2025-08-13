@@ -16,10 +16,12 @@ dependencies:
   process_run: ^1.2.4
   shared_preferences: ^2.5.3
   three_js: ^0.2.2
+  three_js_terrain: ^0.2.0
   three_js_helpers: ^0.2.0
   three_js_transform_controls: ^0.2.0
   three_js_objects: ^0.2.0
   three_js_exporters: ^0.2.0
+  three_js_modifers: ^0.2.0
   three_js_advanced_exporters: ^0.0.1
   css:
     git:
@@ -30,9 +32,7 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^5.0.0
 
-dependency_overrides:
-  three_js_advanced_loaders: 
-    path: ../../Apps/three_js-main/packages/three_js_advanced_loaders
-
 flutter:
   uses-material-design: true
+  assets:
+    - assets/icons/

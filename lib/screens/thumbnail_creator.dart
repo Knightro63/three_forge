@@ -1,14 +1,14 @@
 import 'dart:io';
 import 'dart:async';
-import 'dart:typed_data';
-import 'dart:math' as math;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:three_forge/src/thumbnail/thumbnail.dart';
 import 'package:three_js/three_js.dart' as three;
-import 'package:image/image.dart' as img;
 
 class ThumbnailCreator extends StatefulWidget {
-  const ThumbnailCreator({Key? key}):super(key: key);
+  const ThumbnailCreator({Key? key, this.path, this.object}):super(key: key);
+  final three.Object3D? object;
+  final String? path;
 
   @override
   _ThumbnailCreatorState createState() => _ThumbnailCreatorState();
@@ -17,25 +17,35 @@ class ThumbnailCreator extends StatefulWidget {
 class _ThumbnailCreatorState extends State<ThumbnailCreator> {
   bool creating = false;
   List<FileSystemEntity> file = [];
-  late three.ThreeJS threeJs;
-  late final three.Uint8Array buffer;
-  late final three.WebGLRenderTarget rt;
+  late final three.ThreeJS threeJs;
+  late final Thumbnail thumbnail;
+  final TextEditingController thumbnailLocationController = TextEditingController();
+  final TextEditingController objectLocationController = TextEditingController();
+  bool auto = false;
 
   @override
   void initState(){
+    auto = widget.object != null && widget.path != null;
     threeJs = three.ThreeJS(
-      onSetupComplete: (){setState(() {});},
+      onSetupComplete: (){
+        setState(() {});
+        thumbnail = Thumbnail(threeJs.renderer!, threeJs.scene, threeJs.camera);
+        if(auto){
+          thumbnail.captureThumbnail(widget.path!, model: widget.object);
+        }
+      },
       setup: setup,
       settings: three.Settings(
         alpha: true,
+        clearAlpha: 0.0,
       )
     );
     super.initState();
   }
   @override
   void dispose(){
-    threeJs.dispose();
     three.loading.clear();
+    thumbnail.dispose();
     super.dispose();
   }
 
@@ -55,29 +65,143 @@ class _ThumbnailCreatorState extends State<ThumbnailCreator> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            SizedBox(height: 20,),
             SizedBox(
               width: 240,
               height: 240*aspect,
               child: threeJs.build(),
             ),
-            SizedBox(height: 20,),
             InkWell(
               onTap: (){
-                creating = true;
-                getPath().then((p) async{
+                getPath().then((path){
+                  objectLocationController.text = path ?? '';
+                  if(path != null){
+                    final sp = path.split('/');
+                    final tpath = '${path.replaceAll(sp.last, '')}thumbnails';
+                    thumbnailLocationController.text = tpath;
+                  }
+                  setState((){});
+                });
+              },
+              child: Row(
+                children: [
+                  Container(
+                    width: 240-30,
+                    height: 30,
+                    alignment: Alignment.center,
+                    child: TextField(
+                      readOnly: true,
+                      autofocus: false,
+                      controller: objectLocationController,
+                      style: Theme.of(context).primaryTextTheme.bodySmall,
+                      decoration: InputDecoration(
+                        isDense: true,
+                        filled: true,
+                        fillColor: Theme.of(context).splashColor,
+                        contentPadding: EdgeInsets.fromLTRB(2,10,0,10),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(5),
+                            bottomLeft: Radius.circular(5)
+                          ),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).hintColor,
+                            width: 1,
+                            style: BorderStyle.none,
+                          ),
+                        ),
+                      ),
+                    )
+                  ),
+                  Container(
+                    margin: const EdgeInsets.fromLTRB(0, 0, 0, 0),
+                    padding: const EdgeInsets.fromLTRB(2, 4, 2, 0),
+                    width: 30,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).canvasColor,
+                      borderRadius: BorderRadius.only(
+                        topRight: Radius.circular(5),
+                        bottomRight: Radius.circular(5)
+                      ),
+                      border: Border.all(
+                        color: Theme.of(context).hintColor,
+                        width: 1,
+                      ),
+                    ),
+                    child: Icon(Icons.folder_open_rounded,size: 20,)
+                  ),
+                ],
+              )
+            ),
+            InkWell(
+              onTap: (){
+                getPath().then((path){
+                  thumbnailLocationController.text = path ?? '';
+                  setState((){});
+                });
+              },
+              child: Row(
+                children: [
+                  Container(
+                    width: 240-30,
+                    height: 30,
+                    alignment: Alignment.center,
+                    child: TextField(
+                      readOnly: true,
+                      autofocus: false,
+                      controller: thumbnailLocationController,
+                      style: Theme.of(context).primaryTextTheme.bodySmall,
+                      decoration: InputDecoration(
+                        isDense: true,
+                        filled: true,
+                        fillColor: Theme.of(context).splashColor,
+                        contentPadding: EdgeInsets.fromLTRB(2,10,0,10),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(5),
+                            bottomLeft: Radius.circular(5)
+                          ),
+                          borderSide: BorderSide(
+                            color: Theme.of(context).hintColor,
+                            width: 1,
+                            style: BorderStyle.none,
+                          ),
+                        ),
+                      ),
+                    )
+                  ),
+                  Container(
+                    margin: const EdgeInsets.fromLTRB(0, 0, 0, 0),
+                    padding: const EdgeInsets.fromLTRB(2, 4, 2, 0),
+                    width: 30,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).canvasColor,
+                      borderRadius: BorderRadius.only(
+                        topRight: Radius.circular(5),
+                        bottomRight: Radius.circular(5)
+                      ),
+                      border: Border.all(
+                        color: Theme.of(context).hintColor,
+                        width: 1,
+                      ),
+                    ),
+                    child: Icon(Icons.folder_open_rounded,size: 20,)
+                  ),
+                ],
+              )
+            ),
+            InkWell(
+              onTap: () async{
+                if(objectLocationController.text != ''){
+                  setState(() {creating = true;});
                   for(final f in file){
-                    if(f.path.split('.').last == 'fbx'){
-                      await captureThumbnail(f);
-                    }
+                    await thumbnail.captureThumbnail(thumbnailLocationController.text, modelPath: f.path);
                   }
                   setState(() {
                     creating = false;
                   });
-                });
-                setState(() {
-                  
-                });
+                }
               },
               child: Container(
                 width: 240,
@@ -108,14 +232,9 @@ class _ThumbnailCreatorState extends State<ThumbnailCreator> {
     );
   }
 
-  int desiredWidth = 1280;
-  int desiredHeight = 720;
   late three.OrbitControls controls;
 
   Future<void> setup() async {
-    buffer = three.Uint8Array( desiredWidth * desiredHeight * 4 );
-    rt = three.WebGLRenderTarget( desiredWidth, desiredHeight, three.WebGLRenderTargetOptions({'colorSpace': three.SRGBColorSpace}) );
-
     threeJs.scene = three.Scene();
 
     threeJs.camera = three.PerspectiveCamera(45, threeJs.width / threeJs.height, 0.1, 1000);
@@ -129,88 +248,5 @@ class _ThumbnailCreatorState extends State<ThumbnailCreator> {
     threeJs.addAnimationEvent((dt){
       controls.update();
     });
-  }
-
-  Future<void> captureThumbnail(FileSystemEntity value) async{
-    three.Object3D? model;
-    try {
-      model = await loadFbx(value);
-
-      threeJs.renderer?.setRenderTarget( rt );
-      threeJs.renderer?.render( threeJs.scene, threeJs.camera );
-      threeJs.renderer?.readRenderTargetPixels(rt, 0, 0, desiredWidth, desiredHeight, buffer);
-      
-      img.Image image = img.Image.fromBytes(
-        width: desiredWidth,
-        height: desiredHeight,
-        bytes: buffer.toDartList().buffer,
-        numChannels: 4,
-        order: img.ChannelOrder.rgb
-      );
-      image = img.copyFlip(image, direction: img.FlipDirection.vertical);
-      Uint8List pngBytes = img.encodePng(image);
-        
-      final p = value.path;
-      final sp = value.path.split('/');
-      final path = '${p.replaceAll(sp.last, '').replaceAll('/models', '')}thumbnails/';
-
-      bool exists = await Directory(path).exists();
-      if(!exists) await Directory(path).create();
-
-      await File('$path${model.name}.png').writeAsBytes(pngBytes);      
-      threeJs.renderer?.setRenderTarget(null);
-    }catch (e) {
-      print(e);
-    }
-
-    if(threeJs.scene.children.isNotEmpty){
-      // model?.traverse((object){
-      //   object.geometry?.dispose();
-      //   if (object.material != null) {
-      //     if (object.material is three.GroupMaterial) {
-      //       (object.material as three.GroupMaterial).children.forEach((mat) => mat.dispose());
-      //     } 
-      //     else {
-      //       object.material?.dispose();
-      //     }
-      //   }
-      // });
-      // model?.dispose();
-      if(model != null) threeJs.scene.remove(model);
-    }
-  }
-
-  Future<three.Object3D> loadFbx(FileSystemEntity value) async{
-    final p = value.path;
-    final sp = value.path.split('/');
-    final path = '${p.replaceAll(sp.last, '').replaceAll('/models', '')}textures/';
-
-    final manager = three.LoadingManager();
-    manager.addHandler( RegExp('.tga'), three.TGALoader() );
-    manager.addHandler( RegExp('.psd'), three.TGALoader() );
-    manager.addHandler( RegExp('.dds'), three.DDSLoader() );
-
-    final loader = three.FBXLoader(manager:manager, width: 1,height: 1).setResourcePath(path);
-    final three.AnimationObject object = await loader.fromPath(p);
-    final three.BoundingBox box = three.BoundingBox();
-    box.setFromObject(object);
-
-    final size = box.getSize(three.Vector3());
-    final center = box.getCenter(three.Vector3());
-
-    object.name = value.path.split('/').last.split('.').first;
-    threeJs.scene.add(object);
-
-    // Position the camera to fit the model
-    final maxDim = math.max(size.x, math.max(size.y, size.z));
-    final fov = threeJs.camera.fov * (math.pi / 180);
-    double cameraZ = (maxDim / 2 / math.tan(fov / 2)).abs();
-    cameraZ *= 1.5; // Add some padding
-    threeJs.camera.position.setValues(center.x, center.y, center.z + cameraZ);
-    threeJs.camera.lookAt(center);
-
-    threeJs.render();
-
-    return object;
   }
 }

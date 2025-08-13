@@ -84,11 +84,15 @@ class Navigation extends StatefulWidget{
     this.selectedTab = 0,
     this.sideOnTap,
     this.reset = false,
+    this.centerNavData,
+    this.spacer,
+    this.radius,
     this.style = const TextStyle(
       //color: lsi.darkGrey,
       fontFamily: 'Klavika',
       fontSize: 14
     ),
+    this.margin
   }):super(key: key);
 
   final void Function(String)? sideOnTap;
@@ -96,11 +100,17 @@ class Navigation extends StatefulWidget{
   final bool reset;
   final bool showNavList;
   final List<NavItems> navData;
+  final List<NavItems>? centerNavData;
   final List<NavTab>? tabs;
   final double width;
   final double height;
   final TextStyle style;
   final int selectedTab;
+  //final Widget? centerWidgets;
+  final Widget? spacer;
+  final EdgeInsets? margin;
+  final double? radius;
+  //final List<Widget> endWidgets;
 
   @override
   _NavState createState() => _NavState();
@@ -116,14 +126,26 @@ class _NavState extends State<Navigation>{
     for(int i = 0; i < widget.navData.length;i++){
       String keyName = "nav_item_$i";
       _key.add(LabeledGlobalKey(keyName));
-      nav.add(NavDropDown(
+      nav.add(
+        NavDropDown(
           key: _key[i],
           context: context,
           navData: widget.navData[i]
         )
       );
     }
-
+    for(int i = 0; i < (widget.centerNavData?.length ?? 0);i++){
+      int j = i+widget.navData.length;
+      String keyName = "nav_item_$j";
+      _key.add(LabeledGlobalKey(keyName));
+      nav.add(
+        NavDropDown(
+          key: _key[j],
+          context: context,
+          navData: widget.centerNavData![i]
+        )
+      );
+    }
     super.initState();
   }
   @override
@@ -134,16 +156,17 @@ class _NavState extends State<Navigation>{
     
   }
 
-  Widget items(){
+  Widget items(List<NavItems> data, int start){
     List<Widget> widgets = [];
-    widgets.add(const SizedBox(width: 15,));
-    for(int i = 0; i < widget.navData.length;i++){
-      widgets.add(
+    for(int i = 0; i < data.length;i++){
+      if(data[i].show)widgets.add(
         NavItem(
-          itemKey: _key[i],
+          itemKey: _key[start+i],
           style: widget.style,
-          itemName: widget.navData[i].name,
+          itemName: data[i].name,
           selected: currentItem,
+          icon: data[i].icon,
+          useName: data[i].useName,
           onHover: (){
             setState(() {
               if(location != i){
@@ -155,35 +178,44 @@ class _NavState extends State<Navigation>{
                   }
                 }
                 if(hasOpen){
-                  location = i;
-                  currentItem = widget.navData[i].name;
-                  nav[i].open();
+                  location = start+i;
+                  currentItem = data[i].name;
+                  nav[start+i].open();
                 }
               }
             });
           },
           onTap: (){
-            setState(() {
-              if(nav[i].isOpen){
-                currentItem = '';
-                nav[i].close();
-              }
-              else{
-                currentItem = widget.navData[i].name;
-                location = i;
-                nav[i].open();
-              }
-            });
+            if(data[i].subItems == null){
+              data[i].function?.call(null);
+            }
+            else{
+              setState(() {
+                if(nav[start+i].isOpen){
+                  currentItem = '';
+                  nav[start+i].close();
+                }
+                else{
+                  currentItem = data[i].name;
+                  location =start+i;
+                  nav[start+i].open();
+                }
+
+                data[i].function?.call(null);
+              });
+            }
           }
         )
       );
+      if(widget.spacer != null && data.length > 0 && i < data.length-1){
+        widgets.add(widget.spacer!);
+      }
     }
     return Row(children: widgets);
   }
 
   Widget tabs(){
    List<Widget> widgets = [];
-    widgets.add(const SizedBox(width: 15,));
     if(widget.tabs == null) return Row(children:widgets);
     for(int i = 0; i < widget.tabs!.length;i++){
       widgets.add(
@@ -226,7 +258,12 @@ class _NavState extends State<Navigation>{
           if(nav[i].isOpen){
             nav[i].close();
           }
-          nav[i].navData = widget.navData[i];
+          if(i < widget.navData.length){
+            nav[i].navData = widget.navData[i];
+          }
+          else{
+            nav[i].navData = widget.centerNavData![i-widget.navData.length];
+          }
         }
       });
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -239,15 +276,20 @@ class _NavState extends State<Navigation>{
     return Container(
       height: widget.height,
       width: widget.width,
+      padding: widget.margin,
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
+        borderRadius: widget.radius == null?null:BorderRadius.circular(widget.radius!),
         boxShadow: [BoxShadow(
           color: Theme.of(context).shadowColor,
           blurRadius: 5,
           offset: const Offset(0,1),
         ),]
       ),
-      child: Row(children:[items(),tabs()]),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children:[items(widget.navData,0), widget.centerNavData != null?items(widget.centerNavData!,widget.navData.length):SizedBox(),tabs()]
+      ),
     );
   }
 }
@@ -334,7 +376,9 @@ class NavItem extends StatefulWidget{
     required this.onHover, 
     required this.onTap,
     this.selected = '',
-    required this.style
+    required this.style,
+    required this.icon,
+    this.useName = true,
   }):super(key: key);
 
   final String itemName;
@@ -344,6 +388,8 @@ class NavItem extends StatefulWidget{
   final Function onTap;
   final String selected;
   final GlobalKey itemKey;
+  final IconData? icon;
+  final bool useName;
 
   @override
   _NavItemState createState() => _NavItemState();
@@ -389,7 +435,24 @@ class _NavItemState extends State<NavItem>{
             borderRadius: const BorderRadius.all(Radius.circular(2)),
             //border: border
           ),
-          child:Text(
+          child: !widget.useName && widget.icon != null?Icon(
+            widget.icon,
+            color: widget.style.color,
+            size: widget.style.fontSize,
+          ):widget.icon != null? Row(
+            children: [
+              Icon(
+                widget.icon,
+                color: widget.style.color,
+                size: widget.style.fontSize,
+              ),
+              Text(
+                widget.itemName,
+                style: widget.style,
+              )
+            ],
+          ):
+          Text(
             widget.itemName,
             style: widget.style,
           )

@@ -1,5 +1,3 @@
-
-import 'package:css/css.dart';
 import 'package:flutter/material.dart';
 import 'package:three_forge/src/three_viewer.dart/viewer.dart';
 
@@ -12,17 +10,25 @@ class SceneCollection extends StatelessWidget{
   @override
   Widget build(BuildContext context) {
     List<Widget> widgets = [
-      Container(
-        margin: const EdgeInsets.fromLTRB(5, 0, 5, 0),
-        height: 25,
-        child: const Row(
-          //mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Icon(Icons.inventory ,size: 15,),
-            Text('\tScene Collection'),
-          ],
-        ),
-      ) 
+      InkWell(
+        onTap: (){
+          setState((){
+            threeV.sceneSelected = !threeV.sceneSelected;
+          });
+        },
+        child: Container(
+          margin: const EdgeInsets.fromLTRB(5, 0, 5, 0),
+          height: 25,
+          color: threeV.sceneSelected?Theme.of(context).secondaryHeaderColor:null,
+          child: const Row(
+            //mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Icon(Icons.inventory ,size: 15,),
+              Text('\tScene Collection'),
+            ],
+          ),
+        )
+      )
     ];
 
     for(final obj in threeV.scene.children){
@@ -41,15 +47,22 @@ class SceneCollection extends StatelessWidget{
             margin: const EdgeInsets.fromLTRB(5, 0, 5, 0),
             padding: const EdgeInsets.fromLTRB(15, 0, 5, 0),
             height: 25,
-            color: child == threeV.intersected?CSS.darkTheme.secondaryHeaderColor:CSS.darkTheme.canvasColor,
+            color: child == threeV.intersected?Theme.of(context).secondaryHeaderColor:Theme.of(context).canvasColor,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(child.name),
+                SizedBox(
+                  width: 137,
+                  child: Text(
+                    child.name,
+                    overflow: TextOverflow.ellipsis,
+                  )
+                ),
                 InkWell(
                   onTap: (){
                     setState(() {
                       child.visible = !child.visible;
+                      if(child.userData['helper'] != null) child.userData['helper'].visible = child.visible;
                     });
                   },
                   child: Icon(child.visible?Icons.visibility:Icons.visibility_off,size: 15,),

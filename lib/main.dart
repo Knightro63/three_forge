@@ -1,6 +1,7 @@
-import 'package:css/css.dart';
 import 'package:flutter/material.dart';
 import 'package:three_forge/screens/dashboard.dart';
+import 'package:three_forge/screens/loading.dart';
+import 'package:three_forge/src/styles/globals.dart';
 import 'screens/work.dart';
 
 void main() {
@@ -17,20 +18,24 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   // This widget is the root of your application.
   Map<String,dynamic>? currentProject;
+  bool loading = true;
 
   void setProject(Map<String,dynamic>? project){
     currentProject = project;
-    setState(() {
-      
-    });
+    setState(() {});
+  }
+
+  void doneLoading(){
+    loading = false;
+    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: CSS.darkTheme,//ThemeData.dark(),
-      home: currentProject != null?UIScreen(currentProject: currentProject!,setProject: setProject,):Dashboard(setProject: setProject,)
+      theme: theme,
+      home: loading?LoadingScreen(onDone: doneLoading):currentProject != null?UIScreen(currentProject: currentProject!,setProject: setProject,):Dashboard(setProject: setProject,onDone: doneLoading,)
     );
   }
 }
