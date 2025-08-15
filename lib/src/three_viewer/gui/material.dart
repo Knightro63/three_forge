@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:three_forge/src/styles/savedWidgets.dart';
-import 'package:three_forge/src/three_viewer.dart/decimal_index_formatter.dart';
-import 'package:three_forge/src/three_viewer.dart/viewer.dart';
+import 'package:three_forge/src/three_viewer/decimal_index_formatter.dart';
+import 'package:three_forge/src/three_viewer/viewer.dart';
+import 'package:three_js/three_js.dart' as three;
 
-class TransformGui extends StatefulWidget {
-  const TransformGui({Key? key, required this.threeV}):super(key: key);
+class MaterialGui extends StatefulWidget {
+  const MaterialGui({Key? key, required this.threeV}):super(key: key);
   final ThreeViewer threeV;
 
   @override
-  _TransformGuiState createState() => _TransformGuiState();
+  _MaterialGuiState createState() => _MaterialGuiState();
 }
 
-class _TransformGuiState extends State<TransformGui> {
+class _MaterialGuiState extends State<MaterialGui> {
   late final ThreeViewer threeV;
-
+  
   @override
   void initState() {
     super.initState();
@@ -25,7 +26,7 @@ class _TransformGuiState extends State<TransformGui> {
     transfromControllers.clear();
   }
 
-  void controllersReset(){
+  void transformControllersReset(){
     for(final controllers in transfromControllers){
       controllers.clear();
     }
@@ -41,31 +42,38 @@ class _TransformGuiState extends State<TransformGui> {
     TextEditingController(),
     TextEditingController(),
     TextEditingController(),
-    TextEditingController()
+    TextEditingController(),
   ];
 
   @override
   Widget build(BuildContext context) {
-    controllersReset();
+    three.Light light = threeV.intersected! as three.Light;
+    const double d = 60;
+    double d2 = 65;
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Location'),
-        const SizedBox(height: 5,),
         Row(
           children: [
-            const Text('X'),
+            SizedBox(width:d, child: const Text('Color')),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: threeV.intersected!.position.x.toString(),
-              width: 80,
+              label: '0x${light.color?.getHex().toRadixString(16) ?? 'ffffff'}',
+              width: d2,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                threeV.intersected!.position.x = double.parse(val);
+                final int? hex = int.tryParse(val.replaceAll('0x', ''),radix: 16);
+                if(hex != null){
+                  print(hex);
+                  light.color = three.Color.fromHex32(hex);
+                }
+                else{
+                  light.color = three.Color.fromHex64(Theme.of(context).canvasColor.toARGB32());
+                }
               },
               controller: transfromControllers[0],
             )
@@ -73,17 +81,17 @@ class _TransformGuiState extends State<TransformGui> {
         ),
         Row(
           children: [
-            const Text('Y'),
+            SizedBox(width:d, child: const Text('Intensity')),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: threeV.intersected!.position.y.toString(),
-              width: 80,
+              label: light.intensity.toString(),
+              width: d2,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                threeV.intersected!.position.y = double.parse(val);
+                light.intensity = double.parse(val);
               },
               controller: transfromControllers[1],
             )
@@ -91,39 +99,42 @@ class _TransformGuiState extends State<TransformGui> {
         ),
         Row(
           children: [
-            const Text('Z'),
+            SizedBox(width:d, child: const Text('Ground\nColor')),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: threeV.intersected!.position.z.toString(),
-              width: 80,
+              label: '0x${light.groundColor?.getHex().toRadixString(16) ?? 'ffffff'}',
+              width: d2,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                threeV.intersected!.position.z = double.parse(val);
+                final int? hex = int.tryParse(val.replaceAll('0x', ''),radix: 16);
+                if(hex != null){
+                  print(hex);
+                  light.groundColor = three.Color.fromHex32(hex);
+                }
+                else{
+                  light.groundColor = three.Color.fromHex64(Theme.of(context).canvasColor.toARGB32());
+                }
               },
               controller: transfromControllers[2],
             )
           ],
         ),
-
-        const SizedBox(height: 10,),
-        const Text('Rotate'),
-        const SizedBox(height: 5,),
         Row(
           children: [
-            const Text('X'),
+            SizedBox(width:d, child: const Text('Distance')),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: threeV.intersected!.rotation.x.toString(),
-              width: 80,
+              label: light.distance?.toString() ?? '0',
+              width: d2,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                threeV.intersected!.rotation.x = double.parse(val);
+                light.distance = double.parse(val);
               },
               controller: transfromControllers[3],
             )
@@ -131,17 +142,17 @@ class _TransformGuiState extends State<TransformGui> {
         ),
         Row(
           children: [
-            const Text('Y'),
+            SizedBox(width:d, child: const Text('Decay')),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: threeV.intersected!.rotation.y.toString(),
-              width: 80,
+              label: light.decay?.toString() ?? '0',
+              width: d2,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                threeV.intersected!.rotation.y = double.parse(val);
+                light.decay = double.parse(val);
               },
               controller: transfromControllers[4],
             )
@@ -149,39 +160,35 @@ class _TransformGuiState extends State<TransformGui> {
         ),
         Row(
           children: [
-            const Text('Z'),
+            SizedBox(width:d, child: const Text('Width')),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: threeV.intersected!.rotation.z.toString(),
-              width: 80,
+              label: light.width?.toString() ?? '0',
+              width: d2,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                threeV.intersected!.rotation.z = double.parse(val);
+                light.width = double.parse(val);
               },
               controller: transfromControllers[5],
             )
           ],
         ),
-
-        const SizedBox(height: 10,),
-        const Text('Scale'),
-        const SizedBox(height: 5,),
         Row(
           children: [
-            const Text('X'),
+            SizedBox(width:d, child: const Text('Height')),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: threeV.intersected!.scale.x.toString(),
-              width: 80,
+              label: light.height?.toString() ?? '0',
+              width: d2,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                threeV.intersected!.scale.x = double.parse(val);
+                light.height = double.parse(val);
               },
               controller: transfromControllers[6],
             )
@@ -189,17 +196,17 @@ class _TransformGuiState extends State<TransformGui> {
         ),
         Row(
           children: [
-            const Text('Y'),
+            SizedBox(width:d, child: const Text('Angle')),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: threeV.intersected!.scale.y.toString(),
-              width: 80,
+              label: light.angle?.toString() ?? '0',
+              width: d2,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                threeV.intersected!.scale.y = double.parse(val);
+                light.angle = double.parse(val);
               },
               controller: transfromControllers[7],
             )
@@ -207,17 +214,17 @@ class _TransformGuiState extends State<TransformGui> {
         ),
         Row(
           children: [
-            const Text('Z'),
+            SizedBox(width:d, child: Text('Penubra')),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: threeV.intersected!.scale.z.toString(),
-              width: 80,
+              label: light.penumbra?.toString() ?? '0',
+              width: d2,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                threeV.intersected!.scale.z = double.parse(val);
+                light.penumbra = double.parse(val);
               },
               controller: transfromControllers[8],
             )

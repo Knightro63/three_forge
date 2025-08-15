@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:three_forge/src/styles/savedWidgets.dart';
-import 'package:three_forge/src/three_viewer.dart/decimal_index_formatter.dart';
-import 'package:three_forge/src/three_viewer.dart/viewer.dart';
+import 'package:three_forge/src/three_viewer/decimal_index_formatter.dart';
+import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js/three_js.dart' as three;
 
 class SceneGui extends StatefulWidget {

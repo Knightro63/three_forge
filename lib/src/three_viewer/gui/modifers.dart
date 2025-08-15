@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:three_forge/src/styles/savedWidgets.dart';
-import 'package:three_forge/src/three_viewer.dart/viewer.dart';
+import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js/three_js.dart' as three;
 import 'package:three_js_modifers/loop_subdivision.dart';
 import 'package:three_js_modifers/simplify_modifer.dart';

@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:three_forge/src/styles/savedWidgets.dart';
-import 'package:three_forge/src/three_viewer.dart/decimal_index_formatter.dart';
-import 'package:three_forge/src/three_viewer.dart/viewer.dart';
+import 'package:three_forge/src/three_viewer/decimal_index_formatter.dart';
+import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js/three_js.dart' as three;
 
-class MaterialGui extends StatefulWidget {
-  const MaterialGui({Key? key, required this.threeV}):super(key: key);
+class LightGui extends StatefulWidget {
+  const LightGui({Key? key, required this.threeV}):super(key: key);
   final ThreeViewer threeV;
 
   @override
-  _MaterialGuiState createState() => _MaterialGuiState();
+  _LightGuiState createState() => _LightGuiState();
 }
 
-class _MaterialGuiState extends State<MaterialGui> {
+class _LightGuiState extends State<LightGui> {
   late final ThreeViewer threeV;
   
   @override
@@ -26,7 +26,7 @@ class _MaterialGuiState extends State<MaterialGui> {
     transfromControllers.clear();
   }
 
-  void transformControllersReset(){
+  void controllersReset(){
     for(final controllers in transfromControllers){
       controllers.clear();
     }
@@ -47,6 +47,7 @@ class _MaterialGuiState extends State<MaterialGui> {
 
   @override
   Widget build(BuildContext context) {
+    controllersReset();
     three.Light light = threeV.intersected! as three.Light;
     const double d = 60;
     double d2 = 65;

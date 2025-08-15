@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:three_forge/src/three_viewer.dart/viewer.dart';
+import 'package:three_forge/src/three_viewer/viewer.dart';
 
 class SceneCollection extends StatelessWidget{
   final void Function(void Function()) setState;

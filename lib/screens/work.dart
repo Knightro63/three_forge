@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:process_run/stdio.dart';
 import 'package:three_forge/src/navigation/screen_navigator.dart';
-import 'package:three_forge/src/three_viewer.dart/file_navigation.dart';
-import 'package:three_forge/src/three_viewer.dart/hud.dart';
-import 'package:three_forge/src/three_viewer.dart/gui/intersected.dart';
-import 'package:three_forge/src/three_viewer.dart/scene_collection.dart';
-import 'package:three_forge/src/three_viewer.dart/viewer.dart';
+import 'package:three_forge/src/three_viewer/file_navigation.dart';
+import 'package:three_forge/src/three_viewer/hud.dart';
+import 'package:three_forge/src/three_viewer/gui/intersected.dart';
+import 'package:three_forge/src/three_viewer/scene_collection.dart';
+import 'package:three_forge/src/three_viewer/viewer.dart';
 import '../src/navigation/right_click.dart';
 import 'package:three_js/three_js.dart' as three;
 import '../src/navigation/navigation.dart';
@@ -74,14 +74,14 @@ class _UIPageState extends State<UIScreen> {
     switch (options) {
       case RightClickOptions.delete:
         threeV.control.detach();
-        scene.remove(threeV.intersected!);
+        threeV.remove(threeV.intersected!);
         threeV.intersected = null;
         break;
       case RightClickOptions.copy:
         threeV.copy = threeV.intersected;
         break;
       case RightClickOptions.paste:
-        scene.add(threeV.intersected);
+        threeV.add(threeV.intersected);
         break;
       default:
     }

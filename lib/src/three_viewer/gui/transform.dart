@@ -1,20 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:three_forge/src/styles/savedWidgets.dart';
-import 'package:three_forge/src/three_viewer.dart/decimal_index_formatter.dart';
-import 'package:three_forge/src/three_viewer.dart/viewer.dart';
-import 'package:three_js/three_js.dart' as three;
+import 'package:three_forge/src/three_viewer/decimal_index_formatter.dart';
+import 'package:three_forge/src/three_viewer/viewer.dart';
 
-class LightGui extends StatefulWidget {
-  const LightGui({Key? key, required this.threeV}):super(key: key);
+class TransformGui extends StatefulWidget {
+  const TransformGui({Key? key, required this.threeV}):super(key: key);
   final ThreeViewer threeV;
 
   @override
-  _LightGuiState createState() => _LightGuiState();
+  _TransformGuiState createState() => _TransformGuiState();
 }
 
-class _LightGuiState extends State<LightGui> {
+class _TransformGuiState extends State<TransformGui> {
   late final ThreeViewer threeV;
-  
+
   @override
   void initState() {
     super.initState();
@@ -42,39 +41,31 @@ class _LightGuiState extends State<LightGui> {
     TextEditingController(),
     TextEditingController(),
     TextEditingController(),
-    TextEditingController(),
+    TextEditingController()
   ];
 
   @override
   Widget build(BuildContext context) {
     controllersReset();
-    three.Light light = threeV.intersected! as three.Light;
-    const double d = 60;
-    double d2 = 65;
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        const Text('Location'),
+        const SizedBox(height: 5,),
         Row(
           children: [
-            SizedBox(width:d, child: const Text('Color')),
+            const Text('X'),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: '0x${light.color?.getHex().toRadixString(16) ?? 'ffffff'}',
-              width: d2,
+              label: threeV.intersected!.position.x.toString(),
+              width: 80,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                final int? hex = int.tryParse(val.replaceAll('0x', ''),radix: 16);
-                if(hex != null){
-                  print(hex);
-                  light.color = three.Color.fromHex32(hex);
-                }
-                else{
-                  light.color = three.Color.fromHex64(Theme.of(context).canvasColor.toARGB32());
-                }
+                threeV.intersected!.position.x = double.parse(val);
               },
               controller: transfromControllers[0],
             )
@@ -82,17 +73,17 @@ class _LightGuiState extends State<LightGui> {
         ),
         Row(
           children: [
-            SizedBox(width:d, child: const Text('Intensity')),
+            const Text('Y'),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: light.intensity.toString(),
-              width: d2,
+              label: threeV.intersected!.position.y.toString(),
+              width: 80,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                light.intensity = double.parse(val);
+                threeV.intersected!.position.y = double.parse(val);
               },
               controller: transfromControllers[1],
             )
@@ -100,42 +91,39 @@ class _LightGuiState extends State<LightGui> {
         ),
         Row(
           children: [
-            SizedBox(width:d, child: const Text('Ground\nColor')),
+            const Text('Z'),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: '0x${light.groundColor?.getHex().toRadixString(16) ?? 'ffffff'}',
-              width: d2,
+              label: threeV.intersected!.position.z.toString(),
+              width: 80,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                final int? hex = int.tryParse(val.replaceAll('0x', ''),radix: 16);
-                if(hex != null){
-                  print(hex);
-                  light.groundColor = three.Color.fromHex32(hex);
-                }
-                else{
-                  light.groundColor = three.Color.fromHex64(Theme.of(context).canvasColor.toARGB32());
-                }
+                threeV.intersected!.position.z = double.parse(val);
               },
               controller: transfromControllers[2],
             )
           ],
         ),
+
+        const SizedBox(height: 10,),
+        const Text('Rotate'),
+        const SizedBox(height: 5,),
         Row(
           children: [
-            SizedBox(width:d, child: const Text('Distance')),
+            const Text('X'),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: light.distance?.toString() ?? '0',
-              width: d2,
+              label: threeV.intersected!.rotation.x.toString(),
+              width: 80,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                light.distance = double.parse(val);
+                threeV.intersected!.rotation.x = double.parse(val);
               },
               controller: transfromControllers[3],
             )
@@ -143,17 +131,17 @@ class _LightGuiState extends State<LightGui> {
         ),
         Row(
           children: [
-            SizedBox(width:d, child: const Text('Decay')),
+            const Text('Y'),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: light.decay?.toString() ?? '0',
-              width: d2,
+              label: threeV.intersected!.rotation.y.toString(),
+              width: 80,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                light.decay = double.parse(val);
+                threeV.intersected!.rotation.y = double.parse(val);
               },
               controller: transfromControllers[4],
             )
@@ -161,35 +149,39 @@ class _LightGuiState extends State<LightGui> {
         ),
         Row(
           children: [
-            SizedBox(width:d, child: const Text('Width')),
+            const Text('Z'),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: light.width?.toString() ?? '0',
-              width: d2,
+              label: threeV.intersected!.rotation.z.toString(),
+              width: 80,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                light.width = double.parse(val);
+                threeV.intersected!.rotation.z = double.parse(val);
               },
               controller: transfromControllers[5],
             )
           ],
         ),
+
+        const SizedBox(height: 10,),
+        const Text('Scale'),
+        const SizedBox(height: 5,),
         Row(
           children: [
-            SizedBox(width:d, child: const Text('Height')),
+            const Text('X'),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: light.height?.toString() ?? '0',
-              width: d2,
+              label: threeV.intersected!.scale.x.toString(),
+              width: 80,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                light.height = double.parse(val);
+                threeV.intersected!.scale.x = double.parse(val);
               },
               controller: transfromControllers[6],
             )
@@ -197,17 +189,17 @@ class _LightGuiState extends State<LightGui> {
         ),
         Row(
           children: [
-            SizedBox(width:d, child: const Text('Angle')),
+            const Text('Y'),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: light.angle?.toString() ?? '0',
-              width: d2,
+              label: threeV.intersected!.scale.y.toString(),
+              width: 80,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                light.angle = double.parse(val);
+                threeV.intersected!.scale.y = double.parse(val);
               },
               controller: transfromControllers[7],
             )
@@ -215,17 +207,17 @@ class _LightGuiState extends State<LightGui> {
         ),
         Row(
           children: [
-            SizedBox(width:d, child: Text('Penubra')),
+            const Text('Z'),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: light.penumbra?.toString() ?? '0',
-              width: d2,
+              label: threeV.intersected!.scale.z.toString(),
+              width: 80,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                light.penumbra = double.parse(val);
+                threeV.intersected!.scale.z = double.parse(val);
               },
               controller: transfromControllers[8],
             )

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:three_forge/src/three_viewer.dart/viewer.dart';
+import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js/three_js.dart' as three;
 
 class SkyGui extends StatefulWidget {

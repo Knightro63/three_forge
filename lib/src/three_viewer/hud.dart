@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:three_forge/src/navigation/insert_models.dart';
 import 'package:three_forge/src/navigation/navigation.dart';
 
-import 'package:three_forge/src/three_viewer.dart/viewer.dart';
+import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js_transform_controls/three_js_transform_controls.dart';
 
 class Hud extends StatelessWidget{

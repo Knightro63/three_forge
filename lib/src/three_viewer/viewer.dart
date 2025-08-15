@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:three_forge/src/navigation/right_click.dart';
 import 'package:three_forge/src/styles/globals.dart';
+import 'package:three_forge/src/three_viewer/terrain.dart';
 import 'package:three_forge/src/thumbnail/thumbnail.dart';
 
 import 'package:three_js/three_js.dart' as three;
@@ -112,6 +113,7 @@ class ThreeViewer {
   final three.Scene thumbnailScene = three.Scene();
   late final three.Camera thumbnailCamera;
   late final Sky sky;
+  final List<Terrain> terrains = [];
 
   void init(){
     threeJs = three.ThreeJS(
@@ -386,44 +388,53 @@ class ThreeViewer {
     three.Vector3(1, 1, 1)
   );
 
-  void add(three.Object3D object){
-    scene.add(object);
+  void add(three.Object3D? object){
+    if(object != null){
+      scene.add(object);
 
-    // final three.BoundingBox modelBoundingBox = three.BoundingBox();
-    // modelBoundingBox.setFromObject(object);
+      // final three.BoundingBox modelBoundingBox = three.BoundingBox();
+      // modelBoundingBox.setFromObject(object);
 
-    // print(
-    //   {
-    //     'min': modelBoundingBox.min.toJson(),
-    //     'max': modelBoundingBox.max.toJson()
-    //   }
-    // );
+      // print(
+      //   {
+      //     'min': modelBoundingBox.min.toJson(),
+      //     'max': modelBoundingBox.max.toJson()
+      //   }
+      // );
 
-    // final modelSize = three.Vector3();
-    // modelBoundingBox.getSize(modelSize);
+      // final modelSize = three.Vector3();
+      // modelBoundingBox.getSize(modelSize);
 
-    // print(modelSize.toJson());
+      // print(modelSize.toJson());
 
-    // final targetSize = three.Vector3();
-    // targetBoundingBox.getSize(targetSize);
+      // final targetSize = three.Vector3();
+      // targetBoundingBox.getSize(targetSize);
 
-    // print(targetSize.toJson());
+      // print(targetSize.toJson());
 
-    // final scaleX = targetSize.x / modelSize.x;
-    // final scaleY = targetSize.y / modelSize.y;
-    // final scaleZ = targetSize.z / modelSize.z;
+      // final scaleX = targetSize.x / modelSize.x;
+      // final scaleY = targetSize.y / modelSize.y;
+      // final scaleZ = targetSize.z / modelSize.z;
 
-    // final scaleFactor = math.max(scaleX, math.max(scaleY, scaleZ));
-    // print(scaleFactor);
-    // object.scale.scale(scaleFactor);
+      // final scaleFactor = math.max(scaleX, math.max(scaleY, scaleZ));
+      // print(scaleFactor);
+      // object.scale.scale(scaleFactor);
+      
+      object.position.setFrom(orbit.target);
     
-    object.position.setFrom(orbit.target);
-
-    if(shading == ShadingType.wireframe){
-      materialWireframe(ShadingType.material,object,true);
+      if(shading == ShadingType.wireframe){
+        materialWireframe(ShadingType.material,object,true);
+      }
+      else if(shading == ShadingType.solid){
+        materialSolid(ShadingType.material,object,true);
+      }
     }
-    else if(shading == ShadingType.solid){
-      materialSolid(ShadingType.material,object,true);
+  }
+
+  void remove(three.Object3D object){
+    scene.remove(object);
+    if(object.name.contains('terrain_')){
+      terrains.remove(object);
     }
   }
 
@@ -701,5 +712,11 @@ class ThreeViewer {
 
   void viewSky(){
     sky.visible = !sky.visible;
+  }
+
+  void createTerrain(){
+    print('terrain');
+    terrains.add(Terrain(this,setState,terrains.length));
+    terrains.last.setup();
   }
 }

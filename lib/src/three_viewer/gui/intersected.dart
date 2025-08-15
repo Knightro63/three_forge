@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:three_forge/src/three_viewer.dart/gui/light.dart';
-import 'package:three_forge/src/three_viewer.dart/gui/modifers.dart';
-import 'package:three_forge/src/three_viewer.dart/gui/scene.dart';
-import 'package:three_forge/src/three_viewer.dart/gui/sky.dart';
-import 'package:three_forge/src/three_viewer.dart/gui/transform.dart';
-import 'package:three_forge/src/three_viewer.dart/viewer.dart';
+import 'package:three_forge/src/three_viewer/gui/light.dart';
+import 'package:three_forge/src/three_viewer/gui/modifers.dart';
+import 'package:three_forge/src/three_viewer/gui/scene.dart';
+import 'package:three_forge/src/three_viewer/gui/sky.dart';
+import 'package:three_forge/src/three_viewer/gui/terrain.dart';
+import 'package:three_forge/src/three_viewer/gui/transform.dart';
+import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js/three_js.dart' as three;
 
 class IntersectedGui extends StatefulWidget {
@@ -32,6 +33,7 @@ class _IntersectedGuiState extends State<IntersectedGui> {
   final List<bool> expands = [false,false,false,false];
 
   List<Widget> objectGui(){
+    int? id = threeV.intersected?.name == null ?null:int.tryParse(threeV.intersected!.name.split('_').last);
     return[
       Container(
         margin: const EdgeInsets.fromLTRB(5,5,5,5),
@@ -151,6 +153,35 @@ class _IntersectedGuiState extends State<IntersectedGui> {
           ]
         )
       ),
+      if(id != null) Container(
+        margin: const EdgeInsets.fromLTRB(5,5,5,5),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(5)
+        ),
+        child: Column(
+          children: [
+            InkWell(
+              onTap: (){
+                setState(() {
+                  expands[3] = !expands[3];
+                });
+              },
+              child: Row(
+                children: [
+                  Icon(!expands[3]?Icons.expand_more:Icons.expand_less, size: 15,),
+                  const Text('\tTerrain'),
+                ],
+              )
+            ),
+            if(expands[3]) Padding(
+              padding: const EdgeInsets.fromLTRB(25,10,5,5),
+              child: TerrainGui(terrain: threeV.terrains[id])
+            )
+          ]
+        )
+      ),
+
 
       // if(animationClips[intersected?.name] != null) Container(
       //   margin: const EdgeInsets.fromLTRB(5,5,5,5),

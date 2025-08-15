@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:three_forge/src/navigation/insert_models.dart';
 import 'package:three_forge/src/navigation/navData.dart';
 import 'package:three_forge/src/styles/globals.dart';
-import 'package:three_forge/src/three_viewer.dart/viewer.dart';
+import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js_advanced_exporters/usdz_exporter.dart';
 import 'package:three_js_exporters/three_js_exporters.dart';
 import 'package:three_js/three_js.dart' as three;
@@ -746,6 +746,10 @@ class ScreenNavigator{
         NavItems(
           name: 'Terrain',
           icon: Icons.terrain,
+          function: (_){
+            callBacks(call: LSICallbacks.updatedNav);
+            threeV.createTerrain();
+          }
         )
       ]
     )
