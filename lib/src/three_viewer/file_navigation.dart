@@ -90,7 +90,15 @@ class _FileNavigationState extends State<FileNavigation>{
         widgets.add(
           Draggable(
             feedback: card(file),
-            child: card(file),
+            child: InkWell(
+              onDoubleTap: (){
+                setState(() {
+                  folderSelected = file.path;
+                  files[file.path] = Directory(file.path).listSync();
+                });
+              },
+              child: card(file)
+            ),
             data: data,
           )
         );

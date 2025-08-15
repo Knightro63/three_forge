@@ -8,7 +8,7 @@ import 'package:image/image.dart' as img;
 class Thumbnail{
   Thumbnail(this.renderer,this.scene,this.camera){
     buffer = three.Uint8Array( desiredWidth * desiredHeight * 4 );
-    rt = three.WebGLRenderTarget( desiredWidth, desiredHeight, three.WebGLRenderTargetOptions({'colorSpace': three.SRGBColorSpace}) );
+    rt = three.WebGLRenderTarget( desiredWidth, desiredHeight, three.WebGLRenderTargetOptions({'colorSpace': three.SRGBColorSpace, 'samples': 4}) );
   }
 
   int desiredWidth = 1280;
@@ -39,8 +39,9 @@ class Thumbnail{
         positionCamera(model);
       }
       if(model == null) return;
-
+      renderer.setClearColor(three.Color.fromHex32(0x000000), 0);
       renderer.setRenderTarget( rt );
+      renderer.clear();
       renderer.render( scene, camera );
       renderer.readRenderTargetPixels(rt, 0, 0, desiredWidth, desiredHeight, buffer);
       

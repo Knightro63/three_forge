@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
+import 'package:css/css.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -83,7 +84,6 @@ class ThreeViewer {
 
   late TransformControls control;
   late three.OrbitControls orbit;
-  late three.PerspectiveCamera cameraPersp;
 
   three.Object3D? copy;
   ShadingType shading = ShadingType.solid;
@@ -92,8 +92,11 @@ class ThreeViewer {
   ViewHelper? viewHelper;
 
   three.Group helper = three.Group();
-  GridHelper grid = GridHelper( 500, 500, Colors.grey[900]!.value, Colors.grey[900]!.value);
+  final grid = three.Group();
+  GridHelper grid1 = GridHelper( 500, 500)..material?.color.setFromHex32(themeType == LsiThemes.dark?Colors.grey[900]!.value:Colors.grey[700]!.value)..material?.vertexColors = false;
+  GridHelper grid2 = GridHelper( 500, 100)..material?.color.setFromHex32(themeType == LsiThemes.dark?Colors.grey[500]!.value:Colors.grey[900]!.value)..material?.vertexColors = false;
   GridInfo gridInfo = GridInfo();
+  final three.Fog fog = three.Fog(theme.canvasColor.value, 2,10);
   final three.Vector3 sun = three.Vector3();
 
   bool didClick = false;
@@ -109,7 +112,10 @@ class ThreeViewer {
   final three.Quaternion resetCamQuant = three.Quaternion();
 
   final three.Scene scene = three.Scene();
-  late final three.Camera camera;
+  late three.Camera camera;
+  late final three.PerspectiveCamera cameraPersp;
+  late final three.OrthographicCamera cameraOrtho;
+
   final three.Scene thumbnailScene = three.Scene();
   late final three.Camera thumbnailCamera;
   late final Sky sky;
@@ -128,6 +134,7 @@ class ThreeViewer {
     control.dispose();
     orbit.dispose();
     thumbnail.dispose();
+    viewHelper?.dispose();
     editObject.dispose();
   }
 
@@ -137,11 +144,21 @@ class ThreeViewer {
     scene.add(camera..userData['helper'] = cameraHelper);
   }
 
+  double aspectRatio(){
+    final RenderBox renderBox = listenableKey.currentContext!.findRenderObject() as RenderBox;
+    final size = renderBox.size;
+    return size.width/size.height;
+  }
+
   Future<void> setup() async{
-    final aspect = threeJs.width / threeJs.height;
-    cameraPersp = three.PerspectiveCamera( 50, aspect, 0.1, 100 );
-    camera = three.PerspectiveCamera(40, aspect, 0.1, 10)..name = 'Main Camera';
-    threeJs.camera = cameraPersp;
+    final aspect = aspectRatio();
+    const frustumSize = 5.0;
+
+    cameraOrtho = three.OrthographicCamera( - frustumSize * aspect, frustumSize * aspect, frustumSize, - frustumSize, 0.1, 10 )..name = 'Main Camera';
+    cameraPersp = three.PerspectiveCamera(40, aspect, 0.1, 10)..name = 'Main Camera';
+    camera = cameraPersp;
+    
+    threeJs.camera = three.PerspectiveCamera( 50, aspect, 0.1, 100 );
     threeJs.camera.position.setFrom(resetCamPos);
     threeJs.camera.getWorldDirection(resetCamLookAt);
     resetCamQuant.setFrom(threeJs.camera.quaternion);
@@ -149,7 +166,7 @@ class ThreeViewer {
     threeJs.scene = three.Scene();
     threeJs.scene.background = three.Color.fromHex32(theme.canvasColor.value);
     threeJs.scene.fog = three.Fog(theme.canvasColor.value, 10,500);
-    threeJs.scene.add( grid );
+    threeJs.scene.add( grid..add(grid1)..add(grid2) );
 
     final ambientLight = three.AmbientLight( 0xffffff,0 );
     threeJs.scene.add( ambientLight );
@@ -376,8 +393,8 @@ class ThreeViewer {
     viewHelper = ViewHelper(
       //size: 1.8,
       offsetType: OffsetType.topRight,
-      //offset: three.Vector2(-250, -200),
-      screenSize: const Size(120, 120), 
+      offset: three.Vector2(0, -35),
+      screenSize: const Size(80, 80), 
       listenableKey: threeJs.globalKey,
       camera: threeJs.camera,
     );

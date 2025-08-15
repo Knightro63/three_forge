@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:three_forge/src/styles/savedWidgets.dart';
-import 'package:three_forge/src/three_viewer/decimal_index_formatter.dart';
 import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js/three_js.dart' as three;
 
@@ -23,16 +23,16 @@ class _LightGuiState extends State<LightGui> {
   @override
   void dispose(){
     super.dispose();
-    transfromControllers.clear();
+    lightsControllers.clear();
   }
 
   void controllersReset(){
-    for(final controllers in transfromControllers){
+    for(final controllers in lightsControllers){
       controllers.clear();
     }
   }
 
-  final List<TextEditingController> transfromControllers = [
+  final List<TextEditingController> lightsControllers = [
     TextEditingController(),
     TextEditingController(),
     TextEditingController(),
@@ -59,7 +59,6 @@ class _LightGuiState extends State<LightGui> {
           children: [
             SizedBox(width:d, child: const Text('Color')),
             EnterTextFormField(
-              inputFormatters: [DecimalTextInputFormatter()],
               label: '0x${light.color?.getHex().toRadixString(16) ?? 'ffffff'}',
               width: d2,
               height: 20,
@@ -76,7 +75,7 @@ class _LightGuiState extends State<LightGui> {
                   light.color = three.Color.fromHex64(Theme.of(context).canvasColor.toARGB32());
                 }
               },
-              controller: transfromControllers[0],
+              controller: lightsControllers[0],
             )
           ],
         ),
@@ -84,7 +83,7 @@ class _LightGuiState extends State<LightGui> {
           children: [
             SizedBox(width:d, child: const Text('Intensity')),
             EnterTextFormField(
-              inputFormatters: [DecimalTextInputFormatter()],
+              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$'))],
               label: light.intensity.toString(),
               width: d2,
               height: 20,
@@ -94,7 +93,7 @@ class _LightGuiState extends State<LightGui> {
               onChanged: (val){
                 light.intensity = double.parse(val);
               },
-              controller: transfromControllers[1],
+              controller: lightsControllers[1],
             )
           ],
         ),
@@ -102,7 +101,6 @@ class _LightGuiState extends State<LightGui> {
           children: [
             SizedBox(width:d, child: const Text('Ground\nColor')),
             EnterTextFormField(
-              inputFormatters: [DecimalTextInputFormatter()],
               label: '0x${light.groundColor?.getHex().toRadixString(16) ?? 'ffffff'}',
               width: d2,
               height: 20,
@@ -119,7 +117,7 @@ class _LightGuiState extends State<LightGui> {
                   light.groundColor = three.Color.fromHex64(Theme.of(context).canvasColor.toARGB32());
                 }
               },
-              controller: transfromControllers[2],
+              controller: lightsControllers[2],
             )
           ],
         ),
@@ -127,7 +125,7 @@ class _LightGuiState extends State<LightGui> {
           children: [
             SizedBox(width:d, child: const Text('Distance')),
             EnterTextFormField(
-              inputFormatters: [DecimalTextInputFormatter()],
+              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$'))],
               label: light.distance?.toString() ?? '0',
               width: d2,
               height: 20,
@@ -137,7 +135,7 @@ class _LightGuiState extends State<LightGui> {
               onChanged: (val){
                 light.distance = double.parse(val);
               },
-              controller: transfromControllers[3],
+              controller: lightsControllers[3],
             )
           ],
         ),
@@ -145,7 +143,7 @@ class _LightGuiState extends State<LightGui> {
           children: [
             SizedBox(width:d, child: const Text('Decay')),
             EnterTextFormField(
-              inputFormatters: [DecimalTextInputFormatter()],
+              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$'))],
               label: light.decay?.toString() ?? '0',
               width: d2,
               height: 20,
@@ -155,7 +153,7 @@ class _LightGuiState extends State<LightGui> {
               onChanged: (val){
                 light.decay = double.parse(val);
               },
-              controller: transfromControllers[4],
+              controller: lightsControllers[4],
             )
           ],
         ),
@@ -163,7 +161,7 @@ class _LightGuiState extends State<LightGui> {
           children: [
             SizedBox(width:d, child: const Text('Width')),
             EnterTextFormField(
-              inputFormatters: [DecimalTextInputFormatter()],
+              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$'))],
               label: light.width?.toString() ?? '0',
               width: d2,
               height: 20,
@@ -173,7 +171,7 @@ class _LightGuiState extends State<LightGui> {
               onChanged: (val){
                 light.width = double.parse(val);
               },
-              controller: transfromControllers[5],
+              controller: lightsControllers[5],
             )
           ],
         ),
@@ -181,7 +179,7 @@ class _LightGuiState extends State<LightGui> {
           children: [
             SizedBox(width:d, child: const Text('Height')),
             EnterTextFormField(
-              inputFormatters: [DecimalTextInputFormatter()],
+              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$'))],
               label: light.height?.toString() ?? '0',
               width: d2,
               height: 20,
@@ -191,7 +189,7 @@ class _LightGuiState extends State<LightGui> {
               onChanged: (val){
                 light.height = double.parse(val);
               },
-              controller: transfromControllers[6],
+              controller: lightsControllers[6],
             )
           ],
         ),
@@ -199,7 +197,7 @@ class _LightGuiState extends State<LightGui> {
           children: [
             SizedBox(width:d, child: const Text('Angle')),
             EnterTextFormField(
-              inputFormatters: [DecimalTextInputFormatter()],
+              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$'))],
               label: light.angle?.toString() ?? '0',
               width: d2,
               height: 20,
@@ -209,7 +207,7 @@ class _LightGuiState extends State<LightGui> {
               onChanged: (val){
                 light.angle = double.parse(val);
               },
-              controller: transfromControllers[7],
+              controller: lightsControllers[7],
             )
           ],
         ),
@@ -217,7 +215,7 @@ class _LightGuiState extends State<LightGui> {
           children: [
             SizedBox(width:d, child: Text('Penubra')),
             EnterTextFormField(
-              inputFormatters: [DecimalTextInputFormatter()],
+              inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$'))],
               label: light.penumbra?.toString() ?? '0',
               width: d2,
               height: 20,
@@ -227,7 +225,7 @@ class _LightGuiState extends State<LightGui> {
               onChanged: (val){
                 light.penumbra = double.parse(val);
               },
-              controller: transfromControllers[8],
+              controller: lightsControllers[8],
             )
           ],
         )

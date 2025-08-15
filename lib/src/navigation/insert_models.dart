@@ -85,8 +85,9 @@ class InsertModels {
 
   Future<void> usdz(String path, String name, [bool crerateThumbnial = true]) async{
     final object = await three.USDZLoader().fromPath(path);
+    object!.geometry?.computeBoundingBox();
     final three.BoundingBox box = three.BoundingBox();
-    box.setFromObject(object!);
+    box.setFromObject(object);
     BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
     object.scale = three.Vector3(0.01,0.01,0.01);
     object.name = name.split('.').first;
@@ -96,8 +97,9 @@ class InsertModels {
 
   Future<void> fbx(String path, String name, [bool crerateThumbnial = true]) async{
     final object = await three.FBXLoader(width: 1,height: 1).fromPath(path);
+    object!.geometry?.computeBoundingBox();
     final three.BoundingBox box = three.BoundingBox();
-    box.setFromObject(object!);
+    box.setFromObject(object);
     BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
     final skeleton = SkeletonHelper(object)..visible = false;
     object.scale = three.Vector3(0.01,0.01,0.01);
@@ -112,8 +114,12 @@ class InsertModels {
     final String setPath = path.replaceAll(path.split('/').last, '');
     loader.setPath(setPath);
     final object = await loader.fromPath(path.replaceAll(setPath, ''));
+    //object!.scene.geometry?.computeBoundingBox();
+    object!.scene.traverse((child){
+      child.geometry?.computeBoundingBox();
+    });
     final three.BoundingBox box = three.BoundingBox();
-    box.setFromObject(object!.scene);
+    box.setFromObject(object.scene);
     final skeleton = SkeletonHelper(object.scene);
     skeleton.visible = false;
     BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;

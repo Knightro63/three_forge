@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:three_forge/src/three_viewer/gui/camera.dart';
 import 'package:three_forge/src/three_viewer/gui/light.dart';
 import 'package:three_forge/src/three_viewer/gui/modifers.dart';
 import 'package:three_forge/src/three_viewer/gui/scene.dart';
@@ -115,6 +116,34 @@ class _IntersectedGuiState extends State<IntersectedGui> {
             if(expands[2]) Padding(
               padding: const EdgeInsets.fromLTRB(25,10,5,5),
               child: ModiferGui(threeV: threeV)
+            )
+          ]
+        )
+      ),
+      if(threeV.intersected is three.Camera) Container(
+        margin: const EdgeInsets.fromLTRB(5,5,5,5),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(5)
+        ),
+        child: Column(
+          children: [
+            InkWell(
+              onTap: (){
+                setState(() {
+                  expands[2] = !expands[2];
+                });
+              },
+              child: Row(
+                children: [
+                  Icon(!expands[2]?Icons.expand_more:Icons.expand_less, size: 15,),
+                  const Text('\Camera'),
+                ],
+              )
+            ),
+            if(expands[2]) Padding(
+              padding: const EdgeInsets.fromLTRB(25,10,5,5),
+              child: CameraGui(threeV: threeV)
             )
           ]
         )

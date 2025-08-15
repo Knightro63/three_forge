@@ -264,7 +264,7 @@ class Hud extends StatelessWidget{
         ),
         Positioned(
           right: 10,
-          top: 60,
+          top: 120,
           child: Row(
             children: [
               InkWell(

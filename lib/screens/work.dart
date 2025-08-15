@@ -346,8 +346,11 @@ class _UIPageState extends State<UIScreen> {
           ),
         ),
         body: Row(
+          mainAxisAlignment: MainAxisAlignment.start,
           children: [
             Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Hud(threeV, setState),
                 FileNavigation(files: widget.currentProject,consoleLog: consoleLog)

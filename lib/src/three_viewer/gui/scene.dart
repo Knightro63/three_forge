@@ -3,6 +3,7 @@ import 'package:three_forge/src/styles/savedWidgets.dart';
 import 'package:three_forge/src/three_viewer/decimal_index_formatter.dart';
 import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js/three_js.dart' as three;
+import 'dart:math' as math;
 
 class SceneGui extends StatefulWidget {
   const SceneGui({Key? key, required this.threeV}):super(key: key);
@@ -15,6 +16,7 @@ class SceneGui extends StatefulWidget {
 class _SceneGuiState extends State<SceneGui> {
   late final ThreeViewer threeV;
   bool sameastext = true;
+  bool fog = false;
   List<DropdownMenuItem<int>> mappingSelector = [];
   int mappingValue = three.EquirectangularReflectionMapping;
   
@@ -96,10 +98,12 @@ class _SceneGuiState extends State<SceneGui> {
     String dirPath = path.replaceAll(name, '');
     
     if(fileType == 'hdr'){
-      final three.DataTexture rgbeLoader = await three.RGBELoader(flipY: true).setPath( dirPath ).fromAsset(name);
+      final three.DataTexture rgbeLoader = await three.RGBELoader().setPath( dirPath ).fromAsset(name);
       rgbeLoader.mapping = mappingValue;
       threeV.threeJs.scene.background = rgbeLoader;
       threeV.scene.background = rgbeLoader;
+      threeV.threeJs.scene.backgroundRotation = three.Euler(math.pi);
+      threeV.scene.backgroundRotation = three.Euler(math.pi);
       setAsSame();
     }
     else if(fileType == 'gltf'){
@@ -110,14 +114,14 @@ class _SceneGuiState extends State<SceneGui> {
       List<String> genCubeUrls( prefix, postfix ) {
         return [
           prefix + 'px' + postfix, prefix + 'nx' + postfix,
-          '${prefix}py$postfix', '${prefix}ny$postfix',
+          '${prefix}ny$postfix', '${prefix}py$postfix',
           prefix + 'pz' + postfix, prefix + 'nz' + postfix
         ];
       }
 
       final urls = genCubeUrls( dirPath, '.jpg' );
 
-      three.CubeTextureLoader().fromAssetList(urls).then(( cubeTexture ) {
+      three.CubeTextureLoader(flipY: true).fromAssetList(urls).then(( cubeTexture ) {
         threeV.threeJs.scene.background = cubeTexture;
         threeV.scene.background = cubeTexture;
         setAsSame();
@@ -127,6 +131,10 @@ class _SceneGuiState extends State<SceneGui> {
   }
 
   final List<TextEditingController> sceneControllers = [
+    TextEditingController(),
+    TextEditingController(),
+    TextEditingController(),
+    TextEditingController(),
     TextEditingController(),
     TextEditingController(),
     TextEditingController(),
@@ -246,7 +254,6 @@ class _SceneGuiState extends State<SceneGui> {
                 const Text('Env   '),
                 EnterTextFormField(
                   readOnly: true,
-                  inputFormatters: [DecimalTextInputFormatter()],
                   label: threeV.scene.environment is three.Texture?'Texture':'',
                   width: 80,
                   height: 20,
@@ -416,7 +423,119 @@ class _SceneGuiState extends State<SceneGui> {
               controller: sceneControllers[9],
             )
           ],
-        )
+        ),
+
+        const SizedBox(height: 10,),
+        InkWell(
+          onTap: (){
+            fog = !fog;
+            if(!fog){
+              threeV.scene.fog = null;
+            }
+            else{
+              threeV.scene.fog = threeV.fog;
+            }
+            setState(() {
+              
+            });
+          },
+          child: Row(
+            //mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Fog\t\t\t'),
+              SavedWidgets.checkBox(fog)
+            ]
+          )
+        ),
+        const SizedBox(height: 5,),
+        Row(
+          children: [
+            const Text('Color'),
+            EnterTextFormField(
+              inputFormatters: [DecimalTextInputFormatter()],
+              label: threeV.scene.fog != null?'0x'+threeV.scene.fog!.color.getHex().toRadixString(16):'',
+              width: 80,
+              height: 20,
+              maxLines: 1,
+              textStyle: Theme.of(context).primaryTextTheme.bodySmall,
+              color: Theme.of(context).canvasColor,
+              onChanged: (val){
+                final int? hex = int.tryParse(val.replaceAll('0x', ''),radix: 16);
+                if(hex != null){
+                  print(hex);
+                  threeV.scene.fog!.color.setFromHex32(hex);
+                }
+                else{
+                  threeV.scene.fog!.color.setFromHex32(Theme.of(context).canvasColor.value);
+                }
+              },
+              controller: sceneControllers[10],
+            )
+          ],
+        ),
+        Row(
+          children: [
+            const Text('Near '),
+            EnterTextFormField(
+              inputFormatters: [DecimalTextInputFormatter()],
+              label: threeV.scene.fog?.near.toString() ?? '',
+              width: 80,
+              height: 20,
+              maxLines: 1,
+              textStyle: Theme.of(context).primaryTextTheme.bodySmall,
+              color: Theme.of(context).canvasColor,
+              onChanged: (val){
+                final double hex = double.tryParse(val) ?? 10;
+                threeV.scene.fog?.near = hex;
+              },
+              controller: sceneControllers[11],
+            )
+          ],
+        ),
+        Row(
+          children: [
+            const Text('Far    '),
+            EnterTextFormField(
+              inputFormatters: [DecimalTextInputFormatter()],
+              label: threeV.scene.fog?.far.toString() ?? '',
+              width: 80,
+              height: 20,
+              maxLines: 1,
+              textStyle: Theme.of(context).primaryTextTheme.bodySmall,
+              color: Theme.of(context).canvasColor,
+              onChanged: (val){
+                final double hex = double.tryParse(val) ?? 10;
+                threeV.scene.fog?.far = hex;
+              },
+              controller: sceneControllers[12],
+            )
+          ],
+        ),
+        const SizedBox(height: 10,),
+        const Text('Add'),
+        const SizedBox(height: 5,),
+        DragTarget(
+          builder: (context, candidateItems, rejectedItems) {
+            return Row(
+              children: [
+                const Text('Audio'),
+                EnterTextFormField(
+                  readOnly: true,
+                  label: threeV.scene.userData['audio'] ?? 'Audio',
+                  width: 80,
+                  height: 20,
+                  maxLines: 1,
+                  textStyle: Theme.of(context).primaryTextTheme.bodySmall,
+                  color: Theme.of(context).canvasColor,
+                  controller: sceneControllers[13],
+                )
+              ],
+            );
+          },
+          onAcceptWithDetails: (details) async{
+            threeV.scene.userData['audio'] = details.data;
+          },
+        ),
       ],
     );
   }
