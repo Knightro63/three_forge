@@ -74,14 +74,20 @@ class _UIPageState extends State<UIScreen> {
     switch (options) {
       case RightClickOptions.delete:
         threeV.control.detach();
-        threeV.remove(threeV.intersected!);
-        threeV.intersected = null;
+        threeV.removeAll(threeV.intersected);
+        threeV.intersected.clear();
         break;
       case RightClickOptions.copy:
         threeV.copy = threeV.intersected;
         break;
       case RightClickOptions.paste:
-        threeV.add(threeV.intersected);
+        threeV.copyAll(threeV.intersected);
+        break;
+      case RightClickOptions.reset_camera:
+        threeV.resetCamera();
+        break;
+      case RightClickOptions.game_view:
+        threeV.setToMainCamera();
         break;
       default:
     }
@@ -333,7 +339,7 @@ class _UIPageState extends State<UIScreen> {
                   controller.write('r');
                 }
               ),
-             NavItems(
+              NavItems(
                 show: isPlaying,
                 useName: false,
                 icon: Icons.arrow_back,

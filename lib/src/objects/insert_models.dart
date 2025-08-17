@@ -59,6 +59,7 @@ class InsertModels {
     object.name = name.split('.').first;
     if(crerateThumbnial) await threeV.crerateThumbnial(object);
     threeV.add(object.add(h));
+    object.userData['path'] = path;
   }
   
   Future<void> xyz(String path, String name, [bool crerateThumbnial = true]) async{
@@ -70,6 +71,7 @@ class InsertModels {
     object.name = name.split('.').first;
     if(crerateThumbnial) await threeV.crerateThumbnial(object);
     threeV.add(object.add(h));
+    object.userData['path'] = path;
   }
 
   Future<void> collada(String path, String name, [bool crerateThumbnial = true]) async{
@@ -81,6 +83,7 @@ class InsertModels {
     object.name = name.split('.').first;
     if(crerateThumbnial) await threeV.crerateThumbnial(object);
     threeV.add(object.add(h));
+    object.userData['path'] = path;
   }
 
   Future<void> usdz(String path, String name, [bool crerateThumbnial = true]) async{
@@ -93,6 +96,7 @@ class InsertModels {
     object.name = name.split('.').first;
     if(crerateThumbnial) await threeV.crerateThumbnial(object);
     threeV.add(object.add(h));
+    object.userData['path'] = path;
   }
 
   Future<void> fbx(String path, String name, [bool crerateThumbnial = true]) async{
@@ -106,7 +110,10 @@ class InsertModels {
     object.name = name.split('.').first;
     threeV.scene.userData['animationClips'][object.name] = object.animations;
     if(crerateThumbnial) await threeV.crerateThumbnial(object);
-    threeV.add(object..add(h)..add(skeleton));
+    object.userData['skeleton'] = skeleton;
+    threeV.add(object..add(h));
+    threeV.threeJs.scene.add(skeleton);
+    object.userData['path'] = path;
   }
 
   Future<void> gltf(String path, String name, [bool crerateThumbnial = true]) async{
@@ -119,14 +126,17 @@ class InsertModels {
       child.geometry?.computeBoundingBox();
     });
     final three.BoundingBox box = three.BoundingBox();
-    box.setFromObject(object.scene);
+    box.setFromObject(object.scene,true);
     final skeleton = SkeletonHelper(object.scene);
     skeleton.visible = false;
     BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
     object.scene.name = name.split('.').first;
     if(object.animations != null)threeV. scene.userData['animationClips'][object.scene.name] = object.animations!;
     if(crerateThumbnial) await threeV.crerateThumbnial(object.scene);
-    threeV.add(object.scene..add(h)..add(skeleton));
+    object.scene.userData['skeleton'] = skeleton;
+    threeV.add(object.scene..add(h));
+    threeV.threeJs.scene.add(skeleton);
+    object.userData?['path'] = path; 
   }
 
   Future<void> ply(String path, String name, [bool crerateThumbnial = true]) async{
@@ -139,6 +149,7 @@ class InsertModels {
     object.name = name.split('.').first;
     if(crerateThumbnial) await threeV.crerateThumbnial(object);
     threeV.add(object.add(h));
+    object.userData['path'] = path;
   }
 
   Future<void> stl(String path, String name, [bool crerateThumbnial = true]) async{
@@ -149,6 +160,7 @@ class InsertModels {
     object.name = name.split('.').first;
     if(crerateThumbnial) await threeV.crerateThumbnial(object);
     threeV.add(object.add(h));
+    object.userData['path'] = path;
   }
 
   Future<void> obj(String path, String name, [bool crerateThumbnial = true, three.MaterialCreator? materials]) async{
@@ -162,6 +174,7 @@ class InsertModels {
     object.name = name.split('.').first;
     if(crerateThumbnial) await threeV.crerateThumbnial(object);
     threeV.add(object.add(h));
+    object.userData['path'] = path;
   }
 
   Future<three.MaterialCreator?> mtl(String path, String name) async{
@@ -198,5 +211,6 @@ class InsertModels {
     BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
     object.name = name.split('.').first;
     threeV.add(object.add(h));
+    object.userData['path'] = path;
   }
 }

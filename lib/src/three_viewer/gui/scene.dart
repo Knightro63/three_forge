@@ -24,6 +24,7 @@ class _SceneGuiState extends State<SceneGui> {
   void initState() {
     super.initState();
     threeV = widget.threeV;
+    fog = threeV.scene.fog != null;
     sameastext = threeV.threeJs.scene.userData['sameTexture'] ?? true;
     mappingSelector.add(DropdownMenuItem(
       value: three.UVMapping,
@@ -99,6 +100,7 @@ class _SceneGuiState extends State<SceneGui> {
     
     if(fileType == 'hdr'){
       final three.DataTexture rgbeLoader = await three.RGBELoader().setPath( dirPath ).fromAsset(name);
+      rgbeLoader.userData['path'] = path;
       rgbeLoader.mapping = mappingValue;
       threeV.threeJs.scene.background = rgbeLoader;
       threeV.scene.background = rgbeLoader;
@@ -124,6 +126,7 @@ class _SceneGuiState extends State<SceneGui> {
       three.CubeTextureLoader(flipY: true).fromAssetList(urls).then(( cubeTexture ) {
         threeV.threeJs.scene.background = cubeTexture;
         threeV.scene.background = cubeTexture;
+        cubeTexture?.userData['path'] = path;
         setAsSame();
         cubeCamera.update( threeV.threeJs.renderer!, threeV.threeJs.scene );
       });

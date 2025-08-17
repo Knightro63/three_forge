@@ -28,9 +28,11 @@ class _ModiferGuiState extends State<ModiferGui> {
     super.dispose();
   }
 
-  final TextEditingController modiferController = TextEditingController();
+  final TextEditingController modiferController1 = TextEditingController();
+  final TextEditingController modiferController2 = TextEditingController();
 
   void subdivision(three.Object3D object){
+    object.userData['subdivisionType'] = subdivisionCC?'catmull':'simple';
     final smoothGeometry = LoopSubdivision.modify(
       object.userData['origionalGeometry'], 
       object.userData['subdivisions'], 
@@ -45,6 +47,15 @@ class _ModiferGuiState extends State<ModiferGui> {
     object.geometry = smoothGeometry;
   }
 
+  void decimate(three.Object3D object){
+    if(object.userData['decimate'] != null && object.userData['decimate'] != 0){
+      final count = ( object.userData['origionalGeometry']?.attributes['position'].count * (object.userData['decimate']/100) ).floor();
+      final smoothGeometry = SimplifyModifier.modify(object.userData['origionalGeometry'], count );
+
+      object.geometry = smoothGeometry;
+    }
+  }
+
   void simplify(three.Object3D object, double percent){
     int count = ( object.geometry?.attributes['position'].count * percent/100 ).floor();
     SimplifyModifier.modify( object.geometry!, count );
@@ -52,8 +63,9 @@ class _ModiferGuiState extends State<ModiferGui> {
 
   @override
   Widget build(BuildContext context) {
-    modiferController.clear();
-    three.Object3D intersected = threeV.intersected!;
+    modiferController1.clear();
+    modiferController2.clear();
+    three.Object3D intersected = threeV.intersected[0];
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -139,7 +151,7 @@ class _ModiferGuiState extends State<ModiferGui> {
               onChanged: (val){
                 intersected.userData['subdivisions'] = val;
               },
-              controller: modiferController,
+              controller: modiferController1,
             ),
             InkWell(
               onTap: (){
@@ -158,6 +170,41 @@ class _ModiferGuiState extends State<ModiferGui> {
               },
               child: const Icon(Icons.arrow_forward_ios_rounded,size:10),
             )
+          ],
+        ),
+
+        const Text('Decimate'),        
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text('Percent: '),
+            EnterTextFormField(
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              label: (intersected.userData['decimate'] ?? 0).toString(),
+              width: 45,
+              height: 20,
+              maxLines: 1,
+              margin: const EdgeInsets.all(0),
+              textStyle: Theme.of(context).primaryTextTheme.bodySmall,
+              color: Theme.of(context).canvasColor,
+              onChanged: (val){
+                final per = double.tryParse(val);
+                intersected.userData['origionalGeometry'] ??= intersected.geometry?.clone();
+
+                if(per != null && per < 100){
+                  intersected.userData['decimate'] = per;
+                }
+                else if(per != null && per >= 100){
+                  intersected.userData['decimate'] = 99;
+                }
+                else if(per == null){
+                  intersected.userData['decimate'] = 0;
+                }
+
+                decimate(intersected);
+              },
+              controller: modiferController2,
+            ),
           ],
         )
       ],

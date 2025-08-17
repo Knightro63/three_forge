@@ -153,9 +153,6 @@ class Terrain{
     three.Vector3 position = terrainScene?.position ?? three.Vector3(0,-1.25,0);
     three.Euler rotation = terrainScene?.rotation ?? three.Euler(- math.pi / 2,0,0);
 
-    var mat = three.MeshBasicMaterial.fromMap({'color': 0x5566aa, 'wireframe': true});
-    var gray = three.MeshPhongMaterial.fromMap({ 'color': 0x88aaaa, 'specular': 0x444455, 'shininess': 10 });
-
     var s = guiSettings['segments'].toInt();//int.parse(segments, 10),
     bool h = guiSettings['imagePath'] != '';
     double size = guiSettings['size'].toDouble();
@@ -163,7 +160,7 @@ class Terrain{
       var o = terrain.TerrainOptions(
         easing: terrain.Easing.fromString(guiSettings['easing'])!,
         heightmap: h? heightmap:guiSettings['heightmap'] == 'influences' ? customInfluences :terrain.Terrain.fromString(guiSettings['heightmap']),
-        material: guiSettings['texture'] == 'Wireframe' ? mat : (guiSettings['texture'] == 'Blended' ? blend : gray),
+        material: blend,
         maxHeight: guiSettings['maxHeight'] - 100,
         minHeight: -100,
         steps: guiSettings['steps'].toInt(),

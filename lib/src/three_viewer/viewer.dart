@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 import 'package:css/css.dart';
@@ -7,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:three_forge/src/navigation/right_click.dart';
 import 'package:three_forge/src/styles/globals.dart';
+import 'package:three_forge/src/three_viewer/export.dart';
 import 'package:three_forge/src/three_viewer/terrain.dart';
 import 'package:three_forge/src/thumbnail/thumbnail.dart';
 
@@ -26,17 +28,26 @@ enum EditType{point,edge,face}
 enum GridAxis{XZ,YZ,XY}
 
 class GridInfo{
-  int divisions = 10;
-  double size = 10;
+  GridInfo();
+  late TransformControls control;
+  int divisions = 500;
+  double size = 500;
   int color = Colors.grey[900]!.value;
   double x = 0;
   double y = 0;
   GridAxis axis = GridAxis.XZ;
+  bool snap = false;
 
   three.LineSegments? axisX;
   three.LineSegments? axisY;
   three.LineSegments? axisZ;
 
+  final GridHelper grid1 = GridHelper( 500, 500)..material?.color.setFromHex32(themeType == LsiThemes.dark?Colors.grey[900]!.value:Colors.grey[700]!.value)..material?.vertexColors = false;
+  final GridHelper grid2 = GridHelper( 500, 100)..material?.color.setFromHex32(themeType == LsiThemes.dark?Colors.grey[500]!.value:Colors.grey[900]!.value)..material?.vertexColors = false;
+  late final three.Group grid = three.Group()..add(grid1)..add(grid2);
+  void addControl(TransformControls control){
+    this.control = control;
+  }
   void showAxis(GridAxis axis){
     axisX?.visible = true;
     axisY?.visible = true;
@@ -51,6 +62,20 @@ class GridInfo{
       axisX?.visible = false;
     }
   }
+
+  void updateGrid(double size, int divisions){
+    this.size = size;
+    this.divisions = divisions;
+    grid1.copy(GridHelper(size, divisions)..material?.color.setFromHex32(themeType == LsiThemes.dark?Colors.grey[900]!.value:Colors.grey[700]!.value)..material?.vertexColors = false);
+    grid2.copy(GridHelper(size, divisions~/5)..material?.color.setFromHex32(themeType == LsiThemes.dark?Colors.grey[500]!.value:Colors.grey[900]!.value)..material?.vertexColors = false);
+  
+    if(control.translationSnap != null){
+      final double snap = size/divisions;
+      control.setTranslationSnap(snap);
+    }
+  }
+
+  three.Euler get rotation => grid.rotation;
 }
 class EditInfo{
   bool active = false;
@@ -78,24 +103,21 @@ class ThreeViewer {
 
   three.Raycaster raycaster = three.Raycaster();
   three.Vector2 mousePosition = three.Vector2.zero();
-  three.Object3D? intersected;
+  List<three.Object3D> intersected = [];
   three.AnimationMixer? mixer;
   three.AnimationClip? currentAnimation;
 
   late TransformControls control;
   late three.OrbitControls orbit;
 
-  three.Object3D? copy;
+  List<three.Object3D>? copy;
   ShadingType shading = ShadingType.solid;
   EditInfo editInfo = EditInfo();
   three.Group editObject = three.Group();
   ViewHelper? viewHelper;
 
   three.Group helper = three.Group();
-  final grid = three.Group();
-  GridHelper grid1 = GridHelper( 500, 500)..material?.color.setFromHex32(themeType == LsiThemes.dark?Colors.grey[900]!.value:Colors.grey[700]!.value)..material?.vertexColors = false;
-  GridHelper grid2 = GridHelper( 500, 100)..material?.color.setFromHex32(themeType == LsiThemes.dark?Colors.grey[500]!.value:Colors.grey[900]!.value)..material?.vertexColors = false;
-  GridInfo gridInfo = GridInfo();
+  final GridInfo gridInfo = GridInfo();
   final three.Fog fog = three.Fog(theme.canvasColor.value, 2,10);
   final three.Vector3 sun = three.Vector3();
 
@@ -104,10 +126,11 @@ class ThreeViewer {
   bool usingMouse = false;
   bool sceneSelected = false;
   bool showCameraView = false;
+  bool boxSelection = false;
 
   GlobalKey<three.PeripheralsState> get listenableKey => threeJs.globalKey;
 
-  final three.Vector3 resetCamPos = three.Vector3(5, 2.5, 5);
+  final three.Vector3 resetCamPos = three.Vector3(20, 20, 20);
   final three.Vector3 resetCamLookAt = three.Vector3();
   final three.Quaternion resetCamQuant = three.Quaternion();
 
@@ -120,6 +143,13 @@ class ThreeViewer {
   late final three.Camera thumbnailCamera;
   late final Sky sky;
   final List<Terrain> terrains = [];
+
+  late final selectionBox = SelectionBox(threeJs.camera, threeJs.scene);
+  final List<RightClickOptions> rcOptions = [RightClickOptions.reset_camera,RightClickOptions.game_view];
+
+  //SelectionHelper
+  bool selectionHelperEnabled = false;
+  final three.Vector2 startPoint = three.Vector2();
 
   void init(){
     threeJs = three.ThreeJS(
@@ -157,8 +187,10 @@ class ThreeViewer {
     cameraOrtho = three.OrthographicCamera( - frustumSize * aspect, frustumSize * aspect, frustumSize, - frustumSize, 0.1, 10 )..name = 'Main Camera';
     cameraPersp = three.PerspectiveCamera(40, aspect, 0.1, 10)..name = 'Main Camera';
     camera = cameraPersp;
+    camera.position.setValues(5,5,-5);
+    camera.lookAt(three.Vector3());
     
-    threeJs.camera = three.PerspectiveCamera( 50, aspect, 0.1, 100 );
+    threeJs.camera = three.PerspectiveCamera( 50, aspect, 0.1, 500 );
     threeJs.camera.position.setFrom(resetCamPos);
     threeJs.camera.getWorldDirection(resetCamLookAt);
     resetCamQuant.setFrom(threeJs.camera.quaternion);
@@ -166,7 +198,7 @@ class ThreeViewer {
     threeJs.scene = three.Scene();
     threeJs.scene.background = three.Color.fromHex32(theme.canvasColor.value);
     threeJs.scene.fog = three.Fog(theme.canvasColor.value, 10,500);
-    threeJs.scene.add( grid..add(grid1)..add(grid2) );
+    threeJs.scene.add( gridInfo.grid );
 
     final ambientLight = three.AmbientLight( 0xffffff,0 );
     threeJs.scene.add( ambientLight );
@@ -186,10 +218,11 @@ class ThreeViewer {
 
     orbit = three.OrbitControls(threeJs.camera, threeJs.globalKey);
     control = TransformControls(threeJs.camera, threeJs.globalKey);
-
+    gridInfo.addControl(control);
     control.addEventListener( 'dragging-changed', (event) {
       orbit.enabled = ! event.value;
     });
+
     creteHelpers();
     threeJs.scene.add( control );
     threeJs.scene.add(helper);
@@ -231,7 +264,7 @@ class ThreeViewer {
         case 'v':
           if(holdingControl){
             if(copy != null){
-              scene.add(copy?.clone());
+              copyAll(copy);
             }
           }
           break;
@@ -245,13 +278,13 @@ class ThreeViewer {
           break;
         case 'delete':
         case 'x':
-          if(intersected != null){
+          if(intersected.isNotEmpty){
             rightClick.openMenu('',Offset(mousePosition.x,mousePosition.y),[RightClickOptions.delete]);
           }
           break;
         case 'tab':
-          if(intersected != null){
-            editModes([intersected!]);
+          if(intersected.isNotEmpty){
+            editModes(intersected);
             editInfo.active = true;
           }
           else if(editInfo.active){
@@ -285,16 +318,86 @@ class ThreeViewer {
       }
     });
     threeJs.domElement.addEventListener(three.PeripheralType.pointerdown, (details){
-      mousePosition = three.Vector2(details.clientX, details.clientY);
-      if(!control.dragging){
-        checkIntersection(scene.children);
-        mixer = null;
-        currentAnimation = null;
+      if(details.button == 2){
+        if(rightClick.isMenuOpen){
+          final showOptions = rcOptions+
+          (copy != null && copy!.isNotEmpty?[RightClickOptions.paste]:[])+
+          (intersected.isNotEmpty?[RightClickOptions.copy,RightClickOptions.delete]:[])
+          ;
+          rightClick.closeMenu();
+          rightClick.openMenu(
+            'Test', 
+            Offset(details.clientX,details.clientY), 
+            showOptions
+          );
+        }
+        else{
+          final showOptions = rcOptions+
+          (copy != null && copy!.isNotEmpty?[RightClickOptions.paste]:[])+
+          (intersected.isNotEmpty?[RightClickOptions.copy,RightClickOptions.delete]:[])
+          ;
+          rightClick.openMenu(            
+            'Test', 
+            Offset(details.clientX,details.clientY), 
+            showOptions
+          );
+        }
+      }
+      else{
+        if(rightClick.isMenuOpen){
+          rightClick.closeMenu();
+        }
+        if(boxSelection){
+          orbit.enableRotate = false;
+          selectionHelperEnabled = true;
+          
+          startPoint.setValues(details.clientX,details.clientY);
+          selectionBox.startPoint.setFrom(convertPosition(startPoint));
+        }
+        else{
+          mousePosition = three.Vector2(details.clientX, details.clientY);
+          if(!control.dragging){
+            checkIntersection(scene.children);
+            mixer = null;
+            currentAnimation = null;
+          }
+        }
       }
     });
     threeJs.domElement.addEventListener(three.PeripheralType.pointermove, (details){
       mousePosition = three.Vector2(details.clientX, details.clientY);
+      if (boxSelection) {
+        if(intersected.isNotEmpty){
+          boxSelect(false);
+          intersected.clear();
+        }
+
+        final temp = selectionBox.select();
+
+        for(final s in temp){
+          if(contains(s) && s.visible){
+            intersected.add(s);
+            boxSelect(true);
+          }
+        }
+
+        selectionBox.endPoint.setFrom(convertPosition(mousePosition));
+        setState((){});
+      }
+      else{
+        selectionHelperEnabled = false;
+      }
+      
       if(control.dragging){}
+    });
+    threeJs.domElement.addEventListener(three.PeripheralType.pointerup, ( event ) {
+      if(event.pointerType == 'mouse'){
+        orbit.enableRotate = true;
+      }
+      if(selectionHelperEnabled){
+        selectionHelperEnabled = false;
+        setState((){});
+      }
     });
 
     threeJs.addAnimationEvent((dt){
@@ -447,11 +550,40 @@ class ThreeViewer {
       }
     }
   }
-
+  void addAll(List<three.Object3D> objects){
+    for(final object in objects){
+      add(object);
+    }
+  }
+  void copyAll(List<three.Object3D>? objects){
+    if(objects == null) return;
+    for(final object in objects){
+      add(object.clone());
+    }
+  }
+  void removeAll(List<three.Object3D> objects){
+    for(final object in objects){
+      remove(object);
+    }
+  }
   void remove(three.Object3D object){
     scene.remove(object);
     if(object.name.contains('terrain_')){
       terrains.remove(object);
+    }
+    else if(object.userData['helper'] != null){
+      threeJs.scene.remove(object.userData['helper']);
+      scene.remove(object.userData['helper']);
+      object.userData['helper'].traverse((object) {
+        if (object is three.Mesh) {
+          if (object.material is three.MeshStandardMaterial) {
+            object.material?.needsUpdate = true;
+          }
+        }
+      });
+    }
+    else if(object.userData['skeleton'] != null){
+      threeJs.scene.remove(object.userData['skeleton']);
     }
   }
 
@@ -581,43 +713,68 @@ class ThreeViewer {
     IntersectsInfo ii = IntersectsInfo([], []);
     int i = 0;
     for(final o in objects){
-      if(o is three.Group || o is three.AnimationObject || o.runtimeType == three.Object3D){
-        final inter = getIntersections(o.children);
-        ii.intersects.addAll(inter.intersects);
-        ii.oInt.addAll(List.filled(inter.intersects.length, i));
-      }
-      else if((o is three.Light && o is! three.AmbientLight) || o is three.Camera){
-        final inter = raycaster.intersectObjects([o,o.userData['helper']], true);
-        ii.intersects.addAll(inter);
-        ii.oInt.addAll(List.filled(inter.length, i));
-      }
-      else if(o is! three.Bone && o is! BoundingBoxHelper){
-        final inter = raycaster.intersectObject(o, false);
-        ii.intersects.addAll(inter);
-        ii.oInt.addAll(List.filled(inter.length, i));
+      if(o.visible && contains(o)){
+        if((o is three.Light && o is! three.AmbientLight) || o is three.Camera){
+          final h = o.userData['helper'];
+          final List<three.Object3D> l = [o];
+          if(h != null){
+            l.add(h);
+          }
+          final inter = raycaster.intersectObjects(l, true);
+          ii.intersects.addAll(inter);
+          ii.oInt.addAll(List.filled(inter.length, i));
+        }
+        else if(o is three.Group || o is three.AnimationObject || o.runtimeType == three.Object3D){
+          final inter = raycaster.intersectObjects(o.children, true);
+          // ii.intersects.addAll(inter.intersects);
+          // ii.oInt.addAll(List.filled(inter.intersects.length, i));
+          ii.intersects.addAll(inter);
+          ii.oInt.addAll(List.filled(inter.length, i));
+        }
+        else if(o is! three.Bone && o is! BoundingBoxHelper){
+          final inter = raycaster.intersectObject(o, false);
+          ii.intersects.addAll(inter);
+          ii.oInt.addAll(List.filled(inter.length, i));
+        }
       }
       i++;
     }
     return ii;
   }
   void boxSelect(bool select){
-    if(intersected == null) return;
-    if(!select){
-      sceneSelected = false;
-      control.detach();
-      for(final o in intersected!.children){
-        if(o is BoundingBoxHelper || o is SkeletonHelper){
-          o.visible = false;
+    if(intersected.isEmpty) return;
+    for(final intersect in intersected){
+      if(!select){
+        sceneSelected = false;
+        control.detach();
+        for(final o in intersect.children){
+          if(o is BoundingBoxHelper || o is SkeletonHelper){
+            o.visible = false;
+          }
+        }
+        if(intersect.userData['skeleton'] is SkeletonHelper){
+          intersect.userData['skeleton'].visible = false;
         }
       }
-    }
-    else{
-      for(final o in intersected!.children){
-        if(o is BoundingBoxHelper || o is SkeletonHelper){
-          o.visible = true;
+      else{
+        for(final o in intersect.children){
+          if(o is SkeletonHelper){
+            o.visible = true;
+          }
+          else if(o is BoundingBoxHelper){
+            o.visible = true;
+          }
         }
+        if(intersect.userData['skeleton'] is SkeletonHelper){
+          intersect.userData['skeleton'].visible = true;
+        }
+        // if(intersected.length == 1 && contains(intersect)){
+          control.attach( intersect );
+        // }
+        // else{
+        //   control.detach();
+        // }
       }
-      control.attach( intersected );
     }
   }
 
@@ -625,13 +782,13 @@ class ThreeViewer {
     gridInfo.axis = axis;
     gridInfo.showAxis(axis);
     if(axis == GridAxis.XY){
-      grid.rotation.set(math.pi / 2,0,0);
+      gridInfo.rotation.set(math.pi / 2,0,0);
     }
     else if(axis == GridAxis.XZ){
-      grid.rotation.set(0,0,0);
+      gridInfo.rotation.set(0,0,0);
     }
     if(axis == GridAxis.YZ){
-      grid.rotation.set(0,0,math.pi / 2);
+      gridInfo.rotation.set(0,0,math.pi / 2);
     }
   }
 
@@ -639,8 +796,8 @@ class ThreeViewer {
     final RenderBox renderBox = listenableKey.currentContext!.findRenderObject() as RenderBox;
     final size = renderBox.size;
     
-    double x = (location.x / (threeJs.width-size.width/6)) * 2 - 1;
-    double y = -(location.y / (threeJs.height-20-285)) * 2 + 1;
+    double x = location.x / size.width * 2 - 1;
+    double y = -location.y / size.height * 2 + 1;
     return three.Vector2(x,y);
   }
 
@@ -649,28 +806,32 @@ class ThreeViewer {
     raycaster.setFromCamera(convertPosition(mousePosition), threeJs.camera);
     if (ii.intersects.isNotEmpty ) {
       if(intersected != objects[ii.oInt[0]]) {
-        if(intersected != null){
+        if(intersected.isNotEmpty){
           boxSelect(false);
         }
-        intersected = objects[ii.oInt[0]];
+        intersected.add(objects[ii.oInt[0]]);
         boxSelect(true);
       }
     }
-    else if(intersected != null){
+    else if(intersected.isNotEmpty){
       boxSelect(false);
-      intersected = null;
+      intersected.clear();
     }
 
-    if(didClick && intersected != null){
+    if(didClick && intersected.isNotEmpty){
 
     }
     else if(didClick && ii.intersects.isEmpty){
       boxSelect(false);
-      intersected = null;
+      intersected.clear();
     }
 
     didClick = false;
     setState(() {});
+  }
+
+  bool contains(three.Object3D object){
+    return scene.children.contains(object) || threeJs.scene.children.contains(object);
   }
 
   Future<void> _copyDirectory(Directory source, Directory destination) async {
@@ -700,6 +861,15 @@ class ThreeViewer {
     } else {
       print('Source folder does not exist.');
     }
+  }
+  Future<void> export(String name) async{
+    String path ='$dirPath/assets/scenes/';
+    bool exists = await Directory(path).exists();
+    if(!exists) await Directory(path).create(recursive: true);
+
+    final last = name != ''?name:scene.name != ''?scene.name:scene.uuid;
+    final tfe = ThreeForgeExport().export(this);
+    await File('$path$last.json').writeAsString(json.encode(tfe));
   }
   Future<void> moveObjects(List<PlatformFile> files) async{
     String path ='$dirPath/assets/models/' ;
@@ -732,7 +902,6 @@ class ThreeViewer {
   }
 
   void createTerrain(){
-    print('terrain');
     terrains.add(Terrain(this,setState,terrains.length));
     terrains.last.setup();
   }

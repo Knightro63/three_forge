@@ -34,7 +34,7 @@ class _IntersectedGuiState extends State<IntersectedGui> {
   final List<bool> expands = [false,false,false,false];
 
   List<Widget> objectGui(){
-    int? id = threeV.intersected?.name == null ?null:int.tryParse(threeV.intersected!.name.split('_').last);
+    int? id = int.tryParse(threeV.intersected[0].name.split('_').last);
     return[
       Container(
         margin: const EdgeInsets.fromLTRB(5,5,5,5),
@@ -64,7 +64,7 @@ class _IntersectedGuiState extends State<IntersectedGui> {
           ],
         ),
       ),
-      if(threeV.intersected is three.Light) Container(
+      if(threeV.intersected[0] is three.Light) Container(
         margin: const EdgeInsets.fromLTRB(5,5,0,5),
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
@@ -92,7 +92,7 @@ class _IntersectedGuiState extends State<IntersectedGui> {
           ]
         )
       ),
-      if(threeV.intersected is three.Mesh) Container(
+      if(threeV.intersected[0] is three.Mesh) Container(
         margin: const EdgeInsets.fromLTRB(5,5,5,5),
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
@@ -120,7 +120,7 @@ class _IntersectedGuiState extends State<IntersectedGui> {
           ]
         )
       ),
-      if(threeV.intersected is three.Camera) Container(
+      if(threeV.intersected[0] is three.Camera) Container(
         margin: const EdgeInsets.fromLTRB(5,5,5,5),
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
@@ -148,7 +148,7 @@ class _IntersectedGuiState extends State<IntersectedGui> {
           ]
         )
       ),
-      if(threeV.intersected is three.Mesh) Container(
+      if(threeV.intersected[0] is three.Mesh) Container(
         margin: const EdgeInsets.fromLTRB(5,5,5,5),
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
@@ -311,7 +311,7 @@ class _IntersectedGuiState extends State<IntersectedGui> {
   @override
   Widget build(BuildContext context) {
     return ListView(
-      children: threeV.sceneSelected?sceneGui():threeV.intersected == null?[]:objectGui(),
+      children: threeV.sceneSelected?sceneGui():threeV.intersected.isEmpty?[]:objectGui(),
     );
   }
 }

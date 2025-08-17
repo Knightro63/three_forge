@@ -1,7 +1,8 @@
 import 'dart:math' as math;
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:three_forge/src/navigation/insert_models.dart';
+import 'package:three_forge/src/objects/insert_mesh.dart';
+import 'package:three_forge/src/objects/insert_models.dart';
 import 'package:three_forge/src/navigation/navData.dart';
 import 'package:three_forge/src/styles/globals.dart';
 import 'package:three_forge/src/three_viewer/viewer.dart';
@@ -9,16 +10,17 @@ import 'package:three_js_advanced_exporters/usdz_exporter.dart';
 import 'package:three_js_exporters/three_js_exporters.dart';
 import 'package:three_js/three_js.dart' as three;
 import 'package:three_js_helpers/three_js_helpers.dart';
-import 'package:three_js_geometry/three_js_geometry.dart';
 
 class ScreenNavigator{
   void Function(void Function()) setState;
   void Function({required LSICallbacks call}) callBacks;
   final ThreeViewer threeV;
   late final InsertModels insert;
+  late final InsertMesh insertMesh;
 
   ScreenNavigator(this.threeV,this.setState,this.callBacks){
     insert = InsertModels(threeV);
+    insertMesh = InsertMesh(threeV);
   }
 
   late List<NavItems> navigator = [
@@ -29,15 +31,17 @@ class ScreenNavigator{
           name: 'New',
           icon: Icons.new_label_outlined,
           function: (data){
-            callBacks(call: LSICallbacks.clear);
+            callBacks(call: LSICallbacks.updatedNav);
           }
         ),
         NavItems(
           name: 'Save',
           icon: Icons.save,
+          input: '',
           function: (data){
             callBacks(call: LSICallbacks.updatedNav);
-            setState(() {});
+            threeV.export(data??'');
+            //setState(() {});
           }
         ),
         // NavItems(
@@ -439,12 +443,7 @@ class ScreenNavigator{
               icon: Icons.view_in_ar_rounded,
               function: (data) async{
                 callBacks(call: LSICallbacks.updatedNav);
-                final object = three.Mesh(three.PlaneGeometry(),three.MeshPhongMaterial.fromMap({'side': three.DoubleSide, 'flatShading': true}));
-                final three.BoundingBox box = three.BoundingBox();
-                box.setFromObject(object);     
-                BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
-                object.name = 'Plane';
-                threeV.add(object.add(h));
+                insertMesh.plane();
               },
             ),
             NavItems(
@@ -452,13 +451,7 @@ class ScreenNavigator{
               icon: Icons.view_in_ar_rounded,
               function: (data){
                 callBacks(call: LSICallbacks.updatedNav);
-                final object = three.Mesh(three.BoxGeometry(),three.MeshPhongMaterial.fromMap({'flatShading': true}));
-                final three.BoundingBox box = three.BoundingBox();
-                box.setFromObject(object);     
-                BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
-                object.receiveShadow = true;
-                object.name = 'Cube';
-                threeV.add(object.add(h));
+                insertMesh.cube();
               },
             ),
             NavItems(
@@ -466,13 +459,7 @@ class ScreenNavigator{
               icon: Icons.view_in_ar_rounded,
               function: (data){
                 callBacks(call: LSICallbacks.updatedNav);
-                final object = three.Mesh(CircleGeometry(),three.MeshPhongMaterial.fromMap({'side': three.DoubleSide, 'flatShading': true}));
-                final three.BoundingBox box = three.BoundingBox();
-                box.setFromObject(object);
-
-                BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
-                object.name = 'Circle';
-                threeV.add(object.add(h));
+                insertMesh.circle();
               },
             ),
             NavItems(
@@ -480,13 +467,7 @@ class ScreenNavigator{
               icon: Icons.view_in_ar_rounded,
               function: (data){
                 callBacks(call: LSICallbacks.updatedNav);
-                final object = three.Mesh(three.SphereGeometry(),three.MeshPhongMaterial.fromMap({'flatShading': true}));
-                final three.BoundingBox box = three.BoundingBox();
-                box.setFromObject(object);     
-                                print(box.getSize(three.Vector3()).toJson());
-                BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
-                object.name = 'Sphere';
-                threeV.add(object.add(h));
+                insertMesh.sphere();
               },
             ),
             NavItems(
@@ -494,12 +475,7 @@ class ScreenNavigator{
               icon: Icons.view_in_ar_rounded,
               function: (data){
                 callBacks(call: LSICallbacks.updatedNav);
-                final object = three.Mesh(IcosahedronGeometry(),three.MeshPhongMaterial.fromMap({'flatShading': true}));
-                final three.BoundingBox box = three.BoundingBox();
-                box.setFromObject(object);     
-                BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
-                object.name = 'Ico Sphere';
-                threeV.add(object.add(h));
+                insertMesh.icoSphere();
               },
             ),
             NavItems(
@@ -507,12 +483,7 @@ class ScreenNavigator{
               icon: Icons.view_in_ar_rounded,
               function: (data){
                 callBacks(call: LSICallbacks.updatedNav);
-                final object = three.Mesh(CylinderGeometry(),three.MeshPhongMaterial.fromMap({'flatShading': true}));
-                final three.BoundingBox box = three.BoundingBox();
-                box.setFromObject(object);     
-                BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
-                object.name = 'Cylinder';
-                threeV.add(object.add(h));
+                insertMesh.cylinder();
               },
             ),
             NavItems(
@@ -520,12 +491,7 @@ class ScreenNavigator{
               icon: Icons.view_in_ar_rounded,
               function: (data){
                 callBacks(call: LSICallbacks.updatedNav);
-                final object = three.Mesh(ConeGeometry(),three.MeshPhongMaterial.fromMap({'flatShading': true}));
-                final three.BoundingBox box = three.BoundingBox();
-                box.setFromObject(object);     
-                BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
-                object.name = 'Cone';
-                threeV.add(object.add(h));
+                insertMesh.cone();
               },
             ),
             NavItems(
@@ -533,12 +499,86 @@ class ScreenNavigator{
               icon: Icons.view_in_ar_rounded,
               function: (data){
                 callBacks(call: LSICallbacks.updatedNav);
-                final object = three.Mesh(TorusGeometry(),three.MeshPhongMaterial.fromMap({'flatShading': true}));
-                final three.BoundingBox box = three.BoundingBox();
-                box.setFromObject(object);     
-                BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
-                object.name = 'Torus';
-                threeV.add(object.add(h));
+                insertMesh.torus();
+              },
+            ),
+          ]
+        ),
+        NavItems(
+          name: 'Parametric',
+          icon: Icons.share,
+          subItems: [
+            NavItems(
+              name: 'Plane',
+              icon: Icons.view_in_ar_rounded,
+              function: (data) async{
+                callBacks(call: LSICallbacks.updatedNav);
+                insertMesh.parametricPlane();
+              },
+            ),
+            NavItems(
+              name: 'Klein',
+              icon: Icons.view_in_ar_rounded,
+              function: (data){
+                callBacks(call: LSICallbacks.updatedNav);
+                insertMesh.parametricKlein();
+              },
+            ),
+            NavItems(
+              name: 'Mobius',
+              icon: Icons.view_in_ar_rounded,
+              function: (data){
+                callBacks(call: LSICallbacks.updatedNav);
+                insertMesh.parametricMobius();
+              },
+            ),
+            NavItems(
+              name: 'Torus',
+              icon: Icons.view_in_ar_rounded,
+              function: (data){
+                callBacks(call: LSICallbacks.updatedNav);
+                insertMesh.parametricTorus();
+              },
+            ),
+            NavItems(
+              name: 'Sphere',
+              icon: Icons.view_in_ar_rounded,
+              function: (data){
+                callBacks(call: LSICallbacks.updatedNav);
+                insertMesh.parametricSphere();
+              },
+            ),
+          ]
+        ),
+        NavItems(
+          name: 'Camera',
+          icon: Icons.videocam,
+          subItems: [
+            NavItems(
+              name: 'Perspective',
+              icon: Icons.video_camera_back,
+              function: (data) async{
+                callBacks(call: LSICallbacks.updatedNav);
+                final aspect = threeV.aspectRatio();
+                final camera = three.PerspectiveCamera(40, aspect, 0.1, 10);
+                camera.name = 'Perspective Camera';
+                final helper = CameraHelper(camera);
+                threeV.add(camera..userData['helper'] = helper);
+                threeV.helper.add(helper);
+              },
+            ),
+            NavItems(
+              name: 'Ortographic',
+              icon: Icons.video_camera_back,
+              function: (data) async{
+                callBacks(call: LSICallbacks.updatedNav);
+                final aspect = threeV.aspectRatio();
+                final frustumSize = 5.0;
+                final camera = three.OrthographicCamera(- frustumSize * aspect, frustumSize * aspect, frustumSize, - frustumSize, 0.1, 10);
+                camera.name = 'Ortographic Camera';
+                final helper = CameraHelper(camera);
+                threeV.add(camera..userData['helper'] = helper);
+                threeV.helper.add(helper);
               },
             ),
           ]
@@ -568,7 +608,7 @@ class ScreenNavigator{
                 callBacks(call: LSICallbacks.updatedNav);
                 final light = three.SpotLight(0xffffff,100,2,math.pi / 6, 1, 2);
                 light.name = 'Spot Light';
-                final helper = SpotLightHelper(light);
+                final helper = SpotLightHelper(light,0xffff00);
                 threeV.add(light..userData['helper'] = helper);
                 threeV.helper.add(helper);
               },
@@ -580,7 +620,7 @@ class ScreenNavigator{
                 callBacks(call: LSICallbacks.updatedNav);
                 final light = three.DirectionalLight(0xffffff);
                 light.name = 'Directional Light';
-                final helper = DirectionalLightHelper(light);
+                final helper = DirectionalLightHelper(light,1,three.Color.fromHex32(0xffff00));
                 threeV.add(light..userData['helper'] = helper);
                 threeV.helper.add(helper);
               },
@@ -591,7 +631,7 @@ class ScreenNavigator{
               function: (data) async{
                 callBacks(call: LSICallbacks.updatedNav);
                 final light = three.PointLight(0xffffff,10);
-                final helper = PointLightHelper(light,1);
+                final helper = PointLightHelper(light,1,0xffff00);
                 light.name = 'Point Light';
                 threeV.add(light..userData['helper'] = helper);
                 threeV.helper.add(helper);
@@ -603,7 +643,7 @@ class ScreenNavigator{
               function: (data) async{
                 callBacks(call: LSICallbacks.updatedNav);
                 final light = three.HemisphereLight(0xffffff,0x444444);
-                final helper = HemisphereLightHelper(light,1);
+                final helper = HemisphereLightHelper(light,1,three.Color.fromHex32(0xffff00));
                 light.name = 'Hemisphere Light';
                 threeV.add(light..userData['helper'] = helper);
                 threeV.helper.add(helper);
@@ -615,7 +655,7 @@ class ScreenNavigator{
               function: (data) async{
                 callBacks(call: LSICallbacks.updatedNav);
                 final light = three.RectAreaLight(0xffffff,0x444444);
-                final helper = RectAreaLightHelper(light);
+                final helper = RectAreaLightHelper(light,three.Color.fromHex32(0xffff00));
                 light.name = 'Rect Area Light';
                 threeV.add(light..userData['helper'] = helper);
                 threeV.helper.add(helper);

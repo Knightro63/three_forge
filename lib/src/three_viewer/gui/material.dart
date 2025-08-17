@@ -47,7 +47,7 @@ class _MaterialGuiState extends State<MaterialGui> {
 
   @override
   Widget build(BuildContext context) {
-    three.Light light = threeV.intersected! as three.Light;
+    three.Light light = threeV.intersected[0] as three.Light;
     const double d = 60;
     double d2 = 65;
     return Column(

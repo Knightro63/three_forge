@@ -10,8 +10,9 @@ import 'package:flutter/material.dart';
 /// [paste] pase item/s from clipboard
 /// 
 enum RightClickOptions{
+  reset_camera,
+  game_view,
   delete,
-  editName,
   copy,
   paste,
   none

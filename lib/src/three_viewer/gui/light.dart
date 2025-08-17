@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:three_forge/src/styles/savedWidgets.dart';
 import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js/three_js.dart' as three;
+// import 'package:three_js_helpers/three_js_helpers.dart';
 
 class LightGui extends StatefulWidget {
   const LightGui({Key? key, required this.threeV}):super(key: key);
@@ -31,6 +32,30 @@ class _LightGuiState extends State<LightGui> {
       controllers.clear();
     }
   }
+  void updateLightHelper(three.Light light){
+    // if(light is three.DirectionalLight){
+    //   (light.userData['helper'] as DirectionalLightHelper).copy(DirectionalLightHelper(light,light.intensity,three.Color.fromHex32(0xffff00)));
+    // }
+    // else if(light is three.SpotLight){
+    //   (light.userData['helper'] as SpotLightHelper).copy(SpotLightHelper(light,0xffff00));
+    // }
+    // else if(light is three.PointLight){
+    //   (light.userData['helper'] as PointLightHelper).copy(PointLightHelper(light,light.intensity,0xffff00));
+    // }
+    // else if(light is three.RectAreaLight){
+    //   (light.userData['helper'] as RectAreaLightHelper).copy(RectAreaLightHelper(light,three.Color.fromHex32(0xffff00)));
+    // }
+    // else if(light is three.HemisphereLight){
+    //   (light.userData['helper'] as HemisphereLightHelper).copy(HemisphereLightHelper(light,light.intensity,three.Color.fromHex32(0xffff00)));
+    // }
+    // light.userData['helper'].traverse((object) {
+    //   if (object is three.Mesh) {
+    //     if (object.material is three.MeshStandardMaterial) {
+    //       object.material?.needsUpdate = true;
+    //     }
+    //   }
+    // });
+  }
 
   final List<TextEditingController> lightsControllers = [
     TextEditingController(),
@@ -48,7 +73,7 @@ class _LightGuiState extends State<LightGui> {
   @override
   Widget build(BuildContext context) {
     controllersReset();
-    three.Light light = threeV.intersected! as three.Light;
+    three.Light light = threeV.intersected[0] as three.Light;
     const double d = 60;
     double d2 = 65;
     return Column(
@@ -68,7 +93,6 @@ class _LightGuiState extends State<LightGui> {
               onChanged: (val){
                 final int? hex = int.tryParse(val.replaceAll('0x', ''),radix: 16);
                 if(hex != null){
-                  print(hex);
                   light.color = three.Color.fromHex32(hex);
                 }
                 else{
@@ -91,7 +115,8 @@ class _LightGuiState extends State<LightGui> {
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                light.intensity = double.parse(val);
+                light.intensity = double.tryParse(val) ?? 1;
+                updateLightHelper(light);
               },
               controller: lightsControllers[1],
             )
@@ -110,7 +135,6 @@ class _LightGuiState extends State<LightGui> {
               onChanged: (val){
                 final int? hex = int.tryParse(val.replaceAll('0x', ''),radix: 16);
                 if(hex != null){
-                  print(hex);
                   light.groundColor = three.Color.fromHex32(hex);
                 }
                 else{
@@ -133,7 +157,8 @@ class _LightGuiState extends State<LightGui> {
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                light.distance = double.parse(val);
+                light.distance = double.tryParse(val);
+                updateLightHelper(light);
               },
               controller: lightsControllers[3],
             )
@@ -151,7 +176,8 @@ class _LightGuiState extends State<LightGui> {
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                light.decay = double.parse(val);
+                light.decay = double.tryParse(val);
+                updateLightHelper(light);
               },
               controller: lightsControllers[4],
             )
@@ -169,7 +195,8 @@ class _LightGuiState extends State<LightGui> {
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                light.width = double.parse(val);
+                light.width = double.tryParse(val);
+                updateLightHelper(light);
               },
               controller: lightsControllers[5],
             )
@@ -187,7 +214,8 @@ class _LightGuiState extends State<LightGui> {
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                light.height = double.parse(val);
+                light.height = double.tryParse(val);
+                updateLightHelper(light);
               },
               controller: lightsControllers[6],
             )
@@ -205,7 +233,8 @@ class _LightGuiState extends State<LightGui> {
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                light.angle = double.parse(val);
+                light.angle = double.tryParse(val);
+                updateLightHelper(light);
               },
               controller: lightsControllers[7],
             )
@@ -223,7 +252,8 @@ class _LightGuiState extends State<LightGui> {
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                light.penumbra = double.parse(val);
+                light.penumbra = double.tryParse(val);
+                updateLightHelper(light);
               },
               controller: lightsControllers[8],
             )

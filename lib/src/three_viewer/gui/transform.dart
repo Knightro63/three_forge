@@ -58,14 +58,14 @@ class _TransformGuiState extends State<TransformGui> {
             const Text('X'),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: threeV.intersected!.position.x.toString(),
+              label: threeV.intersected[0].position.x.toString(),
               width: 80,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                threeV.intersected!.position.x = double.parse(val);
+                threeV.intersected[0].position.x = double.parse(val);
               },
               controller: transfromControllers[0],
             )
@@ -76,14 +76,14 @@ class _TransformGuiState extends State<TransformGui> {
             const Text('Y'),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: threeV.intersected!.position.y.toString(),
+              label: threeV.intersected[0].position.y.toString(),
               width: 80,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                threeV.intersected!.position.y = double.parse(val);
+                threeV.intersected[0].position.y = double.parse(val);
               },
               controller: transfromControllers[1],
             )
@@ -94,14 +94,14 @@ class _TransformGuiState extends State<TransformGui> {
             const Text('Z'),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: threeV.intersected!.position.z.toString(),
+              label: threeV.intersected[0].position.z.toString(),
               width: 80,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                threeV.intersected!.position.z = double.parse(val);
+                threeV.intersected[0].position.z = double.parse(val);
               },
               controller: transfromControllers[2],
             )
@@ -116,14 +116,14 @@ class _TransformGuiState extends State<TransformGui> {
             const Text('X'),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: threeV.intersected!.rotation.x.toString(),
+              label: threeV.intersected[0].rotation.x.toString(),
               width: 80,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                threeV.intersected!.rotation.x = double.parse(val);
+                threeV.intersected[0].rotation.x = double.parse(val);
               },
               controller: transfromControllers[3],
             )
@@ -134,14 +134,14 @@ class _TransformGuiState extends State<TransformGui> {
             const Text('Y'),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: threeV.intersected!.rotation.y.toString(),
+              label: threeV.intersected[0].rotation.y.toString(),
               width: 80,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                threeV.intersected!.rotation.y = double.parse(val);
+                threeV.intersected[0].rotation.y = double.parse(val);
               },
               controller: transfromControllers[4],
             )
@@ -152,14 +152,14 @@ class _TransformGuiState extends State<TransformGui> {
             const Text('Z'),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: threeV.intersected!.rotation.z.toString(),
+              label: threeV.intersected[0].rotation.z.toString(),
               width: 80,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                threeV.intersected!.rotation.z = double.parse(val);
+                threeV.intersected[0].rotation.z = double.parse(val);
               },
               controller: transfromControllers[5],
             )
@@ -174,14 +174,14 @@ class _TransformGuiState extends State<TransformGui> {
             const Text('X'),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: threeV.intersected!.scale.x.toString(),
+              label: threeV.intersected[0].scale.x.toString(),
               width: 80,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                threeV.intersected!.scale.x = double.parse(val);
+                threeV.intersected[0].scale.x = double.parse(val);
               },
               controller: transfromControllers[6],
             )
@@ -192,14 +192,14 @@ class _TransformGuiState extends State<TransformGui> {
             const Text('Y'),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: threeV.intersected!.scale.y.toString(),
+              label: threeV.intersected[0].scale.y.toString(),
               width: 80,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                threeV.intersected!.scale.y = double.parse(val);
+                threeV.intersected[0].scale.y = double.parse(val);
               },
               controller: transfromControllers[7],
             )
@@ -210,14 +210,14 @@ class _TransformGuiState extends State<TransformGui> {
             const Text('Z'),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: threeV.intersected!.scale.z.toString(),
+              label: threeV.intersected[0].scale.z.toString(),
               width: 80,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                threeV.intersected!.scale.z = double.parse(val);
+                threeV.intersected[0].scale.z = double.parse(val);
               },
               controller: transfromControllers[8],
             )

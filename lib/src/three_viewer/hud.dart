@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:three_forge/src/navigation/insert_models.dart';
+import 'package:three_forge/src/objects/insert_models.dart';
 import 'package:three_forge/src/navigation/navigation.dart';
+import 'package:three_forge/src/three_viewer/gui/selection_helper.dart';
 
 import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js_transform_controls/three_js_transform_controls.dart';
@@ -27,9 +28,11 @@ class Hud extends StatelessWidget{
             },
             onAcceptWithDetails: (DragTargetDetails<Object> path){
               insert.insert((path.data as String));
+              setState((){});
             },
           ),
         ),
+        SelectionHelper(threeV: threeV),
         Positioned(
           left: 10,
           top: 10,
@@ -38,13 +41,31 @@ class Hud extends StatelessWidget{
               InkWell(
                 onTap: (){
                   setState(() {
+                    threeV.boxSelection = true;
+                  });
+                },
+                child:Container(
+                  width: 25,
+                  height: 25,
+                  color: threeV.boxSelection? Theme.of(context).secondaryHeaderColor.withAlpha(200):Theme.of(context).cardColor.withAlpha(200),
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    Icons.select_all,
+                    size: 20,
+                  ),
+                ),
+              ),
+              InkWell(
+                onTap: (){
+                  setState(() {
+                    threeV.boxSelection = false;
                     threeV.control.setMode(GizmoType.translate);
                   });
                 },
                 child:Container(
                   width: 25,
                   height: 25,
-                  color: threeV.mounted && threeV.control.enabled && threeV.control.mode == GizmoType.translate? Theme.of(context).secondaryHeaderColor.withAlpha(200):Theme.of(context).cardColor.withAlpha(200),
+                  color: !threeV.boxSelection && threeV.mounted && threeV.control.enabled && threeV.control.mode == GizmoType.translate? Theme.of(context).secondaryHeaderColor.withAlpha(200):Theme.of(context).cardColor.withAlpha(200),
                   alignment: Alignment.center,
                   child: const Icon(
                     Icons.control_camera,
@@ -55,6 +76,7 @@ class Hud extends StatelessWidget{
               InkWell(
                 onTap: (){
                   setState(() {
+                    threeV.boxSelection = false;
                     threeV.control.setMode(GizmoType.rotate);
                   });
                 },
@@ -62,7 +84,7 @@ class Hud extends StatelessWidget{
                   width: 25,
                   height: 25,
                   margin: const EdgeInsets.only(top: 2),
-                  color: threeV.mounted && threeV.control.enabled && threeV.control.mode == GizmoType.rotate? Theme.of(context).secondaryHeaderColor.withAlpha(200):Theme.of(context).cardColor.withAlpha(200),
+                  color: !threeV.boxSelection && threeV.mounted && threeV.control.enabled && threeV.control.mode == GizmoType.rotate? Theme.of(context).secondaryHeaderColor.withAlpha(200):Theme.of(context).cardColor.withAlpha(200),
                   alignment: Alignment.center,
                   child: const Icon(
                     Icons.cached,
@@ -73,6 +95,7 @@ class Hud extends StatelessWidget{
               InkWell(
                 onTap: (){
                   setState(() {
+                    threeV.boxSelection = false;
                     threeV.control.setMode(GizmoType.scale);
                   });
                 },
@@ -80,7 +103,7 @@ class Hud extends StatelessWidget{
                   width: 25,
                   height: 25,
                   margin: const EdgeInsets.only(top: 2),
-                  color: threeV.mounted && threeV.control.enabled && threeV.control.mode == GizmoType.scale? Theme.of(context).secondaryHeaderColor.withAlpha(200):Theme.of(context).cardColor.withAlpha(200),
+                  color: !threeV.boxSelection && threeV.mounted && threeV.control.enabled && threeV.control.mode == GizmoType.scale? Theme.of(context).secondaryHeaderColor.withAlpha(200):Theme.of(context).cardColor.withAlpha(200),
                   alignment: Alignment.center,
                   child: const Icon(
                     Icons.aspect_ratio,
@@ -94,7 +117,7 @@ class Hud extends StatelessWidget{
         Row(
           children: [
             SizedBox(
-              width: 150,
+              width: 186,
               height: 25, 
               child: Navigation(
                 spacer: Text('|'),
@@ -156,6 +179,53 @@ class Hud extends StatelessWidget{
                       ),
                     ]
                   ),
+                  NavItems(
+                    name: 'grid_info',
+                    useName: false,
+                    icon:  Icons.arrow_drop_down_rounded,
+                    subItems: [
+                      NavItems(
+                        name: 'Size',
+                        input: threeV.gridInfo.size,
+                        function: (data){
+                          final size = double.tryParse(data);
+                          setState((){
+                            if(size != null){
+                              threeV.gridInfo.updateGrid(size, threeV.gridInfo.divisions);
+                            }
+                          });
+                        }
+                      ),
+                      NavItems(
+                        name: 'Div',
+                        input: threeV.gridInfo.divisions,
+                        function: (data){
+                          setState((){
+                            final divisions = int.tryParse(data);
+                            if(divisions != null){
+                              threeV.gridInfo.updateGrid(threeV.gridInfo.size, divisions);
+                            }
+                          });
+                        }
+                      ),
+                      NavItems(
+                        name: 'Snap',
+                        icon: Icons.grid_goldenratio_rounded,
+                        function: (data){
+                          setState((){
+                            threeV.gridInfo.snap = !threeV.gridInfo.snap;
+                            if(threeV.gridInfo.snap){
+                              final double snap = threeV.gridInfo.size/threeV.gridInfo.divisions;
+                              threeV.control.setTranslationSnap(snap);
+                            }
+                            else{
+                              threeV.control.setTranslationSnap(null);
+                            }
+                          });
+                        }
+                      ),
+                    ]
+                  )
                 ]
               ),
             ),
@@ -238,27 +308,27 @@ class Hud extends StatelessWidget{
                   ),
                 ),
               ),
-              InkWell(
-                onTap: (){
+              // InkWell(
+              //   onTap: (){
 
-                },
-                child:Container(
-                  width: 25,
-                  height: 25,
-                  decoration: BoxDecoration(
-                    borderRadius: const BorderRadius.only(
-                      topRight: Radius.circular(5),
-                      bottomRight: Radius.circular(5)
-                    ),
-                    color: Theme.of(context).cardColor,
-                  ),
-                  alignment: Alignment.center,
-                  child: const Icon(
-                    Icons.radio_button_off,
-                    size: 20,
-                  ),
-                ),
-              ),
+              //   },
+              //   child:Container(
+              //     width: 25,
+              //     height: 25,
+              //     decoration: BoxDecoration(
+              //       borderRadius: const BorderRadius.only(
+              //         topRight: Radius.circular(5),
+              //         bottomRight: Radius.circular(5)
+              //       ),
+              //       color: Theme.of(context).cardColor,
+              //     ),
+              //     alignment: Alignment.center,
+              //     child: const Icon(
+              //       Icons.radio_button_off,
+              //       size: 20,
+              //     ),
+              //   ),
+              // ),
             ]
           )
         ),

@@ -37,7 +37,8 @@ class SceneCollection extends StatelessWidget{
         InkWell(
           onTap: (){
             threeV.boxSelect(false);
-            threeV.intersected = child;
+            threeV.intersected.clear();
+            threeV.intersected.add(child);
             threeV.boxSelect(true);
             setState(() {
               
@@ -47,7 +48,7 @@ class SceneCollection extends StatelessWidget{
             margin: const EdgeInsets.fromLTRB(5, 0, 5, 0),
             padding: const EdgeInsets.fromLTRB(15, 0, 5, 0),
             height: 25,
-            color: child == threeV.intersected?Theme.of(context).secondaryHeaderColor:Theme.of(context).canvasColor,
+            color: threeV.intersected.isNotEmpty && threeV.intersected.contains(child)?Theme.of(context).secondaryHeaderColor:Theme.of(context).canvasColor,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -62,7 +63,7 @@ class SceneCollection extends StatelessWidget{
                   onTap: (){
                     setState(() {
                       child.visible = !child.visible;
-                      if(child.userData['helper'] != null) child.userData['helper'].visible = child.visible;
+                      if(child.userData['helper'] != null)child.userData['helper'].visible = child.visible;
                     });
                   },
                   child: Icon(child.visible?Icons.visibility:Icons.visibility_off,size: 15,),
