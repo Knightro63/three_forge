@@ -187,7 +187,7 @@ class _NavState extends State<Navigation>{
           },
           onTap: (){
             if(data[i].subItems == null){
-              data[i].function?.call(null);
+              data[i].onTap?.call(null);
             }
             else{
               setState(() {
@@ -201,7 +201,7 @@ class _NavState extends State<Navigation>{
                   nav[start+i].open();
                 }
 
-                data[i].function?.call(null);
+                data[i].onTap?.call(null);
               });
             }
           }
@@ -542,9 +542,9 @@ class _OverlayClassState extends State<OverlayClass> {
             InkWell(
               key: _key[i],
               onTap:(){
-                if(widget.subItems![i].function != null){
+                if(widget.subItems![i].onTap != null){
                   widget.onTap();
-                  widget.subItems![i].function!(null);
+                  widget.subItems![i].onTap!(null);
                 }
                 else if(nav.isNotEmpty && widget.subItems![i].subItems != null && !nav[indicies[i]!].isOpen){
                   for(int j = 0; j < indicies.length; j++){
@@ -633,16 +633,16 @@ class _OverlayClassState extends State<OverlayClass> {
                               maxLines: 1,
                               onTap: (){},
                               onEditingComplete: (){
-                                widget.subItems![i].function!(controller[i].text);
+                                widget.subItems![i].onChange?.call(controller[i].text);
                               },
                               onSubmitted: (e){
                                 if(e != ''){
-                                  widget.subItems![i].function!(e);
+                                  widget.subItems![i].onChange?.call(e);
                                 }
                               },
                               onChanged: (e){
                                 if(e != ''){
-                                  widget.subItems![i].function!(e);
+                                  widget.subItems![i].onChange?.call(e);
                                 }
                               },
                           )

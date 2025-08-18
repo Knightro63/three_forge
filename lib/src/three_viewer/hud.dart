@@ -129,7 +129,7 @@ class Hud extends StatelessWidget{
                       NavItems(
                         name: 'Global',
                         icon: Icons.public,
-                        function: (data){
+                        onTap: (data){
                           setState((){
                             threeV.setControlSpace(ControlSpaceType.global);
                           });
@@ -138,7 +138,7 @@ class Hud extends StatelessWidget{
                       NavItems(
                         name: 'Local',
                         icon: Icons.view_in_ar_outlined,
-                        function: (data){
+                        onTap: (data){
                           setState((){
                             threeV.setControlSpace(ControlSpaceType.local);
                           });
@@ -153,7 +153,7 @@ class Hud extends StatelessWidget{
                       NavItems(
                         name: 'XZ',
                         icon: Icons.grid_on,
-                        function: (data){
+                        onTap: (data){
                           setState((){
                             threeV.setGridRotation(GridAxis.XZ);
                           });
@@ -162,7 +162,7 @@ class Hud extends StatelessWidget{
                       NavItems(
                         name: 'YZ',
                         icon: Icons.grid_on,
-                        function: (data){
+                        onTap: (data){
                           setState((){
                             threeV.setGridRotation(GridAxis.YZ);
                           });
@@ -171,7 +171,7 @@ class Hud extends StatelessWidget{
                       NavItems(
                         name: 'XY',
                         icon: Icons.grid_on,
-                        function: (data){
+                        onTap: (data){
                           setState((){
                             threeV.setGridRotation(GridAxis.XY);
                           });
@@ -187,7 +187,7 @@ class Hud extends StatelessWidget{
                       NavItems(
                         name: 'Size',
                         input: threeV.gridInfo.size,
-                        function: (data){
+                        onChange: (data){
                           final size = double.tryParse(data);
                           setState((){
                             if(size != null){
@@ -199,7 +199,7 @@ class Hud extends StatelessWidget{
                       NavItems(
                         name: 'Div',
                         input: threeV.gridInfo.divisions,
-                        function: (data){
+                        onChange: (data){
                           setState((){
                             final divisions = int.tryParse(data);
                             if(divisions != null){
@@ -211,7 +211,7 @@ class Hud extends StatelessWidget{
                       NavItems(
                         name: 'Snap',
                         icon: Icons.grid_goldenratio_rounded,
-                        function: (data){
+                        onTap: (data){
                           setState((){
                             threeV.gridInfo.snap = !threeV.gridInfo.snap;
                             if(threeV.gridInfo.snap){

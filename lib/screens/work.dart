@@ -105,8 +105,8 @@ class _UIPageState extends State<UIScreen> {
       case LSICallbacks.clear:
         setState(() {
           resetNav = !resetNav;
-            for(final obj in scene.children){
-              obj.dispose();
+          for(final obj in scene.children){
+            obj.dispose();
           }
         });
         break;
@@ -212,7 +212,7 @@ class _UIPageState extends State<UIScreen> {
                     show: devices.containsKey('macos'),
                     name: 'macos',
                     icon: Icons.apple_outlined,
-                    function: (_){
+                    onTap: (_){
                       selectedDevice = 'macos';
                       setState(() {});
                     }
@@ -221,7 +221,7 @@ class _UIPageState extends State<UIScreen> {
                     show: devices.containsKey('windows'),
                     name: 'windows',
                     icon: Icons.window,
-                    function: (_){
+                    onTap: (_){
                       selectedDevice = 'windows';
                       setState(() {});
                     }
@@ -230,7 +230,7 @@ class _UIPageState extends State<UIScreen> {
                     show: devices.containsKey('linux'),
                     name: 'linux',
                     icon: Icons.smart_toy_rounded,
-                    function: (_){
+                    onTap: (_){
                       selectedDevice = 'linux';
                       setState(() {});
                     }
@@ -239,7 +239,7 @@ class _UIPageState extends State<UIScreen> {
                     show: devices.containsKey('chrome'),
                     name: 'chrome',
                     icon: Icons.web,
-                    function: (_){
+                    onTap: (_){
                       selectedDevice = 'chrome';
                       setState(() {});
                     }
@@ -248,7 +248,7 @@ class _UIPageState extends State<UIScreen> {
                     show: devices.containsKey('WASM'),
                     name: 'WASM',
                     icon: Icons.web,
-                    function: (_){
+                    onTap: (_){
                       selectedDevice = 'WASM';
                       setState(() {});
                     }
@@ -257,7 +257,7 @@ class _UIPageState extends State<UIScreen> {
                     show: devices.containsKey('emulator'),
                     name: 'emulator',
                     icon: Icons.adb,
-                    function: (_){
+                    onTap: (_){
                       selectedDevice = 'emulator';
                       setState(() {});
                     }
@@ -266,7 +266,7 @@ class _UIPageState extends State<UIScreen> {
                     show: devices.containsKey('android'),
                     name: 'android',
                     icon: Icons.adb,
-                    function: (_){
+                    onTap: (_){
                       selectedDevice = 'android';
                       setState(() {});
                     }
@@ -275,7 +275,7 @@ class _UIPageState extends State<UIScreen> {
                     show: devices.containsKey('ipad'),
                     name: 'ipad',
                     icon: Icons.apple_outlined,
-                    function: (_){
+                    onTap: (_){
                       selectedDevice = 'ipad';
                       setState(() {});
                     }
@@ -284,7 +284,7 @@ class _UIPageState extends State<UIScreen> {
                     show: devices.containsKey('ipad-sim'),
                     name: 'ipad-sim',
                     icon: Icons.apple_outlined,
-                    function: (_){
+                    onTap: (_){
                       selectedDevice = 'ipad-sim';
                       setState(() {});
                     }
@@ -293,7 +293,7 @@ class _UIPageState extends State<UIScreen> {
                     show: devices.containsKey('iphone'),
                     name: 'iphone',
                     icon: Icons.apple_outlined,
-                    function: (_){
+                    onTap: (_){
                       selectedDevice = 'iphone';
                       setState(() {});
                     }
@@ -302,13 +302,13 @@ class _UIPageState extends State<UIScreen> {
                     show: devices.containsKey('iphone-sim'),
                     name: 'iphone-sim',
                     icon: Icons.apple_outlined,
-                    function: (_){
+                    onTap: (_){
                       selectedDevice = 'iphone-sim';
                       setState(() {});
                     }
                   ),
                 ],
-                function: (_){
+                onTap: (_){
                   
                 }
               ),
@@ -316,7 +316,7 @@ class _UIPageState extends State<UIScreen> {
                 useName: false,
                 icon: !isPlaying?Icons.play_arrow_rounded:Icons.stop_rounded,
                 name: 'Play',
-                function: (_){
+                onTap: (_){
                   if(selectedDevice != null){
                     isPlaying = !isPlaying;
 
@@ -335,7 +335,7 @@ class _UIPageState extends State<UIScreen> {
                 useName: false,
                 icon: Icons.refresh,
                 name: 'Refresh',
-                function: (_){
+                onTap: (_){
                   controller.write('r');
                 }
               ),
@@ -344,7 +344,7 @@ class _UIPageState extends State<UIScreen> {
                 useName: false,
                 icon: Icons.arrow_back,
                 name: 'Reload',
-                function: (_){
+                onTap: (_){
                   controller.write('R');
                 }
               ),

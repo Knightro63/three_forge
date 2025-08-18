@@ -614,7 +614,7 @@ class ThreeViewer {
     if(o is! BoundingBoxHelper && o is! SkeletonHelper){
      if (o is three.Mesh && o.material != null) {
         int side = _changeShared(type, o);
-        o.material = three.MeshStandardMaterial.fromMap({'side': side, 'flatShading': true}); // Example: set to red
+        o.material = three.MeshMatcapMaterial.fromMap({'side': side, 'flatShading': true}); // Example: set to red
         o.material?.name = 'solid';
         o.material?.needsUpdate = true; // Inform Three.js that the material has changed
       }
@@ -656,7 +656,7 @@ class ThreeViewer {
   void _changeToWireframe(ShadingType type, three.Object3D o){
     if(o is! BoundingBoxHelper && o is! SkeletonHelper){
       _changeShared(type, o);
-      o.material = three.MeshStandardMaterial.fromMap({'wireframe': true}); // Example: set to red
+      o.material = three.MeshMatcapMaterial.fromMap({'wireframe': true,'wireframeLinewidth':2}); // Example: set to red
       o.material?.name = 'wireframe';
       o.material?.needsUpdate = true; // Inform Three.js that the material has changed
     }
@@ -716,7 +716,7 @@ class ThreeViewer {
       if(o.visible && contains(o)){
         if((o is three.Light && o is! three.AmbientLight) || o is three.Camera){
           final h = o.userData['helper'];
-          final List<three.Object3D> l = [o];
+          final List<three.Object3D> l = [];
           if(h != null){
             l.add(h);
           }

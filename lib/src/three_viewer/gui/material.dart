@@ -14,11 +14,79 @@ class MaterialGui extends StatefulWidget {
 
 class _MaterialGuiState extends State<MaterialGui> {
   late final ThreeViewer threeV;
+  List<DropdownMenuItem<int>> blendingSelector = [];
+  List<DropdownMenuItem<int>> sideSelector = [];
+
   
   @override
   void initState() {
     super.initState();
     threeV = widget.threeV;
+    sideSelector.add(DropdownMenuItem(
+      value: three.FrontSide,
+      child: Text(
+        'FrontSide', 
+        overflow: TextOverflow.ellipsis,
+      )
+    ));
+    sideSelector.add(DropdownMenuItem(
+      value: three.BackSide,
+      child: Text(
+        'BackSide', 
+        overflow: TextOverflow.ellipsis,
+      )
+    ));
+    sideSelector.add(DropdownMenuItem(
+      value: three.DoubleSide,
+      child: Text(
+        'DoubleSide', 
+        overflow: TextOverflow.ellipsis,
+      )
+    ));
+
+
+    blendingSelector.add(DropdownMenuItem(
+      value: three.NoBlending,
+      child: Text(
+        'NoBlending', 
+        overflow: TextOverflow.ellipsis,
+      )
+    ));
+    blendingSelector.add(DropdownMenuItem(
+      value: three.NormalBlending,
+      child: Text(
+        'NormalBlending', 
+        overflow: TextOverflow.ellipsis,
+      )
+    ));
+    blendingSelector.add(DropdownMenuItem(
+      value: three.AdditiveBlending,
+      child: Text(
+        'AdditiveBlending', 
+        overflow: TextOverflow.ellipsis,
+      )
+    ));
+    blendingSelector.add(DropdownMenuItem(
+      value: three.SubtractiveBlending,
+      child: Text(
+        'SubtractiveBlending', 
+        overflow: TextOverflow.ellipsis,
+      )
+    ));
+    blendingSelector.add(DropdownMenuItem(
+      value: three.MultiplyBlending,
+      child: Text(
+        'MultiplyBlending', 
+        overflow: TextOverflow.ellipsis,
+      )
+    ));
+    blendingSelector.add(DropdownMenuItem(
+      value: three.CustomBlending,
+      child: Text(
+        'CustomBlending', 
+        overflow: TextOverflow.ellipsis,
+      )
+    ));
   }
   @override
   void dispose(){
@@ -47,51 +115,31 @@ class _MaterialGuiState extends State<MaterialGui> {
 
   @override
   Widget build(BuildContext context) {
-    three.Light light = threeV.intersected[0] as three.Light;
-    const double d = 60;
+    three.Material? material = threeV.intersected[0].userData['mainMaterial'];
+
+    if(threeV.shading == ShadingType.material){
+      material = threeV.intersected[0].material;
+    }
+
+    const double d = 57;
     double d2 = 65;
-    return Column(
+    return material == null?Container():Column(
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            SizedBox(width:d, child: const Text('Color')),
+            SizedBox(width:d, child: const Text('Name')),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: '0x${light.color?.getHex().toRadixString(16) ?? 'ffffff'}',
+              label: material.name.toString(),
               width: d2,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                final int? hex = int.tryParse(val.replaceAll('0x', ''),radix: 16);
-                if(hex != null){
-                  print(hex);
-                  light.color = three.Color.fromHex32(hex);
-                }
-                else{
-                  light.color = three.Color.fromHex64(Theme.of(context).canvasColor.toARGB32());
-                }
-              },
-              controller: transfromControllers[0],
-            )
-          ],
-        ),
-        Row(
-          children: [
-            SizedBox(width:d, child: const Text('Intensity')),
-            EnterTextFormField(
-              inputFormatters: [DecimalTextInputFormatter()],
-              label: light.intensity.toString(),
-              width: d2,
-              height: 20,
-              maxLines: 1,
-              textStyle: Theme.of(context).primaryTextTheme.bodySmall,
-              color: Theme.of(context).canvasColor,
-              onChanged: (val){
-                light.intensity = double.parse(val);
+                material!.name = val;
               },
               controller: transfromControllers[1],
             )
@@ -99,10 +147,11 @@ class _MaterialGuiState extends State<MaterialGui> {
         ),
         Row(
           children: [
-            SizedBox(width:d, child: const Text('Ground\nColor')),
+            SizedBox(width:d-10, child: const Text('Color')),
+            Container(width: 10,height: 20,color: Color.fromRGBO((material.color.red*255).toInt(), (material.color.green*255).toInt(), (material.color.blue*255).toInt(), material.opacity),),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: '0x${light.groundColor?.getHex().toRadixString(16) ?? 'ffffff'}',
+              label: '0x${material.color.getHex().toRadixString(16)}',
               width: d2,
               height: 20,
               maxLines: 1,
@@ -111,125 +160,187 @@ class _MaterialGuiState extends State<MaterialGui> {
               onChanged: (val){
                 final int? hex = int.tryParse(val.replaceAll('0x', ''),radix: 16);
                 if(hex != null){
-                  print(hex);
-                  light.groundColor = three.Color.fromHex32(hex);
+                  material!.color = three.Color.fromHex32(hex);
                 }
                 else{
-                  light.groundColor = three.Color.fromHex64(Theme.of(context).canvasColor.toARGB32());
+                  material!.color = three.Color.fromHex64(Theme.of(context).canvasColor.toARGB32());
                 }
               },
-              controller: transfromControllers[2],
+              controller: transfromControllers[0],
             )
           ],
         ),
-        Row(
-          children: [
-            SizedBox(width:d, child: const Text('Distance')),
-            EnterTextFormField(
-              inputFormatters: [DecimalTextInputFormatter()],
-              label: light.distance?.toString() ?? '0',
-              width: d2,
-              height: 20,
-              maxLines: 1,
-              textStyle: Theme.of(context).primaryTextTheme.bodySmall,
-              color: Theme.of(context).canvasColor,
-              onChanged: (val){
-                light.distance = double.parse(val);
+        InkWell(
+          onTap: (){
+            material!.vertexColors = !material.vertexColors;
+            setState(() {});
+          },
+          child: Row(
+            //mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Vertex Colors\t\t\t'),
+              SavedWidgets.checkBox(material.vertexColors)
+            ]
+          )
+        ),
+        Container(
+          margin: const EdgeInsets.fromLTRB(0, 5, 0, 5),
+          alignment: Alignment.center,
+          //width: 100,
+          height:20,
+          padding: const EdgeInsets.only(left:10),
+          decoration: BoxDecoration(
+            color: Theme.of(context).canvasColor,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton <dynamic>(
+              dropdownColor: Theme.of(context).canvasColor,
+              isExpanded: true,
+              items: sideSelector,
+              value: material.side,
+              isDense: true,
+              focusColor: Theme.of(context).secondaryHeaderColor,
+              style: Theme.of(context).primaryTextTheme.bodySmall,
+              onChanged:(value){
+                setState(() {
+                  material!.side = value;
+                });
               },
-              controller: transfromControllers[3],
-            )
-          ],
+            ),
+          ),
         ),
-        Row(
-          children: [
-            SizedBox(width:d, child: const Text('Decay')),
-            EnterTextFormField(
-              inputFormatters: [DecimalTextInputFormatter()],
-              label: light.decay?.toString() ?? '0',
-              width: d2,
-              height: 20,
-              maxLines: 1,
-              textStyle: Theme.of(context).primaryTextTheme.bodySmall,
-              color: Theme.of(context).canvasColor,
-              onChanged: (val){
-                light.decay = double.parse(val);
+        InkWell(
+          onTap: (){
+            material!.flatShading = !material.flatShading;
+            setState(() {});
+          },
+          child: Row(
+            //mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Flat Shading\t\t\t'),
+              SavedWidgets.checkBox(material.flatShading)
+            ]
+          )
+        ),
+        Container(
+          margin: const EdgeInsets.fromLTRB(0, 5, 0, 5),
+          alignment: Alignment.center,
+          //width: 100,
+          height:20,
+          padding: const EdgeInsets.only(left:10),
+          decoration: BoxDecoration(
+            color: Theme.of(context).canvasColor,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton <dynamic>(
+              dropdownColor: Theme.of(context).canvasColor,
+              isExpanded: true,
+              items: blendingSelector,
+              value: material.blending,
+              isDense: true,
+              focusColor: Theme.of(context).secondaryHeaderColor,
+              style: Theme.of(context).primaryTextTheme.bodySmall,
+              onChanged:(value){
+                setState(() {
+                  material!.blending = value;
+                });
               },
-              controller: transfromControllers[4],
-            )
-          ],
+            ),
+          ),
         ),
         Row(
           children: [
-            SizedBox(width:d, child: const Text('Width')),
+            SizedBox(width:d, child: const Text('Opacity')),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: light.width?.toString() ?? '0',
+              label: material.opacity.toString(),
               width: d2,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                light.width = double.parse(val);
+                material!.opacity = double.parse(val);
+                setState(() {});
               },
               controller: transfromControllers[5],
             )
           ],
         ),
+        InkWell(
+          onTap: (){
+            material!.transparent = !material.transparent;
+            setState(() {});
+          },
+          child: Row(
+            //mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Transparent\t\t\t'),
+              SavedWidgets.checkBox(material.transparent)
+            ]
+          )
+        ),
+        InkWell(
+          onTap: (){
+            material!.forceSinglePass = !material.forceSinglePass;
+            setState(() {});
+          },
+          child: Row(
+            //mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Force SP\t\t\t'),
+              SavedWidgets.checkBox(material.forceSinglePass)
+            ]
+          )
+        ),
         Row(
           children: [
-            SizedBox(width:d, child: const Text('Height')),
+            SizedBox(width:d, child: const Text('Alpha Test')),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: light.height?.toString() ?? '0',
+              label: material.alphaTest.toString(),
               width: d2,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                light.height = double.parse(val);
+                material!.alphaTest = double.parse(val);
               },
               controller: transfromControllers[6],
             )
           ],
         ),
-        Row(
-          children: [
-            SizedBox(width:d, child: const Text('Angle')),
-            EnterTextFormField(
-              inputFormatters: [DecimalTextInputFormatter()],
-              label: light.angle?.toString() ?? '0',
-              width: d2,
-              height: 20,
-              maxLines: 1,
-              textStyle: Theme.of(context).primaryTextTheme.bodySmall,
-              color: Theme.of(context).canvasColor,
-              onChanged: (val){
-                light.angle = double.parse(val);
-              },
-              controller: transfromControllers[7],
-            )
-          ],
+        InkWell(
+          onTap: (){
+            material!.depthTest = !material.depthTest;
+            setState(() {
+              
+            });
+          },
+          child: Row(
+            //mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Depth Test\t\t\t'),
+              SavedWidgets.checkBox(material.depthTest)
+            ]
+          )
         ),
-        Row(
-          children: [
-            SizedBox(width:d, child: Text('Penubra')),
-            EnterTextFormField(
-              inputFormatters: [DecimalTextInputFormatter()],
-              label: light.penumbra?.toString() ?? '0',
-              width: d2,
-              height: 20,
-              maxLines: 1,
-              textStyle: Theme.of(context).primaryTextTheme.bodySmall,
-              color: Theme.of(context).canvasColor,
-              onChanged: (val){
-                light.penumbra = double.parse(val);
-              },
-              controller: transfromControllers[8],
-            )
-          ],
-        )
+        InkWell(
+          onTap: (){
+            material!.depthWrite = !material.depthWrite;
+            setState(() {});
+          },
+          child: Row(
+            //mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Depth Write\t\t\t'),
+              SavedWidgets.checkBox(material.depthWrite)
+            ]
+          )
+        ),
       ],
     );
   }

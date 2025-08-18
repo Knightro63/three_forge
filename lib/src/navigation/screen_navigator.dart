@@ -18,6 +18,8 @@ class ScreenNavigator{
   late final InsertModels insert;
   late final InsertMesh insertMesh;
 
+  String saveName = '';
+
   ScreenNavigator(this.threeV,this.setState,this.callBacks){
     insert = InsertModels(threeV);
     insertMesh = InsertMesh(threeV);
@@ -30,24 +32,26 @@ class ScreenNavigator{
         NavItems(
           name: 'New',
           icon: Icons.new_label_outlined,
-          function: (data){
+          onTap: (data){
             callBacks(call: LSICallbacks.updatedNav);
           }
         ),
         NavItems(
           name: 'Save',
           icon: Icons.save,
-          input: '',
-          function: (data){
+          input: saveName,
+          onTap: (data){
             callBacks(call: LSICallbacks.updatedNav);
-            threeV.export(data??'');
-            //setState(() {});
+            threeV.export(saveName);
+          },
+          onChange: (data){
+            saveName = data;
           }
         ),
         // NavItems(
         //   name: 'Save As',
         //   icon: Icons.save_outlined,
-        //   function: (data){
+        //   onTap: (data){
         //     setState(() {
         //       callBacks(call: LSICallbacks.updatedNav);
         //       if(!kIsWeb){
@@ -69,7 +73,7 @@ class ScreenNavigator{
             NavItems(
               name: 'Image',
               icon: Icons.image,
-              function: (data) async{
+              onTap: (data) async{
                 callBacks(call: LSICallbacks.updatedNav);
                 GetFilePicker.pickFiles(['jpg','jpeg','png']).then((value)async{
                   if(value != null){
@@ -85,7 +89,7 @@ class ScreenNavigator{
             NavItems(
               name: 'obj',
               icon: Icons.view_in_ar_rounded,
-              function: (data) async{
+              onTap: (data) async{
                 callBacks(call: LSICallbacks.updatedNav);
                 three.MaterialCreator? materials;
                 final objs = await GetFilePicker.pickFiles(['obj']);
@@ -110,7 +114,7 @@ class ScreenNavigator{
             NavItems(
               name: 'stl',
               icon: Icons.view_in_ar_rounded,
-              function: (data){
+              onTap: (data){
                 callBacks(call: LSICallbacks.updatedNav);
                 GetFilePicker.pickFiles(['stl']).then((value)async{
                   if(value != null){
@@ -126,7 +130,7 @@ class ScreenNavigator{
             NavItems(
               name: 'ply',
               icon: Icons.view_in_ar_rounded,
-              function: (data){
+              onTap: (data){
                 callBacks(call: LSICallbacks.updatedNav);
                 GetFilePicker.pickFiles(['ply']).then((value)async{
                   if(value != null){
@@ -142,7 +146,7 @@ class ScreenNavigator{
             NavItems(
               name: 'glb',
               icon: Icons.view_in_ar_rounded,
-              function: (data){
+              onTap: (data){
                 callBacks(call: LSICallbacks.updatedNav);
                 GetFilePicker.pickFiles(['glb']).then((value)async{
                   if(value != null){
@@ -158,7 +162,7 @@ class ScreenNavigator{
             NavItems(
               name: 'gltf',
               icon: Icons.view_in_ar_rounded,
-              function: (data){
+              onTap: (data){
                 callBacks(call: LSICallbacks.updatedNav);
                 GetFilePicker.pickFiles(['gltf']).then((value)async{
                   if(value != null){
@@ -174,7 +178,7 @@ class ScreenNavigator{
             NavItems(
               name: 'gltf-folder',
               icon: Icons.view_in_ar_rounded,
-              function: (data){
+              onTap: (data){
                 callBacks(call: LSICallbacks.updatedNav);
                 GetFilePicker.pickFiles(['gltf']).then((value)async{
                   if(value != null){
@@ -190,7 +194,7 @@ class ScreenNavigator{
             NavItems(
               name: 'fbx',
               icon: Icons.view_in_ar_rounded,
-              function: (data){
+              onTap: (data){
                 callBacks(call: LSICallbacks.updatedNav);   
                 GetFilePicker.pickFiles(['fbx']).then((value)async{
                   if(value != null){
@@ -206,7 +210,7 @@ class ScreenNavigator{
             NavItems(
               name: 'fbx-unity',
               icon: Icons.view_in_ar_rounded,
-              function: (data){
+              onTap: (data){
                 callBacks(call: LSICallbacks.updatedNav);   
                 GetFilePicker.pickFiles(['fbx']).then((value)async{
                   if(value != null){
@@ -230,7 +234,7 @@ class ScreenNavigator{
             NavItems(
               name: 'usdz',
               icon: Icons.view_in_ar_rounded,
-              function: (data){
+              onTap: (data){
                 callBacks(call: LSICallbacks.updatedNav);
                 setState(() {
 
@@ -249,7 +253,7 @@ class ScreenNavigator{
               show: false,
               name: 'collada',
               icon: Icons.view_in_ar_rounded,
-              function: (data){
+              onTap: (data){
                 callBacks(call: LSICallbacks.updatedNav);
                 setState(() {
 
@@ -266,7 +270,7 @@ class ScreenNavigator{
             NavItems(
               name: 'xyz',
               icon: Icons.view_in_ar_rounded,
-              function: (data){
+              onTap: (data){
                 callBacks(call: LSICallbacks.updatedNav);
                 setState(() {
 
@@ -284,7 +288,7 @@ class ScreenNavigator{
             NavItems(
               name: 'vox',
               icon: Icons.view_in_ar_rounded,
-              function: (data){
+              onTap: (data){
                 callBacks(call: LSICallbacks.updatedNav);
                 setState(() {
 
@@ -312,7 +316,7 @@ class ScreenNavigator{
                 NavItems(
                   name: 'ascii',
                   icon: Icons.file_copy_outlined,
-                  function: (data){
+                  onTap: (data){
                     callBacks(call: LSICallbacks.updatedNav);
                     STLExporter.exportScene('untilted', threeV.scene);
                   }
@@ -320,7 +324,7 @@ class ScreenNavigator{
                 NavItems(
                   name: 'binary',
                   icon: Icons.image,
-                  function: (data){
+                  onTap: (data){
                     setState(() {
                       callBacks(call: LSICallbacks.updatedNav);
                       STLBinaryExporter.exportScene('untilted', threeV.scene);
@@ -336,7 +340,7 @@ class ScreenNavigator{
                 NavItems(
                   name: 'ascii',
                   icon: Icons.file_copy_outlined,
-                  function: (data){
+                  onTap: (data){
                     callBacks(call: LSICallbacks.updatedNav);
                     PLYExporter.exportScene('untilted', threeV.scene);
                   }
@@ -344,7 +348,7 @@ class ScreenNavigator{
                 NavItems(
                   name: 'binary',
                   icon: Icons.image,
-                  function: (data){
+                  onTap: (data){
                     setState(() {
                       callBacks(call: LSICallbacks.updatedNav);
                       PLYExporter.exportScene('untilted', threeV.scene, PLYOptions(type: ExportTypes.binary));
@@ -356,7 +360,7 @@ class ScreenNavigator{
             NavItems(
               name: 'obj',
               icon: Icons.file_copy_outlined,
-              function: (data){
+              onTap: (data){
                 callBacks(call: LSICallbacks.updatedNav);
                 OBJExporter.exportScene('untilted', threeV.scene);
               }
@@ -364,7 +368,7 @@ class ScreenNavigator{
             NavItems(
               name: 'usdz',
               icon: Icons.file_copy_outlined,
-              function: (data){
+              onTap: (data){
                 callBacks(call: LSICallbacks.updatedNav);
                 USDZExporter().exportScene('untilted', threeV.scene);
               }
@@ -372,7 +376,7 @@ class ScreenNavigator{
             // NavItems(
             //   name: 'json',
             //   icon: Icons.file_copy_outlined,
-            //   function: (data){
+            //   onTap: (data){
             //     callBacks(call: LSICallbacks.updatedNav);
             //     GetFilePicker.saveFile('untilted', 'json').then((path){
 
@@ -382,7 +386,7 @@ class ScreenNavigator{
             // NavItems(
             //   name: 'View',
             //   icon: Icons.image,
-            //   function: (data){
+            //   onTap: (data){
             //     setState(() {
             //       callBacks(call: LSICallbacks.updatedNav);
             //       GetFilePicker.saveFile('untilted', 'png').then((path){
@@ -396,7 +400,7 @@ class ScreenNavigator{
         NavItems(
           name: 'Quit',
           icon: Icons.exit_to_app,
-          function: (data){
+          onTap: (data){
             callBacks(call: LSICallbacks.quit);
           }
         ),
@@ -408,7 +412,7 @@ class ScreenNavigator{
         NavItems(
           name: 'Game View',
           icon: Icons.camera_outdoor_rounded,
-          function: (e){
+          onTap: (e){
             callBacks(call: LSICallbacks.updatedNav);
             threeV.showCameraView = !threeV.showCameraView;
           }
@@ -416,7 +420,7 @@ class ScreenNavigator{
         NavItems(
           name: 'Reset Camera',
           icon: Icons.camera_indoor_outlined,
-          function: (e){
+          onTap: (e){
             callBacks(call: LSICallbacks.updatedNav);
             threeV.resetCamera();
           }
@@ -424,7 +428,7 @@ class ScreenNavigator{
         NavItems(
           name: 'Sky',
           icon: Icons.public,
-          function: (e){
+          onTap: (e){
             callBacks(call: LSICallbacks.updatedNav);
             threeV.viewSky();
           }
@@ -441,7 +445,7 @@ class ScreenNavigator{
             NavItems(
               name: 'Plane',
               icon: Icons.view_in_ar_rounded,
-              function: (data) async{
+              onTap: (data) async{
                 callBacks(call: LSICallbacks.updatedNav);
                 insertMesh.plane();
               },
@@ -449,7 +453,7 @@ class ScreenNavigator{
             NavItems(
               name: 'Cube',
               icon: Icons.view_in_ar_rounded,
-              function: (data){
+              onTap: (data){
                 callBacks(call: LSICallbacks.updatedNav);
                 insertMesh.cube();
               },
@@ -457,7 +461,7 @@ class ScreenNavigator{
             NavItems(
               name: 'Circle',
               icon: Icons.view_in_ar_rounded,
-              function: (data){
+              onTap: (data){
                 callBacks(call: LSICallbacks.updatedNav);
                 insertMesh.circle();
               },
@@ -465,7 +469,7 @@ class ScreenNavigator{
             NavItems(
               name: 'Sphere',
               icon: Icons.view_in_ar_rounded,
-              function: (data){
+              onTap: (data){
                 callBacks(call: LSICallbacks.updatedNav);
                 insertMesh.sphere();
               },
@@ -473,7 +477,7 @@ class ScreenNavigator{
             NavItems(
               name: 'Ico Sphere',
               icon: Icons.view_in_ar_rounded,
-              function: (data){
+              onTap: (data){
                 callBacks(call: LSICallbacks.updatedNav);
                 insertMesh.icoSphere();
               },
@@ -481,7 +485,7 @@ class ScreenNavigator{
             NavItems(
               name: 'Cylinder',
               icon: Icons.view_in_ar_rounded,
-              function: (data){
+              onTap: (data){
                 callBacks(call: LSICallbacks.updatedNav);
                 insertMesh.cylinder();
               },
@@ -489,7 +493,7 @@ class ScreenNavigator{
             NavItems(
               name: 'Cone',
               icon: Icons.view_in_ar_rounded,
-              function: (data){
+              onTap: (data){
                 callBacks(call: LSICallbacks.updatedNav);
                 insertMesh.cone();
               },
@@ -497,7 +501,7 @@ class ScreenNavigator{
             NavItems(
               name: 'Torus',
               icon: Icons.view_in_ar_rounded,
-              function: (data){
+              onTap: (data){
                 callBacks(call: LSICallbacks.updatedNav);
                 insertMesh.torus();
               },
@@ -511,7 +515,7 @@ class ScreenNavigator{
             NavItems(
               name: 'Plane',
               icon: Icons.view_in_ar_rounded,
-              function: (data) async{
+              onTap: (data) async{
                 callBacks(call: LSICallbacks.updatedNav);
                 insertMesh.parametricPlane();
               },
@@ -519,7 +523,7 @@ class ScreenNavigator{
             NavItems(
               name: 'Klein',
               icon: Icons.view_in_ar_rounded,
-              function: (data){
+              onTap: (data){
                 callBacks(call: LSICallbacks.updatedNav);
                 insertMesh.parametricKlein();
               },
@@ -527,7 +531,7 @@ class ScreenNavigator{
             NavItems(
               name: 'Mobius',
               icon: Icons.view_in_ar_rounded,
-              function: (data){
+              onTap: (data){
                 callBacks(call: LSICallbacks.updatedNav);
                 insertMesh.parametricMobius();
               },
@@ -535,7 +539,7 @@ class ScreenNavigator{
             NavItems(
               name: 'Torus',
               icon: Icons.view_in_ar_rounded,
-              function: (data){
+              onTap: (data){
                 callBacks(call: LSICallbacks.updatedNav);
                 insertMesh.parametricTorus();
               },
@@ -543,7 +547,7 @@ class ScreenNavigator{
             NavItems(
               name: 'Sphere',
               icon: Icons.view_in_ar_rounded,
-              function: (data){
+              onTap: (data){
                 callBacks(call: LSICallbacks.updatedNav);
                 insertMesh.parametricSphere();
               },
@@ -557,7 +561,7 @@ class ScreenNavigator{
             NavItems(
               name: 'Perspective',
               icon: Icons.video_camera_back,
-              function: (data) async{
+              onTap: (data) async{
                 callBacks(call: LSICallbacks.updatedNav);
                 final aspect = threeV.aspectRatio();
                 final camera = three.PerspectiveCamera(40, aspect, 0.1, 10);
@@ -570,7 +574,7 @@ class ScreenNavigator{
             NavItems(
               name: 'Ortographic',
               icon: Icons.video_camera_back,
-              function: (data) async{
+              onTap: (data) async{
                 callBacks(call: LSICallbacks.updatedNav);
                 final aspect = threeV.aspectRatio();
                 final frustumSize = 5.0;
@@ -594,7 +598,7 @@ class ScreenNavigator{
             NavItems(
               name: 'Ambient',
               icon: Icons.light_mode,
-              function: (data) async{
+              onTap: (data) async{
                 callBacks(call: LSICallbacks.updatedNav);
                 final object = three.AmbientLight(0xffffff);
                 object.name = 'Ambient Light';
@@ -604,7 +608,7 @@ class ScreenNavigator{
             NavItems(
               name: 'Spot',
               icon: Icons.light,
-              function: (data) async{
+              onTap: (data) async{
                 callBacks(call: LSICallbacks.updatedNav);
                 final light = three.SpotLight(0xffffff,100,2,math.pi / 6, 1, 2);
                 light.name = 'Spot Light';
@@ -616,7 +620,7 @@ class ScreenNavigator{
             NavItems(
               name: 'Directional',
               icon: Icons.light,
-              function: (data) async{
+              onTap: (data) async{
                 callBacks(call: LSICallbacks.updatedNav);
                 final light = three.DirectionalLight(0xffffff);
                 light.name = 'Directional Light';
@@ -628,7 +632,7 @@ class ScreenNavigator{
             NavItems(
               name: 'Point',
               icon: Icons.view_in_ar_rounded,
-              function: (data) async{
+              onTap: (data) async{
                 callBacks(call: LSICallbacks.updatedNav);
                 final light = three.PointLight(0xffffff,10);
                 final helper = PointLightHelper(light,1,0xffff00);
@@ -640,7 +644,7 @@ class ScreenNavigator{
             NavItems(
               name: 'Hemisphere',
               icon: Icons.panorama_photosphere,
-              function: (data) async{
+              onTap: (data) async{
                 callBacks(call: LSICallbacks.updatedNav);
                 final light = three.HemisphereLight(0xffffff,0x444444);
                 final helper = HemisphereLightHelper(light,1,three.Color.fromHex32(0xffff00));
@@ -652,7 +656,7 @@ class ScreenNavigator{
             NavItems(
               name: 'Rect Area',
               icon: Icons.rectangle_outlined,
-              function: (data) async{
+              onTap: (data) async{
                 callBacks(call: LSICallbacks.updatedNav);
                 final light = three.RectAreaLight(0xffffff,0x444444);
                 final helper = RectAreaLightHelper(light,three.Color.fromHex32(0xffff00));
@@ -671,7 +675,7 @@ class ScreenNavigator{
         //         NavItems(
         //           name: 'Ambient',
         //           icon: Icons.light_mode_outlined,
-        //           function: (data) async{
+        //           onTap: (data) async{
         //             callBacks(call: LSICallbacks.updatedNav);
         //             final object = three.AmbientLightProbe(three.Color.fromHex32(0xffffff));
         //             object.name = 'Ambient Probe';
@@ -681,7 +685,7 @@ class ScreenNavigator{
         //         NavItems(
         //           name: 'Hemisphere',
         //           icon: Icons.panorama_photosphere_rounded,
-        //           function: (data) async{
+        //           onTap: (data) async{
         //             callBacks(call: LSICallbacks.updatedNav);
         //             final object = three.HemisphereLightProbe(three.Color.fromHex32(0xffffff),three.Color.fromHex32(0x444444));
         //             object.name = 'Hemisphere Probe';
@@ -698,7 +702,7 @@ class ScreenNavigator{
         //         NavItems(
         //           name: 'Spot',
         //           icon: Icons.light_outlined,
-        //           function: (data) async{
+        //           onTap: (data) async{
         //             callBacks(call: LSICallbacks.updatedNav);
         //             final object = three.Mesh(three.PlaneGeometry(),three.MeshPhongMaterial.fromMap({'side': three.DoubleSide, 'flatShading': true}));
         //             final three.BoundingBox box = three.BoundingBox();
@@ -711,7 +715,7 @@ class ScreenNavigator{
         //         NavItems(
         //           name: 'Directional',
         //           icon: Icons.light_outlined,
-        //           function: (data) async{
+        //           onTap: (data) async{
         //             callBacks(call: LSICallbacks.updatedNav);
         //             final object = three.Mesh(three.PlaneGeometry(),three.MeshPhongMaterial.fromMap({'side': three.DoubleSide, 'flatShading': true}));
         //             final three.BoundingBox box = three.BoundingBox();
@@ -724,7 +728,7 @@ class ScreenNavigator{
         //         NavItems(
         //           name: 'Point',
         //           icon: Icons.lightbulb_outlined,
-        //           function: (data) async{
+        //           onTap: (data) async{
         //             callBacks(call: LSICallbacks.updatedNav);
         //             final object = three.Mesh(three.PlaneGeometry(),three.MeshPhongMaterial.fromMap({'side': three.DoubleSide, 'flatShading': true}));
         //             final three.BoundingBox box = three.BoundingBox();
@@ -750,7 +754,7 @@ class ScreenNavigator{
             NavItems(
               name: 'Positional',
               icon: Icons.spatial_audio_rounded,
-              function: (data) async{
+              onTap: (data) async{
                 callBacks(call: LSICallbacks.updatedNav);
                 final object = three.Object3D();
                 object.name = 'Positional Audio';
@@ -760,7 +764,7 @@ class ScreenNavigator{
             NavItems(
               name: 'Background',
               icon: Icons.audiotrack_rounded,
-              function: (data) async{
+              onTap: (data) async{
                 callBacks(call: LSICallbacks.updatedNav);
                 final object = three.Object3D();
                 object.name = 'Background Audio';
@@ -786,7 +790,7 @@ class ScreenNavigator{
         NavItems(
           name: 'Terrain',
           icon: Icons.terrain,
-          function: (_){
+          onTap: (_){
             callBacks(call: LSICallbacks.updatedNav);
             threeV.createTerrain();
           }

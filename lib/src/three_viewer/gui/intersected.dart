@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:three_forge/src/three_viewer/gui/camera.dart';
 import 'package:three_forge/src/three_viewer/gui/light.dart';
+import 'package:three_forge/src/three_viewer/gui/material.dart';
 import 'package:three_forge/src/three_viewer/gui/modifers.dart';
+import 'package:three_forge/src/three_viewer/gui/object.dart';
 import 'package:three_forge/src/three_viewer/gui/scene.dart';
 import 'package:three_forge/src/three_viewer/gui/sky.dart';
 import 'package:three_forge/src/three_viewer/gui/terrain.dart';
@@ -31,7 +33,7 @@ class _IntersectedGuiState extends State<IntersectedGui> {
     expands.clear();
   }
 
-  final List<bool> expands = [false,false,false,false];
+  final List<bool> expands = [false,false,false,false,false,false];
 
   List<Widget> objectGui(){
     int? id = int.tryParse(threeV.intersected[0].name.split('_').last);
@@ -63,6 +65,34 @@ class _IntersectedGuiState extends State<IntersectedGui> {
             )
           ],
         ),
+      ),
+      Container(
+        margin: const EdgeInsets.fromLTRB(5,5,5,5),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(5)
+        ),
+        child: Column(
+          children: [
+            InkWell(
+              onTap: (){
+                setState(() {
+                  expands[5] = !expands[5];
+                });
+              },
+              child: Row(
+                children: [
+                  Icon(!expands[5]?Icons.expand_more:Icons.expand_less, size: 15,),
+                  const Text('\Object'),
+                ],
+              )
+            ),
+            if(expands[5]) Padding(
+              padding: const EdgeInsets.fromLTRB(25,10,5,5),
+              child: ObjectGui(threeV: threeV)
+            )
+          ]
+        )
       ),
       if(threeV.intersected[0] is three.Light) Container(
         margin: const EdgeInsets.fromLTRB(5,5,0,5),
@@ -103,17 +133,17 @@ class _IntersectedGuiState extends State<IntersectedGui> {
             InkWell(
               onTap: (){
                 setState(() {
-                  expands[2] = !expands[2];
+                  expands[4] = !expands[4];
                 });
               },
               child: Row(
                 children: [
-                  Icon(!expands[2]?Icons.expand_more:Icons.expand_less, size: 15,),
+                  Icon(!expands[4]?Icons.expand_more:Icons.expand_less, size: 15,),
                   const Text('\tModifers'),
                 ],
               )
             ),
-            if(expands[2]) Padding(
+            if(expands[4]) Padding(
               padding: const EdgeInsets.fromLTRB(25,10,5,5),
               child: ModiferGui(threeV: threeV)
             )
@@ -171,13 +201,7 @@ class _IntersectedGuiState extends State<IntersectedGui> {
             ),
             if(expands[3]) Padding(
               padding: const EdgeInsets.fromLTRB(25,10,5,5),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-
-                ]
-              )
+              child: MaterialGui(threeV: threeV)
             )
           ]
         )
@@ -193,17 +217,17 @@ class _IntersectedGuiState extends State<IntersectedGui> {
             InkWell(
               onTap: (){
                 setState(() {
-                  expands[3] = !expands[3];
+                  expands[4] = !expands[4];
                 });
               },
               child: Row(
                 children: [
-                  Icon(!expands[3]?Icons.expand_more:Icons.expand_less, size: 15,),
+                  Icon(!expands[4]?Icons.expand_more:Icons.expand_less, size: 15,),
                   const Text('\tTerrain'),
                 ],
               )
             ),
-            if(expands[3]) Padding(
+            if(expands[4]) Padding(
               padding: const EdgeInsets.fromLTRB(25,10,5,5),
               child: TerrainGui(terrain: threeV.terrains[id])
             )

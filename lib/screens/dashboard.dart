@@ -628,7 +628,7 @@ class _CodePage extends State<Dashboard>{
                             NavItems(
                               name: LsiThemes.dark.name.toUpperCase(),
                               icon: Icons.nightlight_round_sharp,
-                              function: (_){
+                              onTap: (_){
                                 prefs.setString('theme','dark');
                                 setState(() {
                                   themeType = LsiThemes.dark;
@@ -640,7 +640,7 @@ class _CodePage extends State<Dashboard>{
                             NavItems(
                               name: LsiThemes.light.name.toUpperCase(),
                               icon: Icons.light_mode,
-                              function: (_){
+                              onTap: (_){
                                 prefs.setString('theme','light');
                                 setState(() {
                                   themeType = LsiThemes.light;

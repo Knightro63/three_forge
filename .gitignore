@@ -23,6 +23,8 @@
 .settings/
 .vscode/*
 
+*/src/history/*
+
 macos
 web
 ios

@@ -157,6 +157,19 @@ class _SceneGuiState extends State<SceneGui> {
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        InkWell(
+          onTap: (){
+            threeV.threeJs.renderer?.antialias = !threeV.threeJs.renderer!.antialias;
+            setState(() {});
+          },
+          child: Row(
+            //mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Antialias\t\t\t'),
+              SavedWidgets.checkBox(threeV.threeJs.renderer!.antialias)
+            ]
+          )
+        ),
         Row(
           children: [
             const Text('Color'),

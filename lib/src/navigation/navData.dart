@@ -4,7 +4,8 @@ class NavItems{
   NavItems({
     required this.name,
     this.icon,
-    this.function,
+    this.onTap,
+    this.onChange,
     this.subItems,
     this.reset = false,
     this.input,
@@ -15,7 +16,8 @@ class NavItems{
 
   String name;
   IconData? icon;
-  void Function(dynamic)? function;
+  void Function(dynamic)? onTap;
+  void Function(dynamic)? onChange;
   List<NavItems>? subItems;
   dynamic input;
   bool reset;
