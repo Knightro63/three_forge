@@ -6,10 +6,12 @@ import 'package:three_js/three_js.dart' as three;
 import 'package:image/image.dart' as img;
 
 class Thumbnail{
-  Thumbnail(this.renderer,this.scene,this.camera){
+  Thumbnail(this.renderer,this.scene,this.camera,[this.fovAspect = 1]){
     buffer = three.Uint8Array( desiredWidth * desiredHeight * 4 );
     rt = three.WebGLRenderTarget( desiredWidth, desiredHeight, three.WebGLRenderTargetOptions({'colorSpace': three.SRGBColorSpace, 'samples': 4}) );
   }
+
+  double fovAspect;
 
   int desiredWidth = 1280;
   int desiredHeight = 720;
@@ -161,6 +163,11 @@ class Thumbnail{
     final maxDim = math.max(size.x, math.max(size.y, size.z));
     final fov = camera.fov * (math.pi / 180);
     double cameraZ = (maxDim / 2 / math.tan(fov / 2)).abs();
+
+    if (size.x / size.y > fovAspect) {
+      cameraZ = (size.x / 2 / math.tan(fov / 2) / fovAspect).abs();
+    }
+
     cameraZ *= 1.5; // Add some padding
     camera.position.setValues(center.x, center.y, center.z + cameraZ);
     camera.lookAt(center);

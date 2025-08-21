@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:three_forge/src/styles/savedWidgets.dart';
 import 'package:three_forge/src/three_viewer/gui/camera.dart';
 import 'package:three_forge/src/three_viewer/gui/light.dart';
 import 'package:three_forge/src/three_viewer/gui/material.dart';
 import 'package:three_forge/src/three_viewer/gui/modifers.dart';
 import 'package:three_forge/src/three_viewer/gui/object.dart';
+import 'package:three_forge/src/three_viewer/gui/physics.dart';
 import 'package:three_forge/src/three_viewer/gui/scene.dart';
 import 'package:three_forge/src/three_viewer/gui/sky.dart';
 import 'package:three_forge/src/three_viewer/gui/terrain.dart';
@@ -33,7 +35,7 @@ class _IntersectedGuiState extends State<IntersectedGui> {
     expands.clear();
   }
 
-  final List<bool> expands = [false,false,false,false,false,false];
+  final List<bool> expands = [false,false,false,false,false,false,false];
 
   List<Widget> objectGui(){
     int? id = int.tryParse(threeV.intersected[0].name.split('_').last);
@@ -60,7 +62,7 @@ class _IntersectedGuiState extends State<IntersectedGui> {
               )
             ),
             if(expands[0]) Padding(
-              padding: const EdgeInsets.fromLTRB(25,10,5,5),
+              padding: const EdgeInsets.fromLTRB(10,10,5,5),
               child: TransformGui(threeV: threeV)
             )
           ],
@@ -88,7 +90,7 @@ class _IntersectedGuiState extends State<IntersectedGui> {
               )
             ),
             if(expands[5]) Padding(
-              padding: const EdgeInsets.fromLTRB(25,10,5,5),
+              padding: const EdgeInsets.fromLTRB(10,10,5,5),
               child: ObjectGui(threeV: threeV)
             )
           ]
@@ -116,7 +118,7 @@ class _IntersectedGuiState extends State<IntersectedGui> {
               )
             ),
             if(expands[1]) Padding(
-              padding: const EdgeInsets.fromLTRB(25,10,5,5),
+              padding: const EdgeInsets.fromLTRB(10,10,5,5),
               child: LightGui(threeV: threeV)
             )
           ]
@@ -144,7 +146,7 @@ class _IntersectedGuiState extends State<IntersectedGui> {
               )
             ),
             if(expands[4]) Padding(
-              padding: const EdgeInsets.fromLTRB(25,10,5,5),
+              padding: const EdgeInsets.fromLTRB(10,10,5,5),
               child: ModiferGui(threeV: threeV)
             )
           ]
@@ -172,7 +174,7 @@ class _IntersectedGuiState extends State<IntersectedGui> {
               )
             ),
             if(expands[2]) Padding(
-              padding: const EdgeInsets.fromLTRB(25,10,5,5),
+              padding: const EdgeInsets.fromLTRB(10,10,5,5),
               child: CameraGui(threeV: threeV)
             )
           ]
@@ -200,7 +202,7 @@ class _IntersectedGuiState extends State<IntersectedGui> {
               )
             ),
             if(expands[3]) Padding(
-              padding: const EdgeInsets.fromLTRB(25,10,5,5),
+              padding: const EdgeInsets.fromLTRB(10,10,0,5),
               child: MaterialGui(threeV: threeV)
             )
           ]
@@ -228,13 +230,52 @@ class _IntersectedGuiState extends State<IntersectedGui> {
               )
             ),
             if(expands[4]) Padding(
-              padding: const EdgeInsets.fromLTRB(25,10,5,5),
+              padding: const EdgeInsets.fromLTRB(10,10,5,5),
               child: TerrainGui(terrain: threeV.terrains[id])
             )
           ]
         )
       ),
-
+      Container(
+        margin: const EdgeInsets.fromLTRB(5,5,5,5),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(5)
+        ),
+        child: Column(
+          children: [
+            InkWell(
+              onTap: (){
+                setState(() {
+                  expands[6] = !expands[6];
+                });
+              },
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      !threeV.addPhysics?SizedBox(width: 15,):Icon(!expands[6]?Icons.expand_more:Icons.expand_less, size: 15,),
+                      const Text('\tPhysics'),
+                    ],
+                  ),
+                  InkWell(
+                    onTap: (){
+                      threeV.addPhysics = !threeV.addPhysics;
+                      setState(() {});
+                    },
+                    child: SavedWidgets.checkBox(threeV.addPhysics)
+                  ),
+                ],
+              )
+            ),
+            if(expands[6] && threeV.addPhysics) Padding(
+              padding: const EdgeInsets.fromLTRB(10,10,5,5),
+              child: PhysicsGui(threeV: threeV)
+            )
+          ]
+        )
+      ),
 
       // if(animationClips[intersected?.name] != null) Container(
       //   margin: const EdgeInsets.fromLTRB(5,5,5,5),
@@ -295,7 +336,7 @@ class _IntersectedGuiState extends State<IntersectedGui> {
               )
             ),
             if(expands[0]) Padding(
-              padding: const EdgeInsets.fromLTRB(25,10,5,5),
+              padding: const EdgeInsets.fromLTRB(10,10,5,5),
               child: SceneGui(threeV: threeV)
             ),
           ]

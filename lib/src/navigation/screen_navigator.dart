@@ -215,15 +215,7 @@ class ScreenNavigator{
                 GetFilePicker.pickFiles(['fbx']).then((value)async{
                   if(value != null){
                     for(int i = 0; i < value.files.length;i++){
-                      final object = await three.FBXLoader(width: 1,height: 1).fromPath(value.files[i].path!);
-                      final three.BoundingBox box = three.BoundingBox();
-                      box.setFromObject(object!);
-                      BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
-                      final skeleton = SkeletonHelper(object)..visible = false;
-                      object.scale = three.Vector3(0.01,0.01,0.01);
-                      object.name = value.files[i].name.split('.').first;
-                      threeV.scene.userData['animationClips'][object.name] = object.animations;
-                      threeV.add(object..add(h)..add(skeleton));
+                      await insert.fbx(value.files[i].path!, value.files[i].name);
                     }
                     await threeV.moveObjects(value.files);
                   }
@@ -555,6 +547,53 @@ class ScreenNavigator{
           ]
         ),
         NavItems(
+          show: false,
+          name: 'Collider',
+          icon: Icons.share,
+          subItems: [
+            // NavItems(
+            //   name: 'Plane',
+            //   icon: Icons.view_in_ar_rounded,
+            //   onTap: (data) async{
+            //     callBacks(call: LSICallbacks.updatedNav);
+            //     insertMesh.plane();
+            //   },
+            // ),
+            NavItems(
+              name: 'Cube',
+              icon: Icons.view_in_ar_rounded,
+              onTap: (data){
+                callBacks(call: LSICallbacks.updatedNav);
+                insertMesh.cube();
+              },
+            ),
+            NavItems(
+              name: 'Sphere',
+              icon: Icons.view_in_ar_rounded,
+              onTap: (data){
+                callBacks(call: LSICallbacks.updatedNav);
+                insertMesh.sphere();
+              },
+            ),
+            NavItems(
+              name: 'Cylinder',
+              icon: Icons.view_in_ar_rounded,
+              onTap: (data){
+                callBacks(call: LSICallbacks.updatedNav);
+                insertMesh.cylinder();
+              },
+            ),
+            NavItems(
+              name: 'Capsule',
+              icon: Icons.view_in_ar_rounded,
+              onTap: (data){
+                callBacks(call: LSICallbacks.updatedNav);
+                insertMesh.cylinder();
+              },
+            ),
+          ]
+        ),
+        NavItems(
           name: 'Camera',
           icon: Icons.videocam,
           subItems: [
@@ -567,8 +606,7 @@ class ScreenNavigator{
                 final camera = three.PerspectiveCamera(40, aspect, 0.1, 10);
                 camera.name = 'Perspective Camera';
                 final helper = CameraHelper(camera);
-                threeV.add(camera..userData['helper'] = helper);
-                threeV.helper.add(helper);
+                threeV.add(camera,helper);
               },
             ),
             NavItems(
@@ -581,8 +619,7 @@ class ScreenNavigator{
                 final camera = three.OrthographicCamera(- frustumSize * aspect, frustumSize * aspect, frustumSize, - frustumSize, 0.1, 10);
                 camera.name = 'Ortographic Camera';
                 final helper = CameraHelper(camera);
-                threeV.add(camera..userData['helper'] = helper);
-                threeV.helper.add(helper);
+                threeV.add(camera,helper);
               },
             ),
           ]
@@ -613,7 +650,7 @@ class ScreenNavigator{
                 final light = three.SpotLight(0xffffff,100,2,math.pi / 6, 1, 2);
                 light.name = 'Spot Light';
                 final helper = SpotLightHelper(light,0xffff00);
-                threeV.add(light..userData['helper'] = helper);
+                threeV.add(light,helper);
                 threeV.helper.add(helper);
               },
             ),
@@ -625,8 +662,7 @@ class ScreenNavigator{
                 final light = three.DirectionalLight(0xffffff);
                 light.name = 'Directional Light';
                 final helper = DirectionalLightHelper(light,1,three.Color.fromHex32(0xffff00));
-                threeV.add(light..userData['helper'] = helper);
-                threeV.helper.add(helper);
+                threeV.add(light,helper);
               },
             ),
             NavItems(
@@ -637,8 +673,7 @@ class ScreenNavigator{
                 final light = three.PointLight(0xffffff,10);
                 final helper = PointLightHelper(light,1,0xffff00);
                 light.name = 'Point Light';
-                threeV.add(light..userData['helper'] = helper);
-                threeV.helper.add(helper);
+                threeV.add(light,helper);
               },
             ),
             NavItems(
@@ -649,8 +684,7 @@ class ScreenNavigator{
                 final light = three.HemisphereLight(0xffffff,0x444444);
                 final helper = HemisphereLightHelper(light,1,three.Color.fromHex32(0xffff00));
                 light.name = 'Hemisphere Light';
-                threeV.add(light..userData['helper'] = helper);
-                threeV.helper.add(helper);
+                threeV.add(light,helper);
               },
             ),
             NavItems(
@@ -661,8 +695,7 @@ class ScreenNavigator{
                 final light = three.RectAreaLight(0xffffff,0x444444);
                 final helper = RectAreaLightHelper(light,three.Color.fromHex32(0xffff00));
                 light.name = 'Rect Area Light';
-                threeV.add(light..userData['helper'] = helper);
-                threeV.helper.add(helper);
+                threeV.add(light,helper);
               },
             ),
           ]
@@ -748,6 +781,7 @@ class ScreenNavigator{
       name: 'Create',
       subItems:[ 
         NavItems(
+          show: false,
           name: 'Audio',
           icon: Icons.audiotrack_rounded,
           subItems: [
@@ -774,6 +808,7 @@ class ScreenNavigator{
           ]
         ),
         NavItems(
+          show: false,
           name: 'Texture',
           icon: Icons.texture_outlined,
           subItems: [

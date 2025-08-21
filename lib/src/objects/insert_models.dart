@@ -58,7 +58,7 @@ class InsertModels {
     BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
     object.name = name.split('.').first;
     if(crerateThumbnial) await threeV.crerateThumbnial(object);
-    threeV.add(object.add(h));
+    threeV.add(object,h);
     object.userData['path'] = path;
   }
   
@@ -70,7 +70,7 @@ class InsertModels {
     BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
     object.name = name.split('.').first;
     if(crerateThumbnial) await threeV.crerateThumbnial(object);
-    threeV.add(object.add(h));
+    threeV.add(object,h);
     object.userData['path'] = path;
   }
 
@@ -82,7 +82,7 @@ class InsertModels {
     BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
     object.name = name.split('.').first;
     if(crerateThumbnial) await threeV.crerateThumbnial(object);
-    threeV.add(object.add(h));
+    threeV.add(object,h);
     object.userData['path'] = path;
   }
 
@@ -95,7 +95,7 @@ class InsertModels {
     object.scale = three.Vector3(0.01,0.01,0.01);
     object.name = name.split('.').first;
     if(crerateThumbnial) await threeV.crerateThumbnial(object);
-    threeV.add(object.add(h));
+    threeV.add(object,h);
     object.userData['path'] = path;
   }
 
@@ -111,7 +111,7 @@ class InsertModels {
     threeV.scene.userData['animationClips'][object.name] = object.animations;
     if(crerateThumbnial) await threeV.crerateThumbnial(object);
     object.userData['skeleton'] = skeleton;
-    threeV.add(object..add(h));
+    threeV.add(object,h);
     threeV.threeJs.scene.add(skeleton);
     object.userData['path'] = path;
   }
@@ -121,12 +121,22 @@ class InsertModels {
     final String setPath = path.replaceAll(path.split('/').last, '');
     loader.setPath(setPath);
     final object = await loader.fromPath(path.replaceAll(setPath, ''));
-    //object!.scene.geometry?.computeBoundingBox();
-    object!.scene.traverse((child){
+    object!.scene.geometry?.computeBoundingBox();
+    final vector = three.Vector3();
+    final three.BoundingBox box = three.BoundingBox().empty();
+    object.scene.traverse((child){
       child.geometry?.computeBoundingBox();
+      final position = child.geometry?.attributes['position'];
+      if(position!= null){
+        for (int i = 0, il = position.count; i < il; i ++ ) {
+          vector.fromBuffer( position, i );
+          if(child is three.SkinnedMesh)child.applyBoneTransform( i, vector );
+          child.localToWorld( vector );
+          box.expandByPoint( vector );
+        }
+      }
     });
-    final three.BoundingBox box = three.BoundingBox();
-    box.setFromObject(object.scene,true);
+
     final skeleton = SkeletonHelper(object.scene);
     skeleton.visible = false;
     BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
@@ -134,7 +144,7 @@ class InsertModels {
     if(object.animations != null)threeV. scene.userData['animationClips'][object.scene.name] = object.animations!;
     if(crerateThumbnial) await threeV.crerateThumbnial(object.scene);
     object.scene.userData['skeleton'] = skeleton;
-    threeV.add(object.scene..add(h));
+    threeV.add(object.scene,h);
     threeV.threeJs.scene.add(skeleton);
     object.userData?['path'] = path; 
   }
@@ -148,7 +158,7 @@ class InsertModels {
     BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
     object.name = name.split('.').first;
     if(crerateThumbnial) await threeV.crerateThumbnial(object);
-    threeV.add(object.add(h));
+    threeV.add(object,h);
     object.userData['path'] = path;
   }
 
@@ -159,7 +169,7 @@ class InsertModels {
     BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
     object.name = name.split('.').first;
     if(crerateThumbnial) await threeV.crerateThumbnial(object);
-    threeV.add(object.add(h));
+    threeV.add(object,h);
     object.userData['path'] = path;
   }
 
@@ -173,7 +183,7 @@ class InsertModels {
     BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
     object.name = name.split('.').first;
     if(crerateThumbnial) await threeV.crerateThumbnial(object);
-    threeV.add(object.add(h));
+    threeV.add(object,h);
     object.userData['path'] = path;
   }
 
@@ -210,7 +220,7 @@ class InsertModels {
     box.setFromObject(object);
     BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
     object.name = name.split('.').first;
-    threeV.add(object.add(h));
+    threeV.add(object,h);
     object.userData['path'] = path;
   }
 }

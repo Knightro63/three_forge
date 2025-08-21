@@ -35,21 +35,21 @@ class _ObjectGuiState extends State<ObjectGui> {
   final List<TextEditingController> transfromControllers = [
     TextEditingController(),
     TextEditingController(),
+    TextEditingController(),
   ];
 
   @override
   Widget build(BuildContext context) {
     three.Object3D object = threeV.intersected[0];
-
-    const double d = 57;
-    double d2 = 65;
+    transformControllersReset();
+    double d2 = 76;
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           children: [
-            SizedBox(width:d, child: const Text('Name')),
+            SizedBox(child: const Text('Name:')),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
               label: object.name.toString(),
@@ -66,7 +66,8 @@ class _ObjectGuiState extends State<ObjectGui> {
           ],
         ),
         SizedBox(height: 10,),
-        Text('Shadow\t\t\t'),
+        Text('Shadow:\t\t\t'),
+        Container(height: 2,color: Theme.of(context).primaryTextTheme.bodySmall!.color,),
         InkWell(
           onTap: (){
             object.castShadow = !object.castShadow;
@@ -122,7 +123,7 @@ class _ObjectGuiState extends State<ObjectGui> {
         ),
         Row(
           children: [
-            SizedBox(width:d, child: const Text('Order')),
+            SizedBox(child: const Text('Order:')),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
               label: object.renderOrder.toString(),
@@ -137,6 +138,27 @@ class _ObjectGuiState extends State<ObjectGui> {
               controller: transfromControllers[1],
             )
           ],
+        ),
+        DragTarget(
+          builder: (context, candidateItems, rejectedItems) {
+            return Row(
+              children: [
+                const Text('Script:'),
+                EnterTextFormField(
+                  readOnly: true,
+                  width: 76,
+                  height: 20,
+                  maxLines: 1,
+                  textStyle: Theme.of(context).primaryTextTheme.bodySmall,
+                  color: Theme.of(context).canvasColor,
+                  controller: transfromControllers[2],
+                )
+              ],
+            );
+          },
+          onAcceptWithDetails: (details) async{
+            object.userData['scriptPath'] = details;
+          },
         ),
       ],
     );

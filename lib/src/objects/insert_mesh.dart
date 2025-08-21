@@ -12,7 +12,7 @@ class InsertMesh{
     box.setFromObject(object);     
     BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
     object.name = 'Plane';
-    threeV.add(object.add(h));
+    threeV.add(object,h);
   }
   void cube(){
     final object = three.Mesh(three.BoxGeometry(),three.MeshPhongMaterial.fromMap({'flatShading': true}));
@@ -21,7 +21,7 @@ class InsertMesh{
     BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
     object.receiveShadow = true;
     object.name = 'Cube';
-    threeV.add(object.add(h));
+    threeV.add(object,h);
   }
   void circle(){
     final object = three.Mesh(three.CircleGeometry(),three.MeshPhongMaterial.fromMap({'side': three.DoubleSide, 'flatShading': true}));
@@ -29,7 +29,7 @@ class InsertMesh{
     box.setFromObject(object);
     BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
     object.name = 'Circle';
-    threeV.add(object.add(h));
+    threeV.add(object,h);
   }
   void sphere(){
     final object = three.Mesh(three.SphereGeometry(),three.MeshPhongMaterial.fromMap({'flatShading': true}));
@@ -37,7 +37,7 @@ class InsertMesh{
     box.setFromObject(object);     
     BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
     object.name = 'Sphere';
-    threeV.add(object.add(h));
+    threeV.add(object,h);
   }
   void icoSphere(){
     final object = three.Mesh(three.IcosahedronGeometry(),three.MeshPhongMaterial.fromMap({'flatShading': true}));
@@ -45,7 +45,7 @@ class InsertMesh{
     box.setFromObject(object);     
     BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
     object.name = 'Ico Sphere';
-    threeV.add(object.add(h));
+    threeV.add(object,h);
   }
   void cylinder(){
     final object = three.Mesh(three.CylinderGeometry(),three.MeshPhongMaterial.fromMap({'flatShading': true}));
@@ -53,7 +53,7 @@ class InsertMesh{
     box.setFromObject(object);     
     BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
     object.name = 'Cylinder';
-    threeV.add(object.add(h));
+    threeV.add(object,h);
   }
   void cone(){
     final object = three.Mesh(three.ConeGeometry(),three.MeshPhongMaterial.fromMap({'flatShading': true}));
@@ -61,7 +61,7 @@ class InsertMesh{
     box.setFromObject(object);     
     BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
     object.name = 'Cone';
-    threeV.add(object.add(h));
+    threeV.add(object,h);
   }
   void torus(){
     final object = three.Mesh(three.TorusGeometry(),three.MeshPhongMaterial.fromMap({'flatShading': true}));
@@ -69,7 +69,7 @@ class InsertMesh{
     box.setFromObject(object);     
     BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
     object.name = 'Torus';
-    threeV.add(object.add(h));
+    threeV.add(object,h);
   }
 
   void parametricPlane(){
@@ -85,7 +85,7 @@ class InsertMesh{
     box.setFromObject(object);     
     BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
     object.name = 'P-Plane';
-    threeV.add(object.add(h));
+    threeV.add(object,h);
   }
 
   void parametricKlein(){
@@ -101,7 +101,7 @@ class InsertMesh{
     box.setFromObject(object);     
     BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
     object.name = 'Klein';
-    threeV.add(object.add(h));  
+    threeV.add(object,h);  
   }
   void parametricMobius(){
     three.ParametricGeometry geometry;
@@ -116,7 +116,7 @@ class InsertMesh{
     box.setFromObject(object);     
     BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
     object.name = 'Mobius';
-    threeV.add(object.add(h));    
+    threeV.add(object,h);    
   }
 
   void parametricTorus(){
@@ -129,7 +129,7 @@ class InsertMesh{
     box.setFromObject(object);     
     BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
     object.name = 'Torus';
-    threeV.add(object.add(h));   
+    threeV.add(object,h);   
   }
 
   void parametricSphere(){
@@ -142,6 +142,6 @@ class InsertMesh{
     box.setFromObject(object);     
     BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
     object.name = 'P-Sphere';
-    threeV.add(object.add(h));  
+    threeV.add(object,h);  
   }
 }

@@ -43,6 +43,12 @@ class _TerrainGuiState extends State<TerrainGui> {
   void dispose(){
     super.dispose();
   }
+  
+  void controllerReset(){
+    for(final c in controllers){
+      c.clear();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

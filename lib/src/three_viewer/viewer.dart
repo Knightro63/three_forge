@@ -127,6 +127,7 @@ class ThreeViewer {
   bool sceneSelected = false;
   bool showCameraView = false;
   bool boxSelection = false;
+  bool addPhysics = false;
 
   GlobalKey<three.PeripheralsState> get listenableKey => threeJs.globalKey;
 
@@ -508,10 +509,11 @@ class ThreeViewer {
     three.Vector3(1, 1, 1)
   );
 
-  void add(three.Object3D? object){
+  void add(three.Object3D? object, [three.Object3D? helper]){
     if(object != null){
+      object.add(helper);
       scene.add(object);
-
+      
       // final three.BoundingBox modelBoundingBox = three.BoundingBox();
       // modelBoundingBox.setFromObject(object);
 
@@ -550,7 +552,7 @@ class ThreeViewer {
       }
     }
   }
-  void addAll(List<three.Object3D> objects){
+  void addAll1(List<three.Object3D> objects){
     for(final object in objects){
       add(object);
     }
@@ -558,7 +560,21 @@ class ThreeViewer {
   void copyAll(List<three.Object3D>? objects){
     if(objects == null) return;
     for(final object in objects){
-      add(object.clone());
+      final copy = object.clone();
+      copy.userData.clear();
+      
+      final three.BoundingBox box = three.BoundingBox();
+      box.setFromObject(object,true);
+      BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
+
+      if(object.userData['skeleton'] != null){
+        final skeleton = SkeletonHelper(copy);
+        skeleton.visible = false;
+        copy.userData['skeleton'] = skeleton;
+        this.helper.add(skeleton);
+      }
+
+      add(copy,h);
     }
   }
   void removeAll(List<three.Object3D> objects){
@@ -763,7 +779,14 @@ class ThreeViewer {
           }
           else if(o is BoundingBoxHelper){
             o.visible = true;
+
+            final three.BoundingBox box = three.BoundingBox();
+            box.setFromObject(o.parent!);
+            
+            o.box?.setFrom(box);
+            o.computeLineDistances();
           }
+
         }
         if(intersect.userData['skeleton'] is SkeletonHelper){
           intersect.userData['skeleton'].visible = true;
