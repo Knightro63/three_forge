@@ -5,16 +5,16 @@ import 'package:css/css.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:process_run/shell.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:three_forge/screens/thumbnail_creator.dart';
 import 'package:three_forge/src/navigation/navigation.dart';
+import 'package:three_forge/src/styles/config.dart';
 import 'package:three_forge/src/styles/globals.dart';
-//import 'package:package_info_plus/package_info_plus.dart';
 
 class Dashboard extends StatefulWidget {
-  Dashboard({super.key, required this.setProject, required this.onDone});
+  Dashboard({super.key, required this.setProject, required this.onDone, required this.config});
   final void Function(Map<String,dynamic>?) setProject;
   final void Function() onDone;
+  final Config config;
   @override
   _CodePage createState() => _CodePage();
 }
@@ -30,21 +30,14 @@ class _CodePage extends State<Dashboard>{
   String modifier = '';
   bool direction = false;
 
-  late final SharedPreferences prefs;
-  List<Map<String,dynamic>> currentProjects = [];
+  late final Config config;
+  dynamic currentProjects = [];
 
   @override
   void initState() {
-    SharedPreferences.getInstance().then((value){
-      prefs = value;
-      currentProjects.clear(); 
-      for(final p in prefs.getStringList('projects') ?? []){
-        currentProjects.add(json.decode(p));
-      }
-      setState(() {
-        
-      });
-    });
+    config = widget.config;
+    currentProjects.clear(); 
+    currentProjects.addAll(config.getAllProjects());
     super.initState();
   }
   @override
@@ -82,31 +75,23 @@ class _CodePage extends State<Dashboard>{
 
   Future<void> addProject(String title, String location, String name, String dateCreated) async{
     //PackageInfo packageInfo = await PackageInfo.fromPlatform();
-    currentProjects.add({
+    final newProject = {
       'title': title,
       'name': name,
       'dateCreated': dateCreated,
       'location': '$location',
       'dateModified': DateTime.now().toString(),
       'version': '0.0.1',//packageInfo.version
-    });
+    };
+    currentProjects.add(newProject);
 
-    final List<String> sl = [];
-    for(final p in currentProjects){
-      sl.add(json.encode(p));
-    }
-    await prefs.setStringList('projects', sl);
+    await config.setProject(newProject);
     setState(() {});
   }
   Future<void> removeProject(Map<String,dynamic> project) async{
     //PackageInfo packageInfo = await PackageInfo.fromPlatform();
     currentProjects.remove(project);
-
-    final List<String> sl = [];
-    for(final p in currentProjects){
-      sl.add(json.encode(p));
-    }
-    await prefs.setStringList('projects', sl);
+    await config.removeProject(project);
     setState(() {});
   }
 
@@ -629,7 +614,7 @@ class _CodePage extends State<Dashboard>{
                               name: LsiThemes.dark.name.toUpperCase(),
                               icon: Icons.nightlight_round_sharp,
                               onTap: (_){
-                                prefs.setString('theme','dark');
+                                config.setSettingsKey({'theme':'dark'});
                                 setState(() {
                                   themeType = LsiThemes.dark;
                                   theme = CSS.darkTheme;
@@ -641,7 +626,7 @@ class _CodePage extends State<Dashboard>{
                               name: LsiThemes.light.name.toUpperCase(),
                               icon: Icons.light_mode,
                               onTap: (_){
-                                prefs.setString('theme','light');
+                                config.setSettingsKey({'theme':'light'});
                                 setState(() {
                                   themeType = LsiThemes.light;
                                   theme = CSS.lightTheme;

@@ -1,6 +1,4 @@
-import 'package:css/css.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../src/styles/globals.dart';
 
 class LoadingScreen extends StatefulWidget {
@@ -12,18 +10,10 @@ class LoadingScreen extends StatefulWidget {
 
 class _LoadingScreenState extends State<LoadingScreen> with TickerProviderStateMixin{
   double loaded = 0;
-  late final SharedPreferences prefs;
   late AnimationController controller;
 
   @override
   void initState(){
-    SharedPreferences.getInstance().then((value){
-      prefs = value;
-      themeType = CSS.themeFromString(prefs.getString('theme')?? 'dark');
-      theme = CSS.changeTheme(themeType);
-      setState(() {});
-    });
-
     controller = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 5),
@@ -52,7 +42,7 @@ class _LoadingScreenState extends State<LoadingScreen> with TickerProviderStateM
     double safePadding = MediaQuery.of(context).padding.top;
     deviceHeight = MediaQuery.of(context).size.height-safePadding-25;
     return MaterialApp(
-      theme: CSS.darkTheme,
+      theme: theme,
       debugShowCheckedModeBanner: false,
       home: Scaffold(
         body: SizedBox(

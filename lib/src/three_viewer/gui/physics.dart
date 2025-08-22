@@ -158,7 +158,6 @@ class _ModiferGuiState extends State<PhysicsGui> {
             setState(() {});
           },
           child: Row(
-            //mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Adjust Position\t\t\t'),
               SavedWidgets.checkBox(object['adjustPosition'])
@@ -171,12 +170,32 @@ class _ModiferGuiState extends State<PhysicsGui> {
             setState(() {});
           },
           child: Row(
-            //mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Is Trigger\t\t\t'),
               SavedWidgets.checkBox(object['isTrigger'])
             ]
           )
+        ),
+        if(object['isTrigger'] == true)DragTarget(
+          builder: (context, candidateItems, rejectedItems) {
+            return Row(
+              children: [
+                const Text('Script:'),
+                EnterTextFormField(
+                  readOnly: true,
+                  width: 76,
+                  height: 20,
+                  maxLines: 1,
+                  textStyle: Theme.of(context).primaryTextTheme.bodySmall,
+                  color: Theme.of(context).canvasColor,
+                  controller: physicsControllers[8],
+                )
+              ],
+            );
+          },
+          onAcceptWithDetails: (details) async{
+            object['scriptPath'] = details;
+          },
         ),
         Row(
           children: [

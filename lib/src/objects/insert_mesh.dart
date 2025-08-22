@@ -6,6 +6,41 @@ class InsertMesh{
   ThreeViewer threeV;
   InsertMesh(this.threeV);
 
+  void addPhysics(three.Object3D object){
+    object.userData['addPhysics'] = true;
+    object.userData['physics'] ??= {
+      'allowSleep': true,
+      'type': 'Static',
+      'name': '',
+      'isSleeping': false,
+      'adjustPosition': true,
+      'mass': 0.0,
+      'isTrigger': false,
+      'linearVelocity': [0,0,0],
+      'angularVelocity': [0,0,0],
+      'shapes': {}
+    };
+  }
+
+  void colliderCube(){
+    final object = three.Mesh(three.BoxGeometry(),three.MeshBasicMaterial.fromMap({'wireframe': true, 'color': 0x00ff00}));
+    object.name = 'Collider-Cube';
+    addPhysics(object);
+    threeV.add(object);
+  }
+  void colliderSphere(){
+    final object = three.Mesh(three.SphereGeometry(1,8,8),three.MeshBasicMaterial.fromMap({'wireframe': true, 'color': 0x00ff00}));
+    object.name = 'Collider-Sphere';
+    addPhysics(object);
+    threeV.add(object);
+  }
+  void colliderCylinder(){
+    final object = three.Mesh(three.CylinderGeometry(1,1,2),three.MeshBasicMaterial.fromMap({'wireframe': true, 'color': 0x00ff00}));
+    object.name = 'Collider-Cylinder';
+    addPhysics(object);
+    threeV.add(object);
+  }
+
   void plane(){
     final object = three.Mesh(three.PlaneGeometry(),three.MeshPhongMaterial.fromMap({'side': three.DoubleSide, 'flatShading': true}));
     final three.BoundingBox box = three.BoundingBox();
@@ -19,7 +54,6 @@ class InsertMesh{
     final three.BoundingBox box = three.BoundingBox();
     box.setFromObject(object);     
     BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
-    object.receiveShadow = true;
     object.name = 'Cube';
     threeV.add(object,h);
   }
@@ -48,7 +82,7 @@ class InsertMesh{
     threeV.add(object,h);
   }
   void cylinder(){
-    final object = three.Mesh(three.CylinderGeometry(),three.MeshPhongMaterial.fromMap({'flatShading': true}));
+    final object = three.Mesh(three.CylinderGeometry(1,1,2),three.MeshPhongMaterial.fromMap({'flatShading': true}));
     final three.BoundingBox box = three.BoundingBox();
     box.setFromObject(object);     
     BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;

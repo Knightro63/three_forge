@@ -7,6 +7,8 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:three_forge/src/navigation/right_click.dart';
+import 'package:three_forge/src/objects/insert_mesh.dart';
+import 'package:three_forge/src/objects/insert_models.dart';
 import 'package:three_forge/src/styles/globals.dart';
 import 'package:three_forge/src/three_viewer/export.dart';
 import 'package:three_forge/src/three_viewer/terrain.dart';
@@ -100,6 +102,7 @@ class ThreeViewer {
   late final Thumbnail thumbnail;
 
   ControlSpaceType _controlSpace = ControlSpaceType.global;
+  late final InsertModels modelInsert;
 
   three.Raycaster raycaster = three.Raycaster();
   three.Vector2 mousePosition = three.Vector2.zero();
@@ -159,6 +162,7 @@ class ThreeViewer {
       },
       setup: setup,
     );
+    modelInsert = InsertModels(this);
   }
   void dispose(){
     threeJs.dispose();
@@ -511,8 +515,7 @@ class ThreeViewer {
 
   void add(three.Object3D? object, [three.Object3D? helper]){
     if(object != null){
-      object.add(helper);
-      scene.add(object);
+      scene.add(object..add(helper));
       
       // final three.BoundingBox modelBoundingBox = three.BoundingBox();
       // modelBoundingBox.setFromObject(object);
@@ -560,21 +563,26 @@ class ThreeViewer {
   void copyAll(List<three.Object3D>? objects){
     if(objects == null) return;
     for(final object in objects){
-      final copy = object.clone();
-      copy.userData.clear();
-      
-      final three.BoundingBox box = three.BoundingBox();
-      box.setFromObject(object,true);
-      BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
-
-      if(object.userData['skeleton'] != null){
-        final skeleton = SkeletonHelper(copy);
-        skeleton.visible = false;
-        copy.userData['skeleton'] = skeleton;
-        this.helper.add(skeleton);
+      if(object.userData['path'] != null){
+        modelInsert.insert(object.userData['path']).then((_){
+          setState((){});
+        });
       }
+      else{
+        final copy = object.clone();
+        copy.userData.clear();
+        BoundingBoxHelper? h;
+        if(!object.name.contains('Collider-')){
+          copy.children.clear();
+          final three.BoundingBox box = three.BoundingBox();
+          box.setFromObject(copy,true);
 
-      add(copy,h);
+          h = BoundingBoxHelper(box)..visible = false;
+        }
+
+        add(copy,h);
+        setState((){});
+      }
     }
   }
   void removeAll(List<three.Object3D> objects){
@@ -613,6 +621,7 @@ class ThreeViewer {
     }
   }
   void materialVertexMode(ShadingType type, three.Object3D object,[bool start = true]){
+    if(object.name.contains('Collider-')) return;
     if(start)_changeToVertex(object);
     for(final o in object.children){
       _changeToVertex(o);
@@ -621,8 +630,10 @@ class ThreeViewer {
   }
   void materialVertexModeAll(ShadingType type){
     for(final o in scene.children){
-      _changeToVertex(o);
-      materialVertexMode(type, o);
+      if(!o.name.contains('Collider-')){
+        _changeToVertex(o);
+        materialVertexMode(type, o);
+      }
     }
   }
 
@@ -637,6 +648,7 @@ class ThreeViewer {
     }
   }
   void materialSolid(ShadingType type, three.Object3D object,[bool start = false]){
+    if(object.name.contains('Collider-')) return;
     if(start)_changeToSolid(type,object);
     for(final o in object.children){
       if(o is! BoundingBoxHelper && o is! SkeletonHelper){
@@ -648,8 +660,10 @@ class ThreeViewer {
   void materialSolidAll(ShadingType type){
     for(final o in scene.children){
       if(o is! BoundingBoxHelper && o is! SkeletonHelper){
-        _changeToSolid(type,o);
-        materialSolid(type,o);
+        if(!o.name.contains('Collider-')){
+          _changeToSolid(type,o);
+          materialSolid(type,o);
+        }
       }
     }
   }
@@ -678,6 +692,7 @@ class ThreeViewer {
     }
   }
   void materialWireframe(ShadingType type, three.Object3D object,[bool start = false]){
+    if(object.name.contains('Collider-')) return;
     if(start)_changeToWireframe(type,object);
     for(final o in object.children){
       _changeToWireframe(type,o);
@@ -686,8 +701,10 @@ class ThreeViewer {
   }
   void materialWireframeAll(ShadingType type){
     for(final o in scene.children){
-      _changeToWireframe(type,o);
-      materialWireframe(type,o);
+      if(!o.name.contains('Collider-')){
+        _changeToWireframe(type,o);
+        materialWireframe(type,o);
+      }
     }
   }
 
@@ -779,14 +796,7 @@ class ThreeViewer {
           }
           else if(o is BoundingBoxHelper){
             o.visible = true;
-
-            final three.BoundingBox box = three.BoundingBox();
-            box.setFromObject(o.parent!);
-            
-            o.box?.setFrom(box);
-            o.computeLineDistances();
           }
-
         }
         if(intersect.userData['skeleton'] is SkeletonHelper){
           intersect.userData['skeleton'].visible = true;
@@ -873,6 +883,28 @@ class ThreeViewer {
     }
   }
 
+  Future<void> moveFiles(String name, List<String> paths) async{
+    String destinationPath ='$dirPath/assets/models/${name.split('.').first}/' ;
+    bool exists = await Directory(destinationPath).exists();
+    if(!exists) await Directory(destinationPath).create(recursive: true);
+
+    for(final sourcePath in paths){
+      File sourceFile = File(sourcePath);
+      File destinationFile = File('$destinationPath${sourcePath.split('/').last}');
+
+      try {
+        // Check if the source file exists before attempting to copy
+        if (await sourceFile.exists()) {
+          await sourceFile.copy(destinationFile.path);
+          print('File copied successfully from $sourcePath to $destinationPath');
+        } else {
+          print('Source file does not exist: $sourcePath');
+        }
+      } catch (e) {
+        print('Error copying file: $e');
+      }
+    }
+  }
   Future<void> moveFolder(PlatformFile file) async{
     String path ='$dirPath/assets/models/${file.name.split('.').first}/' ;
     Directory sourceDir = Directory(file.path!.replaceAll(file.path!.split('/').last, ''));
@@ -916,8 +948,8 @@ class ThreeViewer {
       await File('$path$last').writeAsBytes(file.bytes!);
     }
   }
-  Future<void> crerateThumbnial(three.Object3D model) async{
-    thumbnail.captureThumbnail('$dirPath/assets/thumbnails/', model: model);
+  Future<void> crerateThumbnial(three.Object3D model, [three.BoundingBox? box]) async{
+    thumbnail.captureThumbnail('$dirPath/assets/thumbnails/', model: model, box: box);
   }
 
   void viewSky(){

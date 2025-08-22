@@ -27,8 +27,9 @@ class Hud extends StatelessWidget{
               return threeV.build();
             },
             onAcceptWithDetails: (DragTargetDetails<Object> path){
-              insert.insert((path.data as String));
-              setState((){});
+              insert.insert((path.data as String)).then((_){
+                setState((){});
+              });
             },
           ),
         ),

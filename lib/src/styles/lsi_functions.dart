@@ -2,6 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
 class LSIFunctions{
+  static String toLowercaseFromCharacter(String input, String character) {
+    final int index = input.indexOf(character);
+
+    if (index == -1) {
+      return input;
+    }
+    
+    final String firstPart = input.substring(0, index + 1);
+    final String secondPart = input.substring(index + 1).toLowerCase();
+    return firstPart + secondPart;
+  }
 
   static Future<Color?> changeColor(BuildContext context, Color selectedColor ) async {
     return showDialog<Color>(

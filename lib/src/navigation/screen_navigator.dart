@@ -1,5 +1,5 @@
+import 'dart:io';
 import 'dart:math' as math;
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:three_forge/src/objects/insert_mesh.dart';
 import 'package:three_forge/src/objects/insert_models.dart';
@@ -91,22 +91,41 @@ class ScreenNavigator{
               icon: Icons.view_in_ar_rounded,
               onTap: (data) async{
                 callBacks(call: LSICallbacks.updatedNav);
-                three.MaterialCreator? materials;
                 final objs = await GetFilePicker.pickFiles(['obj']);
-                final mtls = await GetFilePicker.pickFiles(['mtl']);
-                if(mtls != null){
-                  for(int i = 0; i < mtls.files.length;i++){
-                    materials = await insert.mtl(mtls.files[i].path!, mtls.files[i].name);
-                  }
-                }
                 if(objs != null){
                   for(int i = 0; i < objs.files.length;i++){
-                    await insert.obj(objs.files[i].path!, objs.files[i].name, true, materials);
+                    three.MaterialCreator? materials;
+                    String name = objs.files[i].name;
+                    final path = objs.files[i].path!.replaceAll(name, '');
+                    final mtlName = name.replaceAll('obj', 'mtl');
+                    final List<String> paths = [];
+
+                    try{
+                      String mtl = await File('$path/$mtlName').readAsString();
+                      paths.add('$path/$mtlName');
+                      List<String> parms = mtl.split('\n');
+                      for(final p in parms){
+                        if(p.toLowerCase().contains('jpeg') || p.toLowerCase().contains('jpg') || p.toLowerCase().contains('png')){
+                          final split = p.split(' ');
+                          final image  = p.replaceAll('${split.first} ', '');
+                          if(!paths.contains(image)){
+                            paths.add('$path/$image');
+                          }
+                        }
+                      }
+                      materials = await insert.mtl('$path/$mtlName', mtlName);
+                      paths.add('$path/$name');
+                    }catch(e){}
+                    await insert.obj('$path/$name', name, true, materials);
+
+                    if(materials != null){
+                      threeV.moveFiles(name, paths);
+                    }
+                    else{
+                      threeV.moveObject(objs.files[i]);
+                    }
                   }
-                  final List<PlatformFile> files = [];
-                  files.addAll(objs.files);
-                  if(mtls!= null) files.addAll(mtls.files);
-                  threeV.moveObjects(files);
+                  
                 }
                 setState(() {});
               },
@@ -547,7 +566,7 @@ class ScreenNavigator{
           ]
         ),
         NavItems(
-          show: false,
+          show: true,
           name: 'Collider',
           icon: Icons.share,
           subItems: [
@@ -564,7 +583,7 @@ class ScreenNavigator{
               icon: Icons.view_in_ar_rounded,
               onTap: (data){
                 callBacks(call: LSICallbacks.updatedNav);
-                insertMesh.cube();
+                insertMesh.colliderCube();
               },
             ),
             NavItems(
@@ -572,7 +591,7 @@ class ScreenNavigator{
               icon: Icons.view_in_ar_rounded,
               onTap: (data){
                 callBacks(call: LSICallbacks.updatedNav);
-                insertMesh.sphere();
+                insertMesh.colliderSphere();
               },
             ),
             NavItems(
@@ -580,7 +599,7 @@ class ScreenNavigator{
               icon: Icons.view_in_ar_rounded,
               onTap: (data){
                 callBacks(call: LSICallbacks.updatedNav);
-                insertMesh.cylinder();
+                insertMesh.colliderCylinder();
               },
             ),
             NavItems(

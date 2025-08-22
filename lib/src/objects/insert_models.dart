@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js/three_js.dart' as three;
 import 'package:three_js_helpers/three_js_helpers.dart';
@@ -11,9 +13,21 @@ class InsertModels {
     String name = path.split('/').last;
     String fileType = name.split('.').last;
 
+    if(path.contains('.folder')){
+      bool exists = await File(path.replaceAll('.folder', '.obj')).exists();
+      if(exists){
+        path = path.replaceAll('.folder', '.obj');
+        fileType = 'obj';
+      }
+      else{
+        path = path.replaceAll('.folder', '.gltf');
+        fileType = 'gltf';
+      }
+    }
+
     if(fileType == 'obj'){
-      await mtl('${path.replaceAll('.obj', '.mtl')}', '${name.replaceAll('.obj', '.mtl')}');
-      await obj(path,name,false);
+      final mat = await mtl('${path.replaceAll('.obj', '.mtl')}', '${name.replaceAll('.obj', '.mtl')}');
+      await obj(path,name,false,mat);
     }
     else if(fileType == 'stl'){
       await stl(path,name,false);
@@ -117,7 +131,12 @@ class InsertModels {
   }
 
   Future<void> gltf(String path, String name, [bool crerateThumbnial = true]) async{
-    final loader = three.GLTFLoader();
+    final three.LoadingManager manager = three.LoadingManager();
+    manager.urlModifier = (d){
+      print(d);
+      return d;
+    };
+    final loader = three.GLTFLoader(manager: manager);
     final String setPath = path.replaceAll(path.split('/').last, '');
     loader.setPath(setPath);
     final object = await loader.fromPath(path.replaceAll(setPath, ''));
@@ -142,7 +161,7 @@ class InsertModels {
     BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
     object.scene.name = name.split('.').first;
     if(object.animations != null)threeV. scene.userData['animationClips'][object.scene.name] = object.animations!;
-    if(crerateThumbnial) await threeV.crerateThumbnial(object.scene);
+    if(crerateThumbnial) await threeV.crerateThumbnial(object.scene, box);
     object.scene.userData['skeleton'] = skeleton;
     threeV.add(object.scene,h);
     threeV.threeJs.scene.add(skeleton);
@@ -174,7 +193,8 @@ class InsertModels {
   }
 
   Future<void> obj(String path, String name, [bool crerateThumbnial = true, three.MaterialCreator? materials]) async{
-    final loader = three.OBJLoader();
+    final three.LoadingManager manager = three.LoadingManager();
+    final loader = three.OBJLoader(manager);
     loader.setMaterials(materials);
     final object = await loader.fromPath(path);
     final three.BoundingBox box = three.BoundingBox();

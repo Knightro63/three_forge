@@ -86,7 +86,8 @@ class _FileNavigationState extends State<FileNavigation>{
     if(files[folderSelected!] != null) for(final file in files[folderSelected!]!){
       if(file.path.split('/').last[0] != '.'){
         String name = file.path.split('/').last;
-        dynamic data = file is Directory?'${file.path}/$name.gltf':file.path;
+        dynamic data = file is Directory?'${file.path}/$name.folder':file.path;
+    
         widgets.add(
           Draggable(
             feedback: card(file),

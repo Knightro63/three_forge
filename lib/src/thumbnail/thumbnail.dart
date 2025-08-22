@@ -32,13 +32,13 @@ class Thumbnail{
     rt.dispose();
   }
 
-  Future<void> captureThumbnail(String dirPath, {String? modelPath, three.Object3D? model}) async{
+  Future<void> captureThumbnail(String dirPath, {String? modelPath, three.Object3D? model, three.BoundingBox? box}) async{
     try {
       if(model == null){
         model = await loadObject(modelPath!);
       }
       else{
-        positionCamera(model);
+        positionCamera(model, box);
       }
       if(model == null) return;
       renderer.setClearColor(three.Color.fromHex32(0x000000), 0);
@@ -152,9 +152,11 @@ class Thumbnail{
     return object;
   }
 
-  void positionCamera(three.Object3D object){
-    final three.BoundingBox box = three.BoundingBox();
-    box.setFromObject(object);
+  void positionCamera(three.Object3D object, [three.BoundingBox? box]){
+    if(box == null){
+      box = three.BoundingBox();
+      box.setFromObject(object);
+    }
 
     final size = box.getSize(three.Vector3());
     final center = box.getCenter(three.Vector3());

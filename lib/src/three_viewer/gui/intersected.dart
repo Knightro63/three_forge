@@ -68,7 +68,7 @@ class _IntersectedGuiState extends State<IntersectedGui> {
           ],
         ),
       ),
-      Container(
+      if(!threeV.intersected[0].name.contains('Collider-'))Container(
         margin: const EdgeInsets.fromLTRB(5,5,5,5),
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
@@ -124,7 +124,7 @@ class _IntersectedGuiState extends State<IntersectedGui> {
           ]
         )
       ),
-      if(threeV.intersected[0] is three.Mesh) Container(
+      if(threeV.intersected[0] is three.Mesh && !threeV.intersected[0].name.contains('Collider-')) Container(
         margin: const EdgeInsets.fromLTRB(5,5,5,5),
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
@@ -180,7 +180,7 @@ class _IntersectedGuiState extends State<IntersectedGui> {
           ]
         )
       ),
-      if(threeV.intersected[0] is three.Mesh) Container(
+      if(threeV.intersected[0] is three.Mesh && !threeV.intersected[0].name.contains('Collider-')) Container(
         margin: const EdgeInsets.fromLTRB(5,5,5,5),
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
@@ -236,7 +236,7 @@ class _IntersectedGuiState extends State<IntersectedGui> {
           ]
         )
       ),
-      Container(
+      if(threeV.intersected.isNotEmpty && threeV.intersected[0] is! three.Camera && threeV.intersected[0] is! three.Light)Container(
         margin: const EdgeInsets.fromLTRB(5,5,5,5),
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
@@ -255,21 +255,21 @@ class _IntersectedGuiState extends State<IntersectedGui> {
                 children: [
                   Row(
                     children: [
-                      !threeV.addPhysics?SizedBox(width: 15,):Icon(!expands[6]?Icons.expand_more:Icons.expand_less, size: 15,),
+                      threeV.intersected[0].userData['addPhysics'] == false?SizedBox(width: 15,):Icon(!expands[6]?Icons.expand_more:Icons.expand_less, size: 15,),
                       const Text('\tPhysics'),
                     ],
                   ),
                   InkWell(
                     onTap: (){
-                      threeV.addPhysics = !threeV.addPhysics;
+                      threeV.intersected[0].userData['addPhysics'] = !(threeV.intersected[0].userData['addPhysics'] ?? false);
                       setState(() {});
                     },
-                    child: SavedWidgets.checkBox(threeV.addPhysics)
+                    child: SavedWidgets.checkBox(threeV.intersected[0].userData['addPhysics'] ?? false)
                   ),
                 ],
               )
             ),
-            if(expands[6] && threeV.addPhysics) Padding(
+            if(expands[6] && (threeV.intersected[0].userData['addPhysics'] ?? false)) Padding(
               padding: const EdgeInsets.fromLTRB(10,10,5,5),
               child: PhysicsGui(threeV: threeV)
             )
