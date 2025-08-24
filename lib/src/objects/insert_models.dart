@@ -1,5 +1,5 @@
 import 'dart:io';
-
+import 'dart:math' as math;
 import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js/three_js.dart' as three;
 import 'package:three_js_helpers/three_js_helpers.dart';
@@ -16,12 +16,20 @@ class InsertModels {
     if(path.contains('.folder')){
       bool exists = await File(path.replaceAll('.folder', '.obj')).exists();
       if(exists){
+        exists = await File(path.replaceAll('.folder', '.obj')).exists();
         path = path.replaceAll('.folder', '.obj');
         fileType = 'obj';
       }
       else{
-        path = path.replaceAll('.folder', '.gltf');
-        fileType = 'gltf';
+        exists = await File(path.replaceAll('.folder', '.gltf')).exists();
+        if(exists){
+          path = path.replaceAll('.folder', '.gltf');
+          fileType = 'gltf';
+        }
+        else{
+          path = path.replaceAll('.folder', '.fbx');
+          fileType = 'fbx';
+        }
       }
     }
 
@@ -113,37 +121,117 @@ class InsertModels {
     object.userData['path'] = path;
   }
 
-  Future<void> fbx(String path, String name, [bool crerateThumbnial = true]) async{
-    final object = await three.FBXLoader(width: 1,height: 1).fromPath(path);
+  Future<void> fbx(String path, String name, [bool crerateThumbnial = true, bool moveFiles = false]) async{
+    final List<String> paths = [];
+    final three.LoadingManager manager = three.LoadingManager();
+    final loader = three.FBXLoader(manager:manager, width: 1,height: 1);
+
+    final sp = path.split('/');
+    final mainPath = sp.sublist(0,sp.length-2).join('/');
+
+    String resourcePath = '$mainPath/textures/';
+    bool exists = await Directory(resourcePath).exists();
+    if(!exists){
+      resourcePath = '$mainPath/Textures/';
+      exists = await Directory(resourcePath).exists();
+    }
+
+    if(exists){
+      manager.addHandler( RegExp('.tga'), three.TGALoader() );
+      manager.addHandler( RegExp('.psd'), three.TGALoader() );
+      loader.setResourcePath(resourcePath);
+    }
+    manager.urlModifier = (d){
+      String changedPath = d.split('.').first+'.tga';
+      paths.add('$resourcePath/$changedPath');
+      return changedPath;
+    };
+    final object = await loader.fromPath(path);
     object!.geometry?.computeBoundingBox();
     final three.BoundingBox box = three.BoundingBox();
     box.setFromObject(object);
     BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
     final skeleton = SkeletonHelper(object)..visible = false;
-    object.scale = three.Vector3(0.01,0.01,0.01);
+
+    //scale to normal size
+    final temp = three.Vector3().sub2(box.max,box.min);
+    final max = math.max(temp.x, math.max(temp.y,temp.z));
+    double scalar = 0.5;
+    if(max > 100){
+      scalar = 0.01;
+    }
+    else if(max < 1){
+      scalar = 1.2;
+    }
+    object.scale = three.Vector3(scalar,scalar,scalar);
+
     object.name = name.split('.').first;
-    threeV.scene.userData['animationClips'][object.name] = object.animations;
+    object.traverse((child) {
+      if (child is three.Mesh) {
+        child.geometry?.computeVertexNormals(); // Compute normals for the mesh
+      }
+    });
+
+    if(object.animations.isNotEmpty){
+      object.userData['animations'] = object.animations;
+      object.userData['actionMap'] = <String,dynamic>{};
+      final _actionMap = object.userData['actionMap'];
+
+      final mixer = three.AnimationMixer(object);
+      object.userData['mixer'] = mixer;
+      threeV.threeJs.addAnimationEvent((dt){
+        mixer.update(dt);
+      });
+      object.userData['animationEvent'] = threeV.threeJs.events.last;
+
+      for(int a = 0; a < object.animations.length;a++){
+        String actionName = object.animations[a].name;
+        _actionMap[actionName] = mixer.clipAction(object.animations[a])!;
+      }
+
+      int i = 0;
+      for(final act in _actionMap.keys){
+        _actionMap[act]!.enabled = true;
+        _actionMap[act]!.setEffectiveTimeScale( 1 );
+        double weight = 0;
+        if(i == 0){
+          object.userData['currentAction'] = act;
+          weight = 1;
+        }
+        _actionMap[act]!.setEffectiveWeight( weight );
+        _actionMap[act]!.play();
+        i++;
+      }
+    }
+
     if(crerateThumbnial) await threeV.crerateThumbnial(object);
     object.userData['skeleton'] = skeleton;
     threeV.add(object,h);
     threeV.threeJs.scene.add(skeleton);
     object.userData['path'] = path;
+
+   if(moveFiles && paths.isNotEmpty){
+      await threeV.moveTextures(paths);
+    }
   }
 
-  Future<void> gltf(String path, String name, [bool crerateThumbnial = true]) async{
+  Future<bool> gltf(String path, String name, [bool crerateThumbnial = true, bool moveFiles = false]) async{
+    final List<String> paths = [path];
     final three.LoadingManager manager = three.LoadingManager();
     manager.urlModifier = (d){
-      print(d);
+      paths.add(d);
       return d;
     };
     final loader = three.GLTFLoader(manager: manager);
     final String setPath = path.replaceAll(path.split('/').last, '');
     loader.setPath(setPath);
     final object = await loader.fromPath(path.replaceAll(setPath, ''));
-    object!.scene.geometry?.computeBoundingBox();
+    final gltf = object!.scene;
+    gltf.geometry?.computeBoundingBox();
     final vector = three.Vector3();
     final three.BoundingBox box = three.BoundingBox().empty();
-    object.scene.traverse((child){
+    
+    gltf.traverse((child){
       child.geometry?.computeBoundingBox();
       final position = child.geometry?.attributes['position'];
       if(position!= null){
@@ -156,16 +244,55 @@ class InsertModels {
       }
     });
 
-    final skeleton = SkeletonHelper(object.scene);
+    final skeleton = SkeletonHelper(gltf);
     skeleton.visible = false;
     BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
-    object.scene.name = name.split('.').first;
-    if(object.animations != null)threeV. scene.userData['animationClips'][object.scene.name] = object.animations!;
-    if(crerateThumbnial) await threeV.crerateThumbnial(object.scene, box);
-    object.scene.userData['skeleton'] = skeleton;
-    threeV.add(object.scene,h);
+    gltf.name = name.split('.').first;
+
+    if(object.animations!.isNotEmpty){
+      gltf.userData['animations'] = object.animations!;
+      gltf.userData['actionMap'] = <String,dynamic>{};
+      final Map<String,dynamic> _actionMap = gltf.userData['actionMap'];
+      
+      final mixer = three.AnimationMixer(gltf);
+      gltf.userData['mixer'] = mixer;
+      threeV.threeJs.addAnimationEvent((dt){
+        mixer.update(dt);
+      });
+      gltf.userData['animationEvent'] = threeV.threeJs.events.last;
+
+      for(int a = 0; a < object.animations!.length;a++){
+        String actionName = (object.animations![a] as three.AnimationClip).name;
+        _actionMap[actionName] = mixer.clipAction(object.animations![a])!;
+      }
+
+      int i = 0;
+      for(final act in _actionMap.keys){
+        _actionMap[act]!.enabled = true;
+        _actionMap[act]!.setEffectiveTimeScale( 1 );
+        double weight = 0;
+        if(i == 0){
+          gltf.userData['currentAction'] = act;
+          weight = 1;
+        }
+        _actionMap[act]!.setEffectiveWeight( weight );
+        _actionMap[act]!.play();
+        i++;
+      }
+    }
+
+    if(crerateThumbnial) await threeV.crerateThumbnial(gltf, box);
+    gltf.userData['skeleton'] = skeleton;
+    threeV.add(gltf,h);
     threeV.threeJs.scene.add(skeleton);
-    object.userData?['path'] = path; 
+    object.userData?['path'] = path;
+
+    if(moveFiles && paths.length > 1){
+      await threeV.moveFiles(name,paths);
+      return true;
+    }
+    
+    return false;
   }
 
   Future<void> ply(String path, String name, [bool crerateThumbnial = true]) async{

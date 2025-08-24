@@ -47,13 +47,13 @@ class _ObjectGuiState extends State<ObjectGui> {
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
+        Wrap(
           children: [
             SizedBox(child: const Text('Name:')),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
               label: object.name.toString(),
-              width: d2,
+              ///width: d2,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
@@ -141,12 +141,12 @@ class _ObjectGuiState extends State<ObjectGui> {
         ),
         DragTarget(
           builder: (context, candidateItems, rejectedItems) {
-            return Row(
+            return Wrap(
               children: [
                 const Text('Script:'),
                 EnterTextFormField(
                   readOnly: true,
-                  width: 76,
+                  //width: 76,
                   height: 20,
                   maxLines: 1,
                   textStyle: Theme.of(context).primaryTextTheme.bodySmall,

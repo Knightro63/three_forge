@@ -7,13 +7,12 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:three_forge/src/navigation/right_click.dart';
-import 'package:three_forge/src/objects/insert_mesh.dart';
 import 'package:three_forge/src/objects/insert_models.dart';
 import 'package:three_forge/src/styles/globals.dart';
 import 'package:three_forge/src/three_viewer/export.dart';
 import 'package:three_forge/src/three_viewer/terrain.dart';
 import 'package:three_forge/src/thumbnail/thumbnail.dart';
-
+import 'package:path/path.dart' as p;
 import 'package:three_js/three_js.dart' as three;
 import 'package:three_js_helpers/three_js_helpers.dart';
 import 'package:three_js_transform_controls/three_js_transform_controls.dart';
@@ -882,6 +881,42 @@ class ThreeViewer {
       }
     }
   }
+  Future<void> moveTextures(List<String> paths) async{
+    String destinationPath ='$dirPath/assets/textures/' ;
+    bool exists = await Directory(destinationPath).exists();
+    if(!exists) await Directory(destinationPath).create(recursive: true);
+
+    for(final sourcePath in paths){
+      File sourceFile = File(sourcePath);
+      File destinationFile = File('$destinationPath${sourcePath.split('/').last}');
+
+      try {
+        // Check if the source file exists before attempting to copy
+        if (await sourceFile.exists()) {
+          await sourceFile.copy(destinationFile.path);
+          three.console.info('File copied successfully from $sourcePath to $destinationPath');
+        } else {
+          three.console.info('Source file does not exist: $sourcePath');
+        }
+      } catch (e) {
+        three.console.info('Error copying file: $e');
+      }
+    }
+  }
+
+  Future<void> moveTexture(String path) async{
+    String resourcePth ='$dirPath/assets/textures' ;
+    Directory sourceDir = Directory(path);
+    Directory destinationDir = Directory(resourcePth);
+
+    await for (FileSystemEntity entity in sourceDir.list(recursive: false)) {
+      if (entity is File) {
+        final String fileName = p.basename(entity.path);
+        final String newFilePath = p.join(destinationDir.path, fileName);
+        await entity.copy(newFilePath);
+      }
+    }
+  }
 
   Future<void> moveFiles(String name, List<String> paths) async{
     String destinationPath ='$dirPath/assets/models/${name.split('.').first}/' ;
@@ -896,12 +931,12 @@ class ThreeViewer {
         // Check if the source file exists before attempting to copy
         if (await sourceFile.exists()) {
           await sourceFile.copy(destinationFile.path);
-          print('File copied successfully from $sourcePath to $destinationPath');
+          three.console.info('File copied successfully from $sourcePath to $destinationPath');
         } else {
-          print('Source file does not exist: $sourcePath');
+          three.console.info('Source file does not exist: $sourcePath');
         }
       } catch (e) {
-        print('Error copying file: $e');
+        three.console.info('Error copying file: $e');
       }
     }
   }
@@ -912,9 +947,21 @@ class ThreeViewer {
 
     if (sourceDir.existsSync()) {
       await _copyDirectory(sourceDir, destinationDir);
-      print('Folder copied successfully!');
+      three.console.info('Folder copied successfully!');
     } else {
-      print('Source folder does not exist.');
+      three.console.info('Source folder does not exist.');
+    }
+  }
+  Future<void> moveTextures1(String path, String name) async{
+    String resourcePth ='$dirPath/assets/textures/$name' ;
+    Directory sourceDir = Directory(path);
+    Directory destinationDir = Directory(resourcePth);
+
+    if (sourceDir.existsSync()) {
+      await _copyDirectory(sourceDir, destinationDir);
+      three.console.info('Folder copied successfully!');
+    } else {
+      three.console.info('Source folder does not exist.');
     }
   }
   Future<void> export(String name) async{

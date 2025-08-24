@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:three_forge/src/styles/savedWidgets.dart';
+import 'package:three_forge/src/three_viewer/gui/animation.dart';
 import 'package:three_forge/src/three_viewer/gui/camera.dart';
 import 'package:three_forge/src/three_viewer/gui/light.dart';
 import 'package:three_forge/src/three_viewer/gui/material.dart';
@@ -7,6 +8,7 @@ import 'package:three_forge/src/three_viewer/gui/modifers.dart';
 import 'package:three_forge/src/three_viewer/gui/object.dart';
 import 'package:three_forge/src/three_viewer/gui/physics.dart';
 import 'package:three_forge/src/three_viewer/gui/scene.dart';
+import 'package:three_forge/src/three_viewer/gui/skeleton.dart';
 import 'package:three_forge/src/three_viewer/gui/sky.dart';
 import 'package:three_forge/src/three_viewer/gui/terrain.dart';
 import 'package:three_forge/src/three_viewer/gui/transform.dart';
@@ -35,10 +37,10 @@ class _IntersectedGuiState extends State<IntersectedGui> {
     expands.clear();
   }
 
-  final List<bool> expands = [false,false,false,false,false,false,false];
+  final List<bool> expands = [false,false,false,false,false,false,false,false,false,false];
 
   List<Widget> objectGui(){
-    int? id = int.tryParse(threeV.intersected[0].name.split('_').last);
+    int? id = !threeV.intersected[0].name.contains('terrain')?null:int.tryParse(threeV.intersected[0].name.split('_').last);
     return[
       Container(
         margin: const EdgeInsets.fromLTRB(5,5,5,5),
@@ -191,17 +193,17 @@ class _IntersectedGuiState extends State<IntersectedGui> {
             InkWell(
               onTap: (){
                 setState(() {
-                  expands[3] = !expands[3];
+                  expands[7] = !expands[7];
                 });
               },
               child: Row(
                 children: [
-                  Icon(!expands[3]?Icons.expand_more:Icons.expand_less, size: 15,),
+                  Icon(!expands[7]?Icons.expand_more:Icons.expand_less, size: 15,),
                   const Text('\tMaterial'),
                 ],
               )
             ),
-            if(expands[3]) Padding(
+            if(expands[7]) Padding(
               padding: const EdgeInsets.fromLTRB(10,10,0,5),
               child: MaterialGui(threeV: threeV)
             )
@@ -219,17 +221,17 @@ class _IntersectedGuiState extends State<IntersectedGui> {
             InkWell(
               onTap: (){
                 setState(() {
-                  expands[4] = !expands[4];
+                  expands[8] = !expands[8];
                 });
               },
               child: Row(
                 children: [
-                  Icon(!expands[4]?Icons.expand_more:Icons.expand_less, size: 15,),
+                  Icon(!expands[8]?Icons.expand_more:Icons.expand_less, size: 15,),
                   const Text('\tTerrain'),
                 ],
               )
             ),
-            if(expands[4]) Padding(
+            if(expands[8]) Padding(
               padding: const EdgeInsets.fromLTRB(10,10,5,5),
               child: TerrainGui(terrain: threeV.terrains[id])
             )
@@ -276,39 +278,62 @@ class _IntersectedGuiState extends State<IntersectedGui> {
           ]
         )
       ),
-
-      // if(animationClips[intersected?.name] != null) Container(
-      //   margin: const EdgeInsets.fromLTRB(5,5,5,5),
-      //   decoration: BoxDecoration(
-      //     color: Theme.of(context).cardColor,
-      //     borderRadius: BorderRadius.circular(5)
-      //   ),
-      //   child: Column(
-      //     children: [
-      //       InkWell(
-      //         onTap: (){
-      //           setState(() {
-      //             expands[3] = !expands[3];
-      //           });
-      //         },
-      //         child: Row(
-      //           children: [
-      //             Icon(!expands[3]?Icons.expand_more:Icons.expand_less, size: 15,),
-      //             const Text('\t Animation'),
-      //           ],
-      //         )
-      //       ),
-      //       if(expands[3]) Padding(
-      //         padding: const EdgeInsets.fromLTRB(25,10,5,5),
-      //         child: Column(
-      //           mainAxisAlignment: MainAxisAlignment.start,
-      //           crossAxisAlignment: CrossAxisAlignment.start,
-      //           children: getAnimations()
-      //         )
-      //       )
-      //     ]
-      //   )
-      // ),
+      if(threeV.intersected.isNotEmpty && threeV.intersected[0].userData['skeleton'] != null) Container(
+        margin: const EdgeInsets.fromLTRB(5,5,5,5),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(5)
+        ),
+        child: Column(
+          children: [
+            InkWell(
+              onTap: (){
+                setState(() {
+                  expands[3] = !expands[3];
+                });
+              },
+              child: Row(
+                children: [
+                  Icon(!expands[3]?Icons.expand_more:Icons.expand_less, size: 15,),
+                  const Text('\t Animation'),
+                ],
+              )
+            ),
+            if(expands[3]) Padding(
+              padding: const EdgeInsets.fromLTRB(25,10,5,5),
+              child: AnimationGui(threeV: threeV,)
+            )
+          ]
+        )
+      ),
+      if(threeV.intersected.isNotEmpty && threeV.intersected[0].userData['skeleton'] != null) Container(
+        margin: const EdgeInsets.fromLTRB(5,5,5,5),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(5)
+        ),
+        child: Column(
+          children: [
+            InkWell(
+              onTap: (){
+                setState(() {
+                  expands[9] = !expands[9];
+                });
+              },
+              child: Row(
+                children: [
+                  Icon(!expands[9]?Icons.expand_more:Icons.expand_less, size: 15,),
+                  const Text('\t Skeleton'),
+                ],
+              )
+            ),
+            if(expands[9]) Padding(
+              padding: const EdgeInsets.fromLTRB(25,10,5,5),
+              child: SkeletonGui(threeV: threeV,)
+            )
+          ]
+        )
+      ),
     ];
   }
 

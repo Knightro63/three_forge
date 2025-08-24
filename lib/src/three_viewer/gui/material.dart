@@ -145,35 +145,57 @@ class _MaterialGuiState extends State<MaterialGui> {
     nameController.clear();
   }
 
-  void setNewMaterial(String key){
+  void setNewMaterial(String key, three.Material? material){
     if(threeV.shading == ShadingType.material){
-      threeV.intersected[0].material = materialClasses[key];
+      material = materialClasses[key];
     }
     else{
-      threeV.intersected[0].userData['mainMaterial'] = materialClasses[key] ;
+      material = materialClasses[key] ;
     }
   }
 
-  Widget map(String name, int c, void Function(dynamic) function){
+  Future<three.Texture?> setNewTexture(String path) async{
+    return await three.TGALoader().fromPath(path)?..name = path.split('/').last.split('.').first;
+  }
+
+  Widget map(String name, String? temp, int c, void Function(dynamic) function){
     return DragTarget(
       builder: (context, candidateItems, rejectedItems) {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('${LSIFunctions.capFirstLetter(name)}:'),
-            EnterTextFormField(
-              readOnly: true,
-              height: 20,
-              maxLines: 1,
-              textStyle: Theme.of(context).primaryTextTheme.bodySmall,
-              color: Theme.of(context).canvasColor,
-              controller: mapControllers[c],
-            )
+            Row(children: [
+              EnterTextFormField(
+                width: 120,
+                readOnly: true,
+                label: temp,
+                height: 20,
+                maxLines: 1,
+                textStyle: Theme.of(context).primaryTextTheme.bodySmall,
+                color: Theme.of(context).canvasColor,
+                controller: mapControllers[c],
+              ),
+              InkWell(
+                onTap: (){
+                  function.call('delete');
+                },
+                child: Container(
+                  height: 20,
+                  width: 20,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).canvasColor,
+                    borderRadius: BorderRadius.circular(10)
+                  ),
+                  child: Icon(Icons.clear,size: 15,)
+                ),
+              )
+            ],)
           ],
         );
       },
       onAcceptWithDetails: (details) async{
-        function.call(details);
+        function.call(details.data);
       },
     );
   }
@@ -198,9 +220,7 @@ class _MaterialGuiState extends State<MaterialGui> {
             else{
               color.setFrom(three.Color.fromHex64(Theme.of(context).canvasColor.toARGB32()));
             }
-            setState(() {
-              
-            });
+            //setState(() {});
           },
           controller: colorControllers[c],
         )
@@ -232,8 +252,13 @@ class _MaterialGuiState extends State<MaterialGui> {
   @override
   Widget build(BuildContext context) {
     controllerReset();
-    three.Material? material = threeV.intersected[0].userData['mainMaterial'];
-
+    three.Material? material = threeV.intersected[0].userData['mainMaterial'];//.children[0].material;//.children[1].material;//.userData['mainMaterial'];
+    // threeV.intersected[0].traverse((callback){
+    //   if(callback.material != null){
+    //     print(callback.material);
+    //     //material = callback.material!;
+    //   }
+    // });
     if(threeV.shading == ShadingType.material){
       material = threeV.intersected[0].material;
     }
@@ -283,7 +308,7 @@ class _MaterialGuiState extends State<MaterialGui> {
               style: Theme.of(context).primaryTextTheme.bodySmall,
               onChanged:(value){
                 setState(() {
-                  setNewMaterial(value);
+                  setNewMaterial(value,material);
                 });
               },
             ),
@@ -325,29 +350,29 @@ class _MaterialGuiState extends State<MaterialGui> {
           )
         ),
         SizedBox(height: 20,),
-        map('map',0,(d){}),
-        map('specular Map',0,(d){}),
-        map('emissive Map',0,(d){}),
-        map('matcap',0,(d){}),
-        map('alpha Map',0,(d){}),
-        map('bump Map',0,(d){}),
-        map('normal Map',0,(d){}),
-        map('clearcoat Map',0,(d){}),
-        map('clearcoat Normal Map',0,(d){}),
-        map('clearcoat Roughness Map',0,(d){}),
-        map('displacement Map',0,(d){}),
-        map('roughness Map',0,(d){}),
-        map('metalness Map',0,(d){}),
-        map('iridescence Map',0,(d){}),
-        map('sheenColor Map',0,(d){}),
-        map('sheenRoughness Map',0,(d){}),
-        map('iridescence Thickness Map',0,(d){}),
-        map('env Map',0,(d){}),
-        map('light Map',0,(d){}),
-        map('ao Map',0,(d){}),
-        map('gradient Map',0,(d){}),
-        map('transmission Map',0,(d){}),
-        map('thickness Map',0,(d){}),
+        map('map', material.map?.name,0,(d){if(d == 'delete'){material?.map = null;}else{setNewTexture(d).then((t){material?.map = t;});}}),
+        map('specular Map',material.specularMap?.name,00,(d){if(d == 'delete'){material?.specularMap = null;}else{setNewTexture(d).then((t){material?.specularMap = t;});}}),
+        map('emissive Map',material.emissiveMap?.name,0,(d){if(d == 'delete'){material?.emissiveMap = null;}else{setNewTexture(d).then((t){material?.emissiveMap = t;});}}),
+        //map('matcap',material.map?.name,0,(d){material.map = null;}),
+        map('alpha Map',material.alphaMap?.name,0,(d){if(d == 'delete'){material?.alphaMap = null;}else{setNewTexture(d).then((t){material?.alphaMap = t;});}}),
+        map('bump Map',material.bumpMap?.name,0,(d){if(d == 'delete'){material?.bumpMap = null;}else{setNewTexture(d).then((t){material?.bumpMap = t;});}}),
+        map('normal Map',material.normalMap?.name,0,(d){if(d == 'delete'){material?.normalMap = null;}else{setNewTexture(d).then((t){material?.normalMap = t;});}}),
+        map('clearcoat Map',material.clearcoatMap?.name,0,(d){if(d == 'delete'){material?.clearcoatMap = null;}else{setNewTexture(d).then((t){material?.clearcoatMap = t;});}}),
+        map('clearcoat Normal Map',material.clearcoatNormalMap?.name,0,(d){if(d == 'delete'){material?.clearcoatNormalMap = null;}else{setNewTexture(d).then((t){material?.clearcoatNormalMap = t;});}}),
+        map('clearcoat Roughness Map',material.clearcoatRoughnessMap?.name,0,(d){if(d == 'delete'){material?.clearcoatRoughnessMap = null;}else{setNewTexture(d).then((t){material?.clearcoatRoughnessMap = t;});}}),
+        map('displacement Map',material.displacementMap?.name,0,(d){if(d == 'delete'){material?.displacementMap = null;}else{setNewTexture(d).then((t){material?.displacementMap = t;});}}),
+        map('roughness Map',material.roughnessMap?.name,0,(d){if(d == 'delete'){material?.roughnessMap = null;}else{setNewTexture(d).then((t){material?.roughnessMap = t;});}}),
+        map('metalness Map',material.metalnessMap?.name,0,(d){if(d == 'delete'){material?.metalnessMap = null;}else{setNewTexture(d).then((t){material?.metalnessMap = t;});}}),
+        map('iridescence Map',material.iridescenceMap?.name,0,(d){if(d == 'delete'){material?.iridescenceMap = null;}else{setNewTexture(d).then((t){material?.iridescenceMap = t;});}}),
+        map('sheenColor Map',material.sheenColorMap?.name,0,(d){if(d == 'delete'){material?.sheenColorMap = null;}else{setNewTexture(d).then((t){material?.sheenColorMap = t;});}}),
+        map('sheenRoughness Map',material.sheenRoughnessMap?.name,0,(d){if(d == 'delete'){material?.sheenRoughnessMap = null;}else{setNewTexture(d).then((t){material?.sheenRoughnessMap = t;});}}),
+        map('iridescence Thickness Map',material.iridescenceThicknessMap?.name,0,(d){if(d == 'delete'){material?.iridescenceThicknessMap = null;}else{setNewTexture(d).then((t){material?.iridescenceThicknessMap = t;});}}),
+        map('env Map',material.envMap?.name,0,(d){if(d == 'delete'){material?.envMap = null;}else{setNewTexture(d).then((t){material?.envMap = t;});}}),
+        map('light Map',material.lightMap?.name,0,(d){if(d == 'delete'){material?.lightMap = null;}else{setNewTexture(d).then((t){material?.lightMap = t;});}}),
+        map('ao Map',material.aoMap?.name,0,(d){if(d == 'delete'){material?.aoMap = null;}else{setNewTexture(d).then((t){material?.aoMap = t;});}}),
+        map('gradient Map',material.gradientMap?.name,0,(d){if(d == 'delete'){material?.gradientMap = null;}else{setNewTexture(d).then((t){material?.gradientMap = t;});}}),
+        map('transmission Map',material.transmissionMap?.name,0,(d){if(d == 'delete'){material?.transmissionMap = null;}else{setNewTexture(d).then((t){material?.transmissionMap = t;});}}),
+        map('thickness Map',material.thicknessMap?.name,0,(d){if(d == 'delete'){material?.thicknessMap = null;}else{setNewTexture(d).then((t){material?.thicknessMap = t;});}}),
         SizedBox(height: 20,),
 
         Container(

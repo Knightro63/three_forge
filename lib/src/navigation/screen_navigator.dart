@@ -186,24 +186,8 @@ class ScreenNavigator{
                 GetFilePicker.pickFiles(['gltf']).then((value)async{
                   if(value != null){
                     for(int i = 0; i < value.files.length;i++){
-                      await insert.gltf(value.files[i].path!, value.files[i].name);
-                      await threeV.moveObject(value.files[i]);
-                    }
-                  }
-                  setState(() {});
-                });
-              },
-            ),
-            NavItems(
-              name: 'gltf-folder',
-              icon: Icons.view_in_ar_rounded,
-              onTap: (data){
-                callBacks(call: LSICallbacks.updatedNav);
-                GetFilePicker.pickFiles(['gltf']).then((value)async{
-                  if(value != null){
-                    for(int i = 0; i < value.files.length;i++){
-                      await insert.gltf(value.files[i].path!, value.files[i].name);
-                      await threeV.moveFolder(value.files[i]);
+                      bool didMove = await insert.gltf(value.files[i].path!, value.files[i].name,true,true);
+                      if(!didMove) await threeV.moveObject(value.files[i]);
                     }
                   }
                   setState(() {});
@@ -218,25 +202,9 @@ class ScreenNavigator{
                 GetFilePicker.pickFiles(['fbx']).then((value)async{
                   if(value != null){
                     for(int i = 0; i < value.files.length;i++){
-                      await insert.fbx(value.files[i].path!, value.files[i].name);
+                      await insert.fbx(value.files[i].path!, value.files[i].name, true, true);
+                      await threeV.moveObject(value.files[i]);
                     }
-                    await threeV.moveObjects(value.files);
-                  }
-                  setState(() {});
-                });
-              },
-            ),
-            NavItems(
-              name: 'fbx-unity',
-              icon: Icons.view_in_ar_rounded,
-              onTap: (data){
-                callBacks(call: LSICallbacks.updatedNav);   
-                GetFilePicker.pickFiles(['fbx']).then((value)async{
-                  if(value != null){
-                    for(int i = 0; i < value.files.length;i++){
-                      await insert.fbx(value.files[i].path!, value.files[i].name);
-                    }
-                    await threeV.moveObjects(value.files);
                   }
                   setState(() {});
                 });

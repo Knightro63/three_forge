@@ -7,6 +7,51 @@ class SceneCollection extends StatelessWidget{
   
   SceneCollection(this.threeV,this.setState);
 
+  Widget subModel(BuildContext context, child, bool isSub){
+    return Padding(
+      padding: isSub?EdgeInsetsGeometry.only(left: 20):EdgeInsetsGeometry.only(left: 0),
+      child: InkWell(
+        onTap: (){
+          threeV.boxSelect(false);
+          threeV.intersected.clear();
+          threeV.intersected.add(child);
+          threeV.boxSelect(true);
+          setState(() {
+            
+          });
+        },
+        child: Container(
+          margin: const EdgeInsets.fromLTRB(5, 0, 5, 0),
+          padding: const EdgeInsets.fromLTRB(15, 0, 5, 0),
+          height: 25,
+          color: threeV.intersected.isNotEmpty && threeV.intersected.contains(child)?Theme.of(context).secondaryHeaderColor:Theme.of(context).canvasColor,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              SizedBox(
+                width: 137,
+                child: Text(
+                  child.name,
+                  overflow: TextOverflow.ellipsis,
+                )
+              ),
+              InkWell(
+                onTap: (){
+                  setState(() {
+                    child.visible = !child.visible;
+                    if(child.userData['helper'] != null)child.userData['helper'].visible = child.visible;
+                  });
+                },
+                child: Icon(child.visible?Icons.visibility:Icons.visibility_off,size: 15,),
+              )
+            ],
+          ),
+        )
+      )
+    );
+
+  }
+
   @override
   Widget build(BuildContext context) {
     List<Widget> widgets = [
@@ -33,46 +78,11 @@ class SceneCollection extends StatelessWidget{
 
     for(final obj in threeV.scene.children){
       final child = obj;
-      widgets.add(
-        InkWell(
-          onTap: (){
-            threeV.boxSelect(false);
-            threeV.intersected.clear();
-            threeV.intersected.add(child);
-            threeV.boxSelect(true);
-            setState(() {
-              
-            });
-          },
-          child: Container(
-            margin: const EdgeInsets.fromLTRB(5, 0, 5, 0),
-            padding: const EdgeInsets.fromLTRB(15, 0, 5, 0),
-            height: 25,
-            color: threeV.intersected.isNotEmpty && threeV.intersected.contains(child)?Theme.of(context).secondaryHeaderColor:Theme.of(context).canvasColor,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                SizedBox(
-                  width: 137,
-                  child: Text(
-                    child.name,
-                    overflow: TextOverflow.ellipsis,
-                  )
-                ),
-                InkWell(
-                  onTap: (){
-                    setState(() {
-                      child.visible = !child.visible;
-                      if(child.userData['helper'] != null)child.userData['helper'].visible = child.visible;
-                    });
-                  },
-                  child: Icon(child.visible?Icons.visibility:Icons.visibility_off,size: 15,),
-                )
-              ],
-            ),
-          )
-        )
-      );
+      widgets.add(subModel(context, child, false));
+
+      // child.traverse((callback){
+      //   widgets.add(subModel(context, callback, true));
+      // });
     }
 
     return ListView(

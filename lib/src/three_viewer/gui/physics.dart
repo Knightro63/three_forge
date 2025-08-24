@@ -85,12 +85,11 @@ class _ModiferGuiState extends State<PhysicsGui> {
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
+        Wrap(
           children: [
             SizedBox(child: const Text('Name:')),
             EnterTextFormField(
               label: object['name'].toString(),
-              width: d2,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,

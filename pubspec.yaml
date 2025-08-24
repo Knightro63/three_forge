@@ -33,6 +33,19 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^5.0.0
 
+dependency_overrides:
+  permission_handler_apple:
+    git:
+      url: https://github.com/alex-melnyk/flutter-permission-handler.git 
+      path: permission_handler_apple
+  file_picker: ^10.1.9
+  three_js_advanced_loaders:
+    path: ../../Apps/three_js-main/packages/three_js_advanced_loaders
+  three_js_animations:
+    path: ../../Apps/three_js-main/packages/three_js_animations
+  three_js_helpers:
+    path: ../../Apps/three_js-main/packages/three_js_helpers
+
 flutter:
   uses-material-design: true
   assets:
