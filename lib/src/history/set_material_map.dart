@@ -14,7 +14,7 @@ class SetMaterialMapCommand extends Command {
 		this.name = editor.strings.getKey( 'command/SetMaterialMap' ) + ': ' + mapName;
 
 		final material = ( object != null ) ? editor.getObjectMaterial( object!, materialSlot ) : null;
-		this.oldMap = ( object != null ) ? material[ mapName ] : null;
+		this.oldMap = ( object != null ) ? material![ mapName ] : null;
 	}
 
 	void execute() {
@@ -22,17 +22,17 @@ class SetMaterialMapCommand extends Command {
 
 		final material = this.editor.getObjectMaterial( this.object!, this.materialSlot );
 
-		material[ this.mapName ] = this.newMap;
+		material?[ this.mapName ] = this.newMap;
 		material?.needsUpdate = true;
 
-		this.editor.signals.materialChanged.dispatch( this.object, this.materialSlot );
+		this.editor.signals.materialChanged.dispatch( [this.object, this.materialSlot] );
 	}
 
 	void undo() {
 		final material = this.editor.getObjectMaterial( this.object!, this.materialSlot );
 		material?[ this.mapName ] = this.oldMap;
 		material?.needsUpdate = true;
-		this.editor.signals.materialChanged.dispatch( this.object, this.materialSlot );
+		this.editor.signals.materialChanged.dispatch( [this.object, this.materialSlot] );
 	}
 
   @override
@@ -78,14 +78,14 @@ class SetMaterialMapCommand extends Command {
 	}
 
   @override
-	void fromJson(Map<String,dynamic> json ) {
+	void fromJson(Map<String,dynamic> json ) async{
 		super.fromJson( json );
 
-		parseTexture(Map<String,dynamic>? json ) {
+		parseTexture(Map<String,dynamic>? json ) async{
 			Texture? map = null;
 			if ( json != null ) {
 				final loader = new ObjectLoader();
-				final images = loader.parseImages( json['images'] );
+				final images = await loader.parseImages( json['images'] );
 				final textures = loader.parseTextures( [ json ], images );
 				map = textures[ json['uuid'] ];
 				map?.userData['sourceFile'] = json['sourceFile'];
@@ -95,8 +95,8 @@ class SetMaterialMapCommand extends Command {
 
 		this.object = this.editor.objectByUuid( json['objectUuid'] );
 		this.mapName = json['mapName'];
-		this.oldMap = parseTexture( json['oldMap'] );
-		this.newMap = parseTexture( json['newMap'] );
+		this.oldMap = await parseTexture( json['oldMap'] );
+		this.newMap = await parseTexture( json['newMap'] );
 		this.materialSlot = json['materialSlot'];
 	}
 }

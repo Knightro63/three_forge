@@ -1,6 +1,5 @@
 import "package:three_forge/src/history/commands.dart";
 import "package:three_forge/src/styles/config.dart";
-import "package:three_forge/src/three_viewer/viewer.dart";
 import "package:three_js/three_js.dart";
 
 class History {
@@ -24,11 +23,11 @@ class History {
 		});
 	}
 
-	void execute( cmd, optionalName ) {
-		final lastCmd = this.undos[ this.undos.length - 1 ];
+	void execute(Command cmd, optionalName ) {
+		final lastCmd = this.undos[ this.undos.length - 1 ] as Command?;
 		final timeDifference = DateTime.now().millisecondsSinceEpoch - this.lastCmdTime;
 
-		final isUpdatableCmd = lastCmd &&
+		final isUpdatableCmd = lastCmd != null&&
 			lastCmd.updatable &&
 			cmd.updatable &&
 			lastCmd.object == cmd.object &&
@@ -57,9 +56,9 @@ class History {
 		cmd.execute();
 		cmd.inMemory = true;
 
-		if ( this.config.getKey( 'settings/history' ) ) {
-			cmd.json = cmd.toJSON();	// serialize the cmd immediately after execution and append the json to the cmd
-		}
+		// if ( this.config.getKey( 'settings/history' ) ) {
+		// 	cmd.json = cmd.toJson();	// serialize the cmd immediately after execution and append the json to the cmd
+		// }
 
 		this.lastCmdTime = DateTime.now().millisecondsSinceEpoch;
 
@@ -67,21 +66,20 @@ class History {
 
 		this.redos = [];
 		this.editor.signals.historyChanged.dispatch( cmd );
-
 	}
 
-	void undo() {
+	Command? undo() {
 		if ( this.historyDisabled ) {
 			console.error( this.editor.strings.getKey( 'prompt/history/forbid' ) );
-			return;
+			return null;
 		}
 
-		dynamic cmd = null;
+		Command? cmd;
 
 		if ( this.undos.length > 0 ) {
 			cmd = this.undos.removeLast();
-			if ( cmd.inMemory == false ) {
-				cmd.fromJson( cmd.json );
+			if ( cmd?.inMemory == false ) {
+				cmd?.fromJson( cmd.json );
 			}
 		}
 
@@ -94,18 +92,18 @@ class History {
 		return cmd;
 	}
 
-	redo() {
+	Command? redo() {
 		if ( this.historyDisabled ) {
 			console.error( this.editor.strings.getKey( 'prompt/history/forbid' ) );
-			return;
+			return null;
 		}
 
-		dynamic cmd = null;
+		Command? cmd;
 
 		if ( this.redos.length > 0 ) {
 			cmd = this.redos.removeLast();
-			if ( cmd.inMemory == false ) {
-				cmd.fromJson( cmd.json );
+			if ( cmd?.inMemory == false ) {
+				cmd?.fromJson( cmd.json );
 			}
 		}
 
@@ -118,14 +116,14 @@ class History {
 		return cmd;
 	}
 
-	toJson() {
-		final history = {};
+	Map<String, dynamic> toJson() {
+		final Map<String, dynamic> history = {};
 		history['undos'] = [];
 		history['redos'] = [];
 
-		if ( ! this.config.getKey( 'settings/history' ) ) {
-			return history;
-		}
+		// if ( ! this.config.getKey( 'settings/history' ) ) {
+		// 	return history;
+		// }
 
 		// Append Undos to History
 
@@ -146,40 +144,40 @@ class History {
 		return history;
 	}
 
-	fromJson( json ) {
+	void fromJson(Map<String, dynamic>? json ) {
 		if ( json == null ) return;
-		for (int i = 0; i < json.undos.length; i ++ ) {
-			final cmdJSON = json.undos[ i ];
-			final cmd = Commands[ cmdJSON.type ]( this.editor ); // creates a new object of type "json.type"
+		for (int i = 0; i < json['undos'].length; i ++ ) {
+			final cmdJSON = json['undos'][ i ] as Map<String,dynamic>;
+			final cmd = Command.createCommand(cmdJSON['type'], editor)!;//Commands[ cmdJSON.type ]( this.editor ); // creates a new object of type "json.type"
 			cmd.json = cmdJSON;
-			cmd.id = cmdJSON.id;
-			cmd.name = cmdJSON.name;
+			cmd.id = cmdJSON['id'];
+			cmd.name = cmdJSON['name'];
 			this.undos.add( cmd );
-			this.idCounter = ( cmdJSON.id > this.idCounter ) ? cmdJSON.id : this.idCounter; // set last used idCounter
+			this.idCounter = ( cmdJSON['id'] > this.idCounter ) ? cmdJSON['id'] : this.idCounter; // set last used idCounter
 		}
 
-		for (int i = 0; i < json.redos.length; i ++ ) {
-			final cmdJSON = json.redos[ i ];
-			final cmd = Commands[ cmdJSON.type ]( this.editor ); // creates a new object of type "json.type"
+		for (int i = 0; i < json['redos'].length; i ++ ) {
+			final cmdJSON = json['redos'][ i ] as Map<String,dynamic>;
+			final cmd = Command.createCommand(cmdJSON['type'], editor)!;//Commands[ cmdJSON.type ]( this.editor ); // creates a new object of type "json.type"
 			cmd.json = cmdJSON;
-			cmd.id = cmdJSON.id;
-			cmd.name = cmdJSON.name;
+			cmd.id = cmdJSON['id'];
+			cmd.name = cmdJSON['name'];
 			this.redos.add( cmd );
-			this.idCounter = ( cmdJSON.id > this.idCounter ) ? cmdJSON.id : this.idCounter; // set last used idCounter
+			this.idCounter = ( cmdJSON['id'] > this.idCounter ) ? cmdJSON['id'] : this.idCounter; // set last used idCounter
 		}
 
 		// Select the last executed undo-command
 		this.editor.signals.historyChanged.dispatch( this.undos[ this.undos.length - 1 ] );
 	}
 
-	clear() {
+	void clear() {
 		this.undos = [];
 		this.redos = [];
 		this.idCounter = 0;
 		this.editor.signals.historyChanged.dispatch();
 	}
 
-	goToState( id ) {
+	void goToState( id ) {
 		if ( this.historyDisabled ) {
 			console.error( this.editor.strings.getKey( 'prompt/history/forbid' ) );
 			return;
@@ -211,7 +209,7 @@ class History {
 		this.editor.signals.historyChanged.dispatch( cmd );
 	}
 
-	enableSerialization( id ) {
+	void enableSerialization( id ) {
 		/**
 		 * because there might be commands in this.undos and this.redos
 		 * which have not been serialized with .toJSON() we go back

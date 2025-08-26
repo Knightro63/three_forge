@@ -33,8 +33,9 @@ class SetGeometryCommand extends Command {
 		this.editor.signals.sceneGraphChanged.dispatch();
 	}
 
-	void update( cmd ) {
-		this.newGeometry = cmd.newGeometry;
+  @override
+	void update(Command cmd) {
+		this.newGeometry = (cmd as SetGeometryCommand).newGeometry;
 	}
 
   @override

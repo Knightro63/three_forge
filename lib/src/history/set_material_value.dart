@@ -5,11 +5,11 @@ class SetMaterialValueCommand extends Command {
   Object3D? object;
   dynamic newValue;
   dynamic oldValue;
-  String attributeName;
   int materialSlot;
 
-	SetMaterialValueCommand(super.editor, [this.object = null, this.attributeName = '', this.newValue ,this.materialSlot = - 1 ]) {
-		this.type = 'SetMaterialValueCommand';
+	SetMaterialValueCommand(super.editor, [this.object = null, String attributeName = '', this.newValue ,this.materialSlot = - 1 ]) {
+		this.attributeName = attributeName;
+    this.type = 'SetMaterialValueCommand';
 		this.name = editor.strings.getKey( 'command/SetMaterialValue' ) + ': ' + attributeName;
 		this.updatable = true;
 
@@ -20,25 +20,26 @@ class SetMaterialValueCommand extends Command {
 	void execute() {
 		final material = this.editor.getObjectMaterial( this.object!, this.materialSlot );
 
-		material?[ this.attributeName ] = this.newValue;
+		material?[ this.attributeName! ] = this.newValue;
 		material?.needsUpdate = true;
 
 		this.editor.signals.objectChanged.dispatch( this.object );
-		this.editor.signals.materialChanged.dispatch( this.object, this.materialSlot );
+		this.editor.signals.materialChanged.dispatch( [this.object, this.materialSlot] );
 	}
 
 	void undo() {
 		final material = this.editor.getObjectMaterial( this.object!, this.materialSlot );
 
-		material?[ this.attributeName ] = this.oldValue;
+		material?[ this.attributeName! ] = this.oldValue;
 		material?.needsUpdate = true;
 
 		this.editor.signals.objectChanged.dispatch( this.object );
-		this.editor.signals.materialChanged.dispatch( this.object, this.materialSlot );
+		this.editor.signals.materialChanged.dispatch( [this.object, this.materialSlot] );
 	}
 
-	void update( cmd ) {
-		this.newValue = cmd.newValue;
+  @override
+	void update(Command cmd) {
+		this.newValue = (cmd as SetMaterialValueCommand).newValue;
 	}
 
   @override

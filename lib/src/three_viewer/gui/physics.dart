@@ -47,19 +47,19 @@ class _ModiferGuiState extends State<PhysicsGui> {
     TextEditingController(),
   ];
 
-  Widget createShapes(List<Map<String,dynamic>> shapes){
-    List<Widget>  widgets = [];
+  // Widget createShapes(List<Map<String,dynamic>> shapes){
+  //   List<Widget>  widgets = [];
 
-    for(final shape in shapes){
-      // widgets.add(
+  //   for(final shape in shapes){
+  //     // widgets.add(
 
-      // );
-    }
+  //     // );
+  //   }
 
-    return Column(
-      children: widgets,
-    );
-  }
+  //   return Column(
+  //     children: widgets,
+  //   );
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -85,22 +85,6 @@ class _ModiferGuiState extends State<PhysicsGui> {
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Wrap(
-          children: [
-            SizedBox(child: const Text('Name:')),
-            EnterTextFormField(
-              label: object['name'].toString(),
-              height: 20,
-              maxLines: 1,
-              textStyle: Theme.of(context).primaryTextTheme.bodySmall,
-              color: Theme.of(context).canvasColor,
-              onChanged: (val){
-                object['name'] = val;
-              },
-              controller: physicsControllers[7],
-            )
-          ],
-        ),
         Container(
           margin: const EdgeInsets.fromLTRB(0, 5, 0, 5),
           alignment: Alignment.center,

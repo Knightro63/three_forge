@@ -3,16 +3,16 @@ import 'package:three_js/three_js.dart';
 
 class SetColorCommand extends Command {
   Object3D? object;
-  String attributeName;
   int? newValue;
   int? oldValue;
 
-	SetColorCommand(super.editor, [this.object = null, this.attributeName = '', this.newValue = null ]) {
-		this.type = 'SetColorCommand';
+	SetColorCommand(super.editor, [this.object = null, String attributeName = '', this.newValue = null ]) {
+		this.attributeName = attributeName;
+    this.type = 'SetColorCommand';
 		this.name = editor.strings.getKey( 'command/SetColor' ) + ': ' + attributeName;
 		this.updatable = true;
 
-		this.oldValue = ( object != null ) ? this.object[ this.attributeName ].getHex() : null;
+		this.oldValue = ( object != null ) ? this.object![ this.attributeName ].getHex() : null;
 	}
 
 	void execute() {
@@ -25,8 +25,9 @@ class SetColorCommand extends Command {
 		this.editor.signals.objectChanged.dispatch( this.object );
 	}
 
-	void update( cmd ) {
-		this.newValue = cmd.newValue;
+  @override
+	void update(Command cmd) {
+		this.newValue = (cmd as SetColorCommand).newValue;
 	}
 
   @override

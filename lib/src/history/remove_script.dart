@@ -3,10 +3,10 @@ import 'package:three_js/three_js.dart';
 
 class RemoveScriptCommand extends Command {
   Object3D? object;
-  String script;
   int? index;
 
-	RemoveScriptCommand(super.editor, [this.object, this.script = '']) {
+	RemoveScriptCommand(super.editor, [this.object, Map<String,dynamic>? script]) {
+    this.script = script ?? {};
 		this.type = 'RemoveScriptCommand';
 		this.name = editor.strings.getKey( 'command/RemoveScript' );
 

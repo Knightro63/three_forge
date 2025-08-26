@@ -40,7 +40,7 @@ class _IntersectedGuiState extends State<IntersectedGui> {
   final List<bool> expands = [false,false,false,false,false,false,false,false,false,false];
 
   List<Widget> objectGui(){
-    int? id = !threeV.intersected[0].name.contains('terrain')?null:int.tryParse(threeV.intersected[0].name.split('_').last);
+    int? id = threeV.intersected[0].userData['terrain_id'] == null?null:threeV.intersected[0].userData['terrain_id'];
     return[
       Container(
         margin: const EdgeInsets.fromLTRB(5,5,5,5),
@@ -171,13 +171,23 @@ class _IntersectedGuiState extends State<IntersectedGui> {
               child: Row(
                 children: [
                   Icon(!expands[2]?Icons.expand_more:Icons.expand_less, size: 15,),
-                  const Text('\Camera'),
+                  const Text('\tCamera'),
                 ],
               )
             ),
             if(expands[2]) Padding(
               padding: const EdgeInsets.fromLTRB(10,10,5,5),
-              child: CameraGui(threeV: threeV)
+              child: CameraGui(camera: threeV.intersected[0] as three.Camera, update:
+              (String cameraValue){
+                final temp = threeV.camera.userData['helper'];
+                if(cameraValue == 'Perspective'){
+                  threeV.camera = threeV.cameraPersp;
+                }
+                else{
+                  threeV.camera = threeV.cameraOrtho;
+                }
+                threeV.camera.userData['helper'] = temp;
+              },)
             )
           ]
         )

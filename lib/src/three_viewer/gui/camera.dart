@@ -2,28 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:three_forge/src/styles/lsi_functions.dart';
 import 'package:three_forge/src/styles/savedWidgets.dart';
-import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js/three_js.dart' as three;
 import 'package:three_js_helpers/three_js_helpers.dart';
 
 class CameraGui extends StatefulWidget {
-  const CameraGui({Key? key, required this.threeV}):super(key: key);
-  final ThreeViewer threeV;
+  const CameraGui({Key? key, required this.camera, this.update}):super(key: key);
+  final three.Camera camera;
+  final void Function(String)? update;
 
   @override
   _LightGuiState createState() => _LightGuiState();
 }
 
 class _LightGuiState extends State<CameraGui> {
-  late final ThreeViewer threeV;
+  late final three.Camera camera;
   List<DropdownMenuItem<String>> cameraSelector = LSIFunctions.setDropDownItems(['Orthographic', 'Perspective']);
   late String cameraValue;
 
   @override
   void initState() {
     super.initState();
-    threeV = widget.threeV;
-    cameraValue = threeV.camera is three.OrthographicCamera?'Orthographic':'Perspective';
+    camera = widget.camera;
+    cameraValue = camera is three.OrthographicCamera?'Orthographic':'Perspective';
   }
   @override
   void dispose(){
@@ -53,29 +53,17 @@ class _LightGuiState extends State<CameraGui> {
   void updateCameraHelper(three.Camera camera){
     (camera.userData['helper'] as three.Object3D).copy(CameraHelper(camera));
   }
-  void updateCamera(){
-    final temp = threeV.camera.userData['helper'];
-    if(cameraValue == 'Perspective'){
-      threeV.camera = threeV.cameraPersp;
-    }
-    else{
-      threeV.camera = threeV.cameraOrtho;
-    }
-    threeV.camera.userData['helper'] = temp;
-    updateCameraHelper(threeV.camera);
-  }
   
   @override
   Widget build(BuildContext context) {
     controllersReset();
-    three.Camera camera = threeV.intersected[0] as three.Camera;
     const double d = 60;
     double d2 = 60;
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if(camera == threeV.camera)Container(
+        if(widget.update != null)Container(
           margin: const EdgeInsets.fromLTRB(0, 5, 0, 5),
           alignment: Alignment.center,
           height:20,
@@ -95,7 +83,9 @@ class _LightGuiState extends State<CameraGui> {
               style: Theme.of(context).primaryTextTheme.bodySmall,
               onChanged:(value){
                 cameraValue = value;
-                updateCamera();
+                widget.update?.call(cameraValue);
+                updateCameraHelper(camera);
+                setState(() {});
               },
             ),
           ),

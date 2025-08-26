@@ -7,7 +7,7 @@ class SceneCollection extends StatelessWidget{
   
   SceneCollection(this.threeV,this.setState);
 
-  Widget subModel(BuildContext context, child, bool isSub){
+  Widget subModel(BuildContext context, child, bool isSub, bool isMulti){
     return Padding(
       padding: isSub?EdgeInsetsGeometry.only(left: 20):EdgeInsetsGeometry.only(left: 0),
       child: InkWell(
@@ -22,14 +22,21 @@ class SceneCollection extends StatelessWidget{
         },
         child: Container(
           margin: const EdgeInsets.fromLTRB(5, 0, 5, 0),
-          padding: const EdgeInsets.fromLTRB(15, 0, 5, 0),
+          padding: EdgeInsets.fromLTRB((isMulti?0:15), 0, 5, 0),
           height: 25,
           color: threeV.intersected.isNotEmpty && threeV.intersected.contains(child)?Theme.of(context).secondaryHeaderColor:Theme.of(context).canvasColor,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              if(isMulti)InkWell(
+                onTap: (){
+                  child.userData['opened'] = !(child.userData['opened'] ?? false);
+                  setState((){});
+                },
+                child: Icon(Icons.arrow_drop_down_rounded, size: 15),
+              ),
               SizedBox(
-                width: 137,
+                width: 137-(isSub?20:0),
                 child: Text(
                   child.name,
                   overflow: TextOverflow.ellipsis,
@@ -78,11 +85,14 @@ class SceneCollection extends StatelessWidget{
 
     for(final obj in threeV.scene.children){
       final child = obj;
-      widgets.add(subModel(context, child, false));
+      final int? len = (child.userData['attachedObjects'] as Map?)?.length;
+      widgets.add(subModel(context, child, false, len != null));
 
-      // child.traverse((callback){
-      //   widgets.add(subModel(context, callback, true));
-      // });
+      if(child.userData['opened'] == true) (child.userData['attachedObjects'] as Map?)?.forEach((key,list){
+        for(int i = 0; i < list.length; i++){
+          widgets.add(subModel(context, list[i], true, false));
+        }
+      });
     }
 
     return ListView(

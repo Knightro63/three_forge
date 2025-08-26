@@ -92,7 +92,7 @@ class Editor{
     viewportCamera = this.camera;
     history = History( this );
     selector = Selector( this );
-    strings = Strings( this.config );
+    strings = Languages( this.config.getSettingKey('language') );
   }
 
 	final signals = Signals();
@@ -102,11 +102,11 @@ class Editor{
   ..lookAt(Vector3() );
 
   Scene scene = Scene()..name = 'Scene';
-	Config config = new Config();
+	Config config = Config();
 	late History history;
 	late Selector selector;
 	//Storage storage = Storage();
-	late Strings strings;
+	late Languages strings;
 
 	//Loader loader = Loader( this );
 
@@ -492,7 +492,7 @@ class Editor{
 		var camera = await loader.fromMap( json['camera'] );
 
 		final existingUuid = this.camera.uuid;
-		final incomingUuid = camera.uuid;
+		final incomingUuid = camera!.uuid;
 
 		// copy all properties, including uuid
 		this.camera.copy( camera );
@@ -506,7 +506,7 @@ class Editor{
 		this.history.fromJson( json['history'] );
 		this.scripts = json['scripts'];
 
-		this.setScene( await loader.fromMap( json['scene'] ) );
+		this.setScene( (await loader.fromMap( json['scene'] ) as Scene) );
 
 		if ( json['environment'] == 'Room' ||
 			 json['environment'] == 'ModelViewer' /* DEPRECATED */ ) {
@@ -535,12 +535,12 @@ class Editor{
 
 		return {
 			'metadata': {},
-			'project': {
-				'shadows': this.config.getKey( 'project/renderer/shadows' ),
-				'shadowType': this.config.getKey( 'project/renderer/shadowType' ),
-				'toneMapping': this.config.getKey( 'project/renderer/toneMapping' ),
-				'toneMappingExposure': this.config.getKey( 'project/renderer/toneMappingExposure' )
-			},
+			// 'project': {
+			// 	'shadows': this.config.getKey( 'project/renderer/shadows' ),
+			// 	'shadowType': this.config.getKey( 'project/renderer/shadowType' ),
+			// 	'toneMapping': this.config.getKey( 'project/renderer/toneMapping' ),
+			// 	'toneMappingExposure': this.config.getKey( 'project/renderer/toneMappingExposure' )
+			// },
 			'camera': this.viewportCamera.toJson(),
 			'scene': this.scene.toJson(),
 			'scripts': this.scripts,

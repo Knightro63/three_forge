@@ -3,30 +3,31 @@ import 'package:three_js/three_js.dart';
 
 class SetValueCommand extends Command {
   Object3D? object;
-  String attributeName;
   dynamic newValue;
   dynamic oldValue;
 
-	SetValueCommand(super.editor, [this.object, this.attributeName = '', this.newValue]){
-		this.type = 'SetValueCommand';
+	SetValueCommand(super.editor, [this.object, String attributeName = '', this.newValue]){
+		this.attributeName = attributeName;
+    this.type = 'SetValueCommand';
 		this.name = editor.strings.getKey( 'command/SetValue' ) + ': ' + attributeName;
 		this.updatable = true;
 
-		this.oldValue = ( object != null ) ? object[ attributeName ] : null;
+		this.oldValue = ( object != null ) ? object![ attributeName ] : null;
 	}
 
 	void execute() {
-		this.object?[ this.attributeName ] = this.newValue;
+		this.object?[ this.attributeName! ] = this.newValue;
 		this.editor.signals.objectChanged.dispatch( this.object );
 	}
 
 	void undo() {
-		this.object?[ this.attributeName ] = this.oldValue;
+		this.object?[ this.attributeName! ] = this.oldValue;
 		this.editor.signals.objectChanged.dispatch( this.object );
 	}
 
-	void update( cmd ) {
-		this.newValue = cmd.newValue;
+  @override
+	void update(Command cmd) {
+		this.newValue = (cmd as SetValueCommand).newValue;
 	}
 
   @override

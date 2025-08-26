@@ -124,8 +124,8 @@ class Hud extends StatelessWidget{
                 spacer: Text('|'),
                 navData: [
                   NavItems(
-                    name: threeV.controlSpace().toUpperCase(),
-                    icon:  threeV.controlSpace() == ControlSpaceType.local.name?Icons.view_in_ar_outlined:Icons.public,
+                    name: threeV.controlSpace.name.toUpperCase(),
+                    icon:  threeV.controlSpace == ControlSpaceType.local?Icons.view_in_ar_outlined:Icons.public,
                     subItems: [
                       NavItems(
                         name: 'Global',

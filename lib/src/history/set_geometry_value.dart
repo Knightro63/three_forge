@@ -3,26 +3,26 @@ import "package:three_js/three_js.dart";
 
 class SetGeometryValueCommand extends Command {
   Object3D? object;
-  String attributeName;
   int? newValue;
   int? oldValue;
 
-	SetGeometryValueCommand(super.editor, [this.object = null, this.attributeName = '', this.newValue = null ]) {
-		this.type = 'SetGeometryValueCommand';
+	SetGeometryValueCommand(super.editor, [this.object = null, String attributeName = '', this.newValue = null ]) {
+		this.attributeName = attributeName;
+    this.type = 'SetGeometryValueCommand';
 		this.name = editor.strings.getKey( 'command/SetGeometryValue' ) + ': ' + attributeName;
 
-		this.oldValue = ( object != null ) ? object?.geometry?[ attributeName ] : null;
+		this.oldValue = ( object != null ) ? (object?.geometry?[ attributeName ]) : null;
 	}
 
 	void execute() {
-		this.object?.geometry?[ this.attributeName ] = this.newValue;
+		this.object?.geometry?[ this.attributeName! ] = this.newValue;
 		this.editor.signals.objectChanged.dispatch( this.object );
 		this.editor.signals.geometryChanged.dispatch();
 		this.editor.signals.sceneGraphChanged.dispatch();
 	}
 
 	void undo() {
-		this.object?.geometry?[ this.attributeName ] = this.oldValue;
+		this.object?.geometry?[ this.attributeName! ] = this.oldValue;
 		this.editor.signals.objectChanged.dispatch( this.object );
 		this.editor.signals.geometryChanged.dispatch();
 		this.editor.signals.sceneGraphChanged.dispatch();

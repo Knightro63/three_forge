@@ -6,28 +6,29 @@ class SetScriptValueCommand extends Command {
   String? newValue;
   Vector3? optionalOldPosition;
   String? oldValue;
-  String attributeName;
-  String script;
 
-	SetScriptValueCommand(super.editor, [this.object = null, this.script = '', this.attributeName = '', this.newValue = null ]) {
-		this.type = 'SetScriptValueCommand';
+	SetScriptValueCommand(super.editor, [this.object = null, Map<String,dynamic>? script, String attributeName = '', this.newValue = null ]) {
+		this.attributeName = attributeName;
+    this.script = script ?? {};
+    this.type = 'SetScriptValueCommand';
 		this.name = editor.strings.getKey( 'command/SetScriptValue' ) + ': ' + attributeName;
 		this.updatable = true;
-		this.oldValue = ( script != '' ) ? script[ this.attributeName ] : null;
+		this.oldValue = ( script != '' ) ? script![ this.attributeName! ] : null;
 	}
 
 	void execute() {
-		this.script[ this.attributeName ] = this.newValue;
+		this.script![this.attributeName!] = this.newValue;
 		this.editor.signals.scriptChanged.dispatch( this.script );
 	}
 
 	void undo() {
-		this.script[ this.attributeName ] = this.oldValue;
+		this.script![this.attributeName!] = this.oldValue;
 		this.editor.signals.scriptChanged.dispatch( this.script );
 	}
 
-	void update( cmd ) {
-		this.newValue = cmd.newValue;
+  @override
+	void update(Command cmd) {
+		this.newValue = (cmd as SetScriptValueCommand).newValue;
 	}
 
   @override

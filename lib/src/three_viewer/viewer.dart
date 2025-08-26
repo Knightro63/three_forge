@@ -30,6 +30,8 @@ enum GridAxis{XZ,YZ,XY}
 
 class GridInfo{
   GridInfo();
+  
+  final three.Mesh rollOverMesh = three.Mesh( three.BoxGeometry( 50, 50, 50 ), three.MeshBasicMaterial.fromMap( { 'color': 0xff0000, 'opacity': 0.5, 'transparent': true } ) );
   late TransformControls control;
   int divisions = 500;
   double size = 500;
@@ -75,8 +77,35 @@ class GridInfo{
       control.setTranslationSnap(snap);
     }
   }
-
+  void setGridRotation(GridAxis axis){
+    axis = axis;
+    showAxis(axis);
+    if(axis == GridAxis.XY){
+      rotation.set(math.pi / 2,0,0);
+      rollOverMesh.rotation.set(math.pi / 2,0,0);
+    }
+    else if(axis == GridAxis.XZ){
+      rotation.set(0,0,0);
+      rollOverMesh.rotation.set(0,0,0);
+    }
+    if(axis == GridAxis.YZ){
+      rotation.set(0,0,math.pi / 2);
+      rollOverMesh.rotation.set(0,0,math.pi / 2);
+    }
+  }
   three.Euler get rotation => grid.rotation;
+
+  Map<String,dynamic> toJson(){
+    return {
+      'divisions': divisions,
+      'size': size,
+      'color': color,
+      'x': x,
+      'y': y,
+      'snap': snap,
+      'axis': axis.index,
+    };
+  }
 }
 class EditInfo{
   bool active = false;
@@ -101,6 +130,7 @@ class ThreeViewer {
   late final Thumbnail thumbnail;
 
   ControlSpaceType _controlSpace = ControlSpaceType.global;
+  ControlSpaceType get controlSpace => _controlSpace;
   late final InsertModels modelInsert;
 
   three.Raycaster raycaster = three.Raycaster();
@@ -129,6 +159,7 @@ class ThreeViewer {
   bool sceneSelected = false;
   bool showCameraView = false;
   bool boxSelection = false;
+  bool voxelPaint = false;
   bool addPhysics = false;
 
   GlobalKey<three.PeripheralsState> get listenableKey => threeJs.globalKey;
@@ -146,6 +177,7 @@ class ThreeViewer {
   late final three.Camera thumbnailCamera;
   late final Sky sky;
   final List<Terrain> terrains = [];
+  three.Object3D? voxelPainter;
 
   late final selectionBox = SelectionBox(threeJs.camera, threeJs.scene);
   final List<RightClickOptions> rcOptions = [RightClickOptions.reset_camera,RightClickOptions.game_view];
@@ -322,7 +354,13 @@ class ThreeViewer {
       }
     });
     threeJs.domElement.addEventListener(three.PeripheralType.pointerdown, (details){
-      if(details.button == 2){
+      if(voxelPaint){
+        final voxel = voxelPainter?.clone();
+        voxel?.position.setFrom( intersect.point! ).add( intersect.face!.normal );
+        voxel?.position.divideScalar( 50 ).floor().scale( 50 ).addScalar( 25 );
+        intersected[0].add(voxel);
+      }
+      else if(details.button == 2){
         if(rightClick.isMenuOpen){
           final showOptions = rcOptions+
           (copy != null && copy!.isNotEmpty?[RightClickOptions.paste]:[])+
@@ -370,7 +408,17 @@ class ThreeViewer {
     });
     threeJs.domElement.addEventListener(three.PeripheralType.pointermove, (details){
       mousePosition = three.Vector2(details.clientX, details.clientY);
-      if (boxSelection) {
+      if(voxelPaint){
+        final intersects = raycaster.intersectObjects(intersected[0].children, false );
+
+        if ( intersects.isNotEmpty ) {
+          final intersect = intersects[ 0 ];
+
+          gridInfo.rollOverMesh.position.setFrom( intersect.point! ).add( intersect.face!.normal );
+          gridInfo.rollOverMesh.position.divideScalar( gridInfo.divisions).floor().scale( gridInfo.divisions ).addScalar( gridInfo.size );
+        }
+      }
+      else if (boxSelection) {
         if(intersected.isNotEmpty){
           boxSelect(false);
           intersected.clear();
@@ -721,9 +769,7 @@ class ThreeViewer {
     }
   }
   
-  String controlSpace(){
-    return _controlSpace.name;
-  }
+
   void setControlSpace(ControlSpaceType space){
     _controlSpace = space;
     control.space = space == ControlSpaceType.global?'world':'local';
@@ -810,19 +856,8 @@ class ThreeViewer {
     }
   }
 
-  void setGridRotation(GridAxis axis){
-    gridInfo.axis = axis;
-    gridInfo.showAxis(axis);
-    if(axis == GridAxis.XY){
-      gridInfo.rotation.set(math.pi / 2,0,0);
-    }
-    else if(axis == GridAxis.XZ){
-      gridInfo.rotation.set(0,0,0);
-    }
-    if(axis == GridAxis.YZ){
-      gridInfo.rotation.set(0,0,math.pi / 2);
-    }
-  }
+  void setGridRotation(GridAxis axis) => gridInfo.setGridRotation(axis);
+  
 
   three.Vector2 convertPosition(three.Vector2 location){
     final RenderBox renderBox = listenableKey.currentContext!.findRenderObject() as RenderBox;

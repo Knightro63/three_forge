@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:three_forge/src/styles/savedWidgets.dart';
 import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js/three_js.dart' as three;
-import 'package:three_js_helpers/three_js_helpers.dart';
 
 class AnimationGui extends StatefulWidget {
   const AnimationGui({Key? key, required this.threeV}):super(key: key);
@@ -38,81 +37,57 @@ class _AnimationGuiState extends State<AnimationGui> {
     final loader = three.FBXLoader();
     final bvh = await loader.fromPath(path);
 
-    final retargetOptions = SkeletonUtilsOptions(
-      hip: 'mixamorigHips',
-      scale: 0.1,
-      getBoneName: ( bone ) {
-        return 'mixamorig' + bone.name;
-      }
-    );
-    three.Object3D? sk;
-    target.traverse((callback){
-      if(callback.skeleton?.bones != null){
-        sk = callback;
-      }
-    });
-
-    three.Object3D? skfbx;
-    bvh!.traverse((callback){
-      if(callback.skeleton?.bones != null){
-        skfbx = callback;
-      }
-    });
-
-    final three.AnimationClip retargetedClip = SkeletonUtils.retargetClip(
-      target.children[0], 
-      skfbx,
-      bvh.animations[0],
-      retargetOptions
-    );
-
     String name = path.split('/').last.split('.').first;
     if(target.userData['mixer'] == null){
       ifNull(target);
     }
-    target.userData['actionMap'][name] = target.userData['mixer'].clipAction(retargetedClip)!;
+    if(target.userData['importedActions'] == null){
+      target.userData['importedActions'] = <String,dynamic>{};
+    }
+    target.userData['importedActions'][bvh!.uuid] = path;
+    target.userData['actionMap'][name] = (target.userData['mixer'] as three.AnimationMixer).clipAction(bvh.animations[0])!;
     target.userData['actionMap'][name]!.enabled = true;
     target.userData['actionMap'][name]!.setEffectiveTimeScale( 1.0 );
-    target.userData['actionMap'][name]!.setEffectiveWeight( 1.0 );
+    target.userData['actionMap'][name]!.setEffectiveWeight( 0.0 );
     target.userData['actionMap'][name]!.play();
 
     setState(() {});
   }
-  Future<void> addBVH(three.Object3D target, String path) async{
-    final loader = three.BVHLoader();
-    final bvh = await loader.fromPath(path);
+  // Future<void> addBVH(three.Object3D target, String path) async{
+  //   final loader = three.BVHLoader();
+  //   final bvh = await loader.fromPath(path);
 
-    final retargetOptions = SkeletonUtilsOptions(
-      hip: 'hip',
-      scale: 0.01,
-      getBoneName: ( bone ) {
-        return 'mixamorig' + bone.name;
-      }
-    );
-    three.Object3D? sk;
-    target.traverse((callback){
-      if(callback.skeleton?.bones != null){
-        sk = callback;
-      }
-    });
+  //   final retargetOptions = SkeletonUtilsOptions(
+  //     hip: 'hip',
+  //     scale: 0.01,
+  //     getBoneName: ( bone ) {
+  //       return 'mixamorig' + bone.name;
+  //     }
+  //   );
+  //   three.Object3D? sk;
+  //   target.traverse((callback){
+  //     if(callback.skeleton?.bones != null){
+  //       sk = callback;
+  //     }
+  //   });
 
-    final three.AnimationClip retargetedClip = SkeletonUtils.retargetClip(
-      sk!, 
-      bvh!.skeleton!, 
-      bvh.clip!,
-      retargetOptions
-    );
+  //   final three.AnimationClip retargetedClip = SkeletonUtils.retargetClip(
+  //     sk!, 
+  //     bvh!.skeleton!, 
+  //     bvh.clip!,
+  //     retargetOptions
+  //   );
 
-    String name = path.split('/').last.split('.').first;
+  //   String name = path.split('/').last.split('.').first;
 
-    target.userData['actionMap'][name] = target.userData['mixer'].clipAction(retargetedClip)!;
-    target.userData['actionMap'][name]!.enabled = true;
-    target.userData['actionMap'][name]!.setEffectiveTimeScale( 1.0 );
-    target.userData['actionMap'][name]!.setEffectiveWeight( 1.0 );
-    target.userData['actionMap'][name]!.play();
+  //   target.userData['actionMap'][name] = target.userData['mixer'].clipAction(retargetedClip)!;
+  //   target.userData['actionMap'][name]!.enabled = true;
+  //   target.userData['actionMap'][name]!.setEffectiveTimeScale( 1.0 );
+  //   target.userData['actionMap'][name]!.setEffectiveWeight( 1.0 );
+  //   target.userData['actionMap'][name]!.play();
 
-    setState(() {});
-  }
+  //   setState(() {});
+  // }
 
   Widget animations(Map<String,dynamic> actionMap, String currentAction){
     List<Widget> widgets = [];

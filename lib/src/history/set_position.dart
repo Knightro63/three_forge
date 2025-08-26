@@ -34,8 +34,9 @@ class SetPositionCommand extends Command {
 		this.editor.signals.objectChanged.dispatch( this.object );
 	}
 
-	void update( command ) {
-		this.newPosition?.setFrom( command.newPosition );
+  @override
+	void update(Command cmd) {
+		if(cmd is SetPositionCommand && cmd.newPosition != null) this.newPosition?.setFrom( cmd.newPosition! );
 	}
 
   @override

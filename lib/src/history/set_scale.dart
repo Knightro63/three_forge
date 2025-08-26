@@ -34,8 +34,9 @@ class SetScaleCommand extends Command {
 		this.editor.signals.objectChanged.dispatch( this.object );
 	}
 
-	void update( command ) {
-		this.newScale?.setFrom( command.newScale );
+  @override
+	void update(Command cmd) {
+		if(cmd is SetScaleCommand && cmd.newScale != null) this.newScale?.setFrom( cmd.newScale! );
 	}
 
   @override

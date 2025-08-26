@@ -180,7 +180,8 @@ class Terrain{
       terrainScene!.scale.setFrom(scale);
       terrainScene!.position.setFrom(position);
       terrainScene!.rotation.copy(rotation);
-      terrainScene!.name = 'terrain_$id';
+      terrainScene!.name = 'Terrain_$id';
+      terrainScene!.userData['terrain_id'] = id;
 
       scene.add(terrainScene);
 

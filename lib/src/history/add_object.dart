@@ -8,11 +8,6 @@ import 'commands.dart';
 class AddObjectCommand extends Command {
   Object3D? object;
 
-	/**
-	 * @param {Editor} editor
-	 * @param {THREE.Object3D|null} [object=null]
-	 * @constructor
-	 */
 	AddObjectCommand(Editor editor, [this.object]):super(editor) {
 		this.type = 'AddObjectCommand';
 

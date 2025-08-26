@@ -19,12 +19,12 @@ class SetMaterialCommand extends Command {
 
 	void execute() {
 		this.editor.setObjectMaterial( this.object!, this.materialSlot, this.newMaterial );
-		this.editor.signals.materialChanged.dispatch( this.object, this.materialSlot );
+		this.editor.signals.materialChanged.dispatch( [this.object, this.materialSlot] );
 	}
 
 	void undo() {
 		this.editor.setObjectMaterial( this.object!, this.materialSlot, this.oldMaterial );
-		this.editor.signals.materialChanged.dispatch( this.object, this.materialSlot );
+		this.editor.signals.materialChanged.dispatch( [this.object, this.materialSlot] );
 	}
 
   @override
@@ -40,20 +40,20 @@ class SetMaterialCommand extends Command {
 	}
 
   @override
-	void fromJson(Map<String,dynamic> json ) {
+	void fromJson(Map<String,dynamic> json ) async{
 		super.fromJson( json );
 
-    parseMaterial(Map<String,dynamic> json ) {
+    parseMaterial(Map<String,dynamic> json ) async{
 			final loader = new ObjectLoader();
-			final images = loader.parseImages( json['images'] );
+			final images = await loader.parseImages( json['images'] );
 			final textures = loader.parseTextures( json['textures'], images );
 			final materials = loader.parseMaterials( [ json ], textures );
 			return materials[ json['uuid'] ];
 		}
 
 		this.object = this.editor.objectByUuid( json['objectUuid'] );
-		this.oldMaterial = parseMaterial( json['oldMaterial'] );
-		this.newMaterial = parseMaterial( json['newMaterial'] );
+		this.oldMaterial = await parseMaterial( json['oldMaterial'] );
+		this.newMaterial = await parseMaterial( json['newMaterial'] );
 		this.materialSlot = json['materialSlot'];
 	}
 }

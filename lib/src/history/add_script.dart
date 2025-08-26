@@ -4,9 +4,10 @@ import 'package:three_js/three_js.dart';
 class AddScriptCommand extends Command {
   String type = 'AddScriptCommand';
   Object3D? object;
-  String script;
 
-	AddScriptCommand(Editor editor, [this.object, this.script = '' ]):super(editor);
+	AddScriptCommand(super.editor, [this.object, Map<String,dynamic>? script]){
+    this.script = script ?? {};
+  }
 
 	void execute() {
 		if ( this.editor.scripts[ this.object?.uuid ] == null ) {
@@ -22,7 +23,7 @@ class AddScriptCommand extends Command {
 		final index = this.editor.scripts[ this.object?.uuid ].indexOf( this.script );
 
 		if ( index != - 1 ) {
-			this.editor.scripts[ this.object?.uuid ].splice( index, 1 );
+			this.editor.scripts[ this.object?.uuid ].removeAt(index);//.splice( index, 1 );
 		}
 
 		this.editor.signals.scriptRemoved.dispatch( this.script );

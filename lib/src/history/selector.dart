@@ -13,13 +13,13 @@ class Selector {
 
 		// signals
 
-		signals.intersectionsDetected.add(( intersects ){
+		signals.intersectionsDetected.add((List<Intersection> intersects ){
 			if ( intersects.length > 0 ) {
 				final object = intersects[ 0 ].object;
 
-				if ( object.userData.object != null ) {
+				if ( object?.userData['object'] != null ) {
 					// helper
-					this.select( object.userData.object );
+					this.select( object?.userData['object'] );
 				} else {
 					this.select( object );
 				}
@@ -60,7 +60,7 @@ class Selector {
 		}
 
 		this.editor.selected = object;
-		this.editor.config.setKey(['selected', uuid!]);
+		this.editor.config.setKey({'selected': uuid!});
 
 		this.signals.objectSelected.dispatch( object );
 	}

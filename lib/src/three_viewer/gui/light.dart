@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:three_forge/src/styles/savedWidgets.dart';
+import 'package:three_forge/src/three_viewer/gui/camera.dart';
+import 'package:three_forge/src/three_viewer/gui/shadow_light.dart';
 import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js/three_js.dart' as three;
 // import 'package:three_js_helpers/three_js_helpers.dart';
@@ -258,7 +260,25 @@ class _LightGuiState extends State<LightGui> {
               controller: lightsControllers[8],
             )
           ],
-        )
+        ),
+        if(light.shadow?.camera != null)InkWell(
+          onTap: (){
+            light.castShadow = !light.castShadow;
+            setState(() {});
+          },
+          child: Row(
+            //mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Cast\t\t\t'),
+              SavedWidgets.checkBox(light.castShadow)
+            ]
+          )
+        ),
+        if(light.castShadow && light.shadow?.camera != null) const SizedBox(height: 10,),
+        if(light.castShadow && light.shadow?.camera != null) const Text('Camera'),
+        if(light.castShadow && light.shadow?.camera != null) const SizedBox(height: 10,),
+        if(light.castShadow && light.shadow?.camera != null) CameraGui(camera: light.shadow!.camera!),
+        if(light.castShadow && light.shadow?.camera != null) ShadowLightGui(lightShadow: light.shadow!)
       ],
     );
   }

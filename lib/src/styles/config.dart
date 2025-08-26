@@ -53,7 +53,14 @@ class Config{
     await prefs.setString(name,jsonEncode( storage ));
     console.info( '[${DateTime.now()}]: Saved config to LocalStorage.' );
   }
+  Future<void> setKey(Map<String,dynamic> arguments) async{
+    for (final key in arguments.keys ) {
+      storage[ key] = arguments[ key ];
+    }
 
+    await prefs.setString(name,jsonEncode( storage ));
+    console.info( '[${DateTime.now()}]: Saved config to LocalStorage.' );
+  }
   Future<void> setProject(Map<String,dynamic> project) async{
     storage['projects'].add(project);
     await prefs.setString(name,jsonEncode( storage ));

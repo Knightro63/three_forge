@@ -2,30 +2,31 @@ import 'package:three_forge/src/history/commands.dart';
 import 'package:three_js/three_js.dart';
 
 class SetShadowValueCommand extends Command {
-  Light? object;
-  String attributeName = '';
   dynamic newValue;
   dynamic oldValue;
 
-	SetShadowValueCommand(super.editor, [this.object = null, attributeName = '', newValue = null ]) {
-		this.type = 'SetShadowValueCommand';
+	SetShadowValueCommand(super.editor, [Light? object, String attributeName = '', newValue = null ]) {
+		this.object = object;
+    this.attributeName = attributeName;
+    this.type = 'SetShadowValueCommand';
 		this.name = editor.strings.getKey( 'command/SetShadowValue' ) + ': ' + attributeName;
 		this.updatable = true;
-		this.oldValue = ( object != null ) ? object?.shadow[ attributeName ] : null;
+		this.oldValue = ( object != null ) ? object.shadow![ attributeName ] : null;
 	}
 
 	void execute() {
-		this.object?.shadow[ this.attributeName ] = this.newValue;
+		(this.object as Light).shadow?[ this.attributeName! ] = this.newValue;
 		this.editor.signals.objectChanged.dispatch( this.object );
 	}
 
 	void undo() {
-		this.object?.shadow[ this.attributeName ] = this.oldValue;
+		(this.object as Light).shadow?[ this.attributeName! ] = this.oldValue;
 		this.editor.signals.objectChanged.dispatch( this.object );
 	}
 
-	void update( cmd ) {
-		this.newValue = cmd.newValue;
+  @override
+	void update(Command cmd) {
+		this.newValue = (cmd as SetShadowValueCommand).newValue;
 	}
 
   @override

@@ -34,8 +34,9 @@ class SetRotationCommand extends Command {
 		this.editor.signals.objectChanged.dispatch( this.object );
 	}
 
-	void update( command ) {
-		this.newRotation?.copy( command.newRotation );
+  @override
+	void update(Command cmd) {
+		if(cmd is SetRotationCommand && cmd.newRotation != null) this.newRotation?.copy( cmd.newRotation! );
 	}
 
   @override

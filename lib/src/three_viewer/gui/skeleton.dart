@@ -32,7 +32,7 @@ class _SkeletonGuiState extends State<SkeletonGui> {
         boneSelector.add(DropdownMenuItem(
             value: bone,
             child: Text(
-              bone.name, 
+              bone.name.replaceAll('mixamorig', ''), 
               overflow: TextOverflow.ellipsis,
             )
         ));
@@ -87,7 +87,7 @@ class _SkeletonGuiState extends State<SkeletonGui> {
               color: Theme.of(context).canvasColor
             ),
             child: Text(
-              bone.name,
+              bone.name.replaceAll('mixamorig', ''),
               style: Theme.of(context).primaryTextTheme.bodySmall,
             )
           )
@@ -100,10 +100,67 @@ class _SkeletonGuiState extends State<SkeletonGui> {
     );
   }
 
+  Widget childList(three.Object3D? bone){
+    if(bone == null) return Container(); 
+    List<Widget> widgets = [];
+    List<String> names = [];
+
+    Widget childBone(String name, bool useWidth){
+      return Container(
+        margin: EdgeInsets.all(5),
+        height: 25,
+        width: !useWidth?null:MediaQuery.of(context).size.width*0.2-85,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(5),
+          color: Theme.of(context).canvasColor
+        ),
+        child: Text(
+          name.replaceAll('mixamorig', ''),
+          style: Theme.of(context).primaryTextTheme.bodySmall,
+        )
+      );
+    }
+
+    for(final child in bone.children){
+      if(!names.contains(child.name)){
+        names.add(child.name);
+        widgets.add(
+          (threeV.intersected[0].userData['attachedObjects'] as Map<String,dynamic>?)?[bone.uuid]?.contains(child) == true?Row(
+            children: [
+              childBone(child.name,true),
+              InkWell(
+                onTap: (){
+                  (threeV.intersected[0].userData['attachedObjects']?[bone.uuid] as List).remove(child);
+                  bone.remove(child);
+                  threeV.scene.add(child);
+                  selectedObject?.userData['scale'] = selectedObject?.scale.clone();
+                  child.scale = child.userData['scale'];
+                  setState(() {});
+                },
+                child: Container(
+                  width: 25,
+                  height: 25,
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).canvasColor,
+                    borderRadius: BorderRadius.circular(10)
+                  ),
+                  child: Icon(Icons.delete,size: 15,),
+                ),
+              )
+            ],
+          ):childBone(child.name,false)
+        );
+      }
+    }
+
+    return Column(
+      children: widgets,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    
-
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -140,7 +197,8 @@ class _SkeletonGuiState extends State<SkeletonGui> {
         SizedBox(height: 20,),
         const Text('Attached Object: '),
         SizedBox(height: 5,),
-        if(selectedBone.children.isEmpty)Container(
+        childList(selectedBone),
+        Container(
           margin: const EdgeInsets.fromLTRB(0, 5, 0, 5),
           alignment: Alignment.center,
           height:20,
@@ -160,14 +218,18 @@ class _SkeletonGuiState extends State<SkeletonGui> {
               style: Theme.of(context).primaryTextTheme.bodySmall,
               onChanged:(value){
                 selectedObject = value;
-                print(selectedObject);
-                if(selectedObject != null){
+                if(selectedObject != !selectedBone.children.contains(selectedObject)){
                   selectedBone.add(selectedObject);
+                  selectedObject?.userData['scale'] = selectedObject?.scale.clone();
+                  selectedObject?.scale.scale(1/threeV.intersected[0].scale.x);
+
+                  if(threeV.intersected[0].userData['attachedObjects']?[selectedBone.uuid] == null){
+                    threeV.intersected[0].userData['attachedObjects'] = <String,List<three.Object3D?>>{};
+                    threeV.intersected[0].userData['attachedObjects'][selectedBone.uuid] = <three.Object3D?>[];
+                  }
+                  threeV.intersected[0].userData['attachedObjects'][selectedBone.uuid].add(selectedObject);
+                  setState(() {});
                 }
-                else{
-                  selectedBone.clear();
-                }
-                setState(() {});
               },
             ),
           ),

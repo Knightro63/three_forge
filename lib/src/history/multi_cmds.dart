@@ -51,11 +51,12 @@ class MultiCmdsCommand extends Command {
 
   @override
 	void fromJson(Map<String,dynamic> json ) {
-		final cmds = json['cmds'];
-		for (int i = 0; i < cmds.length; i ++ ) {
-			const cmd = new window[ cmds[ i ].type ]();	// creates a new object of type "json.type"
-			cmd.fromJson( cmds[ i ] );
-			this.cmdArray.add( cmd );
+		final cmds = json['cmds'] as List<Map<String,dynamic>>?;
+
+		for (int i = 0; i < (cmds?.length ?? 0); i ++ ) {
+			final cmd = Command.createCommand(cmds![ i ]['type'], editor);//window[ cmds[ i ].type ]();	// creates a new object of type "json.type"
+			cmd?.fromJson( cmds[i] );
+			this.cmdArray.add( cmd! );
 		}
 	}
 }

@@ -1,11 +1,9 @@
-import "dart:convert";
-
 import "package:three_forge/src/history/commands.dart";
 import "package:three_js/three_js.dart";
 
 class SetSceneCommand extends Command {
   Scene? scene;
-  List cmdArray = [];
+  List<Command> cmdArray = [];
 
 	SetSceneCommand(super.editor, [this.scene = null ]) {
 		this.type = 'SetSceneCommand';
@@ -63,12 +61,12 @@ class SetSceneCommand extends Command {
 	void fromJson(Map<String,dynamic> json ) {
 		super.fromJson( json );
 
-		final cmds = json['cmds'];
+		final cmds = json['cmds'] as List<Map<String,dynamic>?>?;
 
-		for (int i = 0; i < cmds.length; i ++ ) {
-			const cmd = new window[ cmds[ i ].type ]();	// creates a new object of type "json.type"
-			cmd.fromJson( cmds[ i ] );
-			this.cmdArray.add( cmd );
+		for (int i = 0; i < (cmds?.length ?? 0); i ++ ) {
+			final cmd = Command.createCommand(cmds![ i ]!['type'], editor);//window[ cmds[ i ].type ]();	// creates a new object of type "json.type"
+			cmd?.fromJson( cmds[i]! );
+			if(cmd != null) this.cmdArray.add( cmd );
 		}
 	}
 }
