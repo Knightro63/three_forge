@@ -1,16 +1,9 @@
 import 'dart:io';
 import 'dart:math' as math;
-import 'package:three_forge/src/objects/create_models.dart';
-import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js/three_js.dart' as three;
-import 'package:three_js_helpers/three_js_helpers.dart';
 
-class InsertModels {
-  ThreeViewer threeV;
-
-  InsertModels(this.threeV);
-
-  Future<void> insert(String path)async{
+class CreateModels {
+  static Future<three.Object3D?> create(String path)async{
     String name = path.split('/').last;
     String fileType = name.split('.').last;
 
@@ -35,68 +28,83 @@ class InsertModels {
     }
 
     if(fileType == 'obj'){
-      final mat = await CreateModels.mtl('${path.replaceAll('.obj', '.mtl')}', '${name.replaceAll('.obj', '.mtl')}');
-      await obj(path,name,false,mat);
+      final mat = await mtl('${path.replaceAll('.obj', '.mtl')}', '${name.replaceAll('.obj', '.mtl')}');
+      return await obj(path,name,mat);
     }
     else if(fileType == 'stl'){
-      await stl(path,name,false);
+      return await stl(path,name);
     }
     else if(fileType == 'ply'){
-      await ply(path,name,false);
+      return await ply(path,name);
     }
     else if(fileType == 'gltf' || fileType == 'glb'){
-      await gltf(path,name,false);
+      return await gltf(path,name);
     }
     else if(fileType == 'fbx'){
-      await fbx(path,name,false);
+      return await fbx(path,name);
     }
     else if(fileType == 'vox'){
-      await vox(path,name,false);
+      return await vox(path,name);
     }
     else if(fileType == 'xyz'){
-      await xyz(path,name,false);
+      return await xyz(path,name);
     }
     else if(fileType == 'collada'){
-      await collada(path,name,false);
+      return await collada(path,name);
     }
     else if(fileType == 'usdz'){
-      await usdz(path,name,false);
+      return await usdz(path,name);
     }
     else if(path.contains('.jpg') || path.contains('.png') || path.contains('.jpeg') || path.contains('.tiff') || path.contains('.bmp')){
-      await image(path, name);
+      return await image(path, name);
     }
+
+    return null;
   }
 
-  Future<void> vox(String path, String name, [bool crerateThumbnial = true]) async{
-    final object = await CreateModels.vox(path, name);
-    BoundingBoxHelper h = BoundingBoxHelper(object.boundingBox)..visible = false;
-    if(crerateThumbnial) await threeV.crerateThumbnial(object);
-    threeV.add(object,h);
+  static Future<three.Object3D> vox(String path, String name) async{
+    final chunks = await three.VOXLoader().fromPath(path);
+    final object = three.Group();
+    for (int i = 0; i < chunks!.length; i ++ ) {
+      final chunk = chunks[ i ];
+      final mesh = three.VOXMesh( chunk );
+      mesh.scale.setScalar( 0.015 );
+      object.add( mesh );
+    }
+    final three.BoundingBox box = three.BoundingBox();
+    box.setFromObject(object);
+    object.name = name.split('.').first;
+
+    return object..userData['path'] = path..boundingBox = box;
   }
   
-  Future<void> xyz(String path, String name, [bool crerateThumbnial = true]) async{
-    final object = await CreateModels.xyz(path, name);
-    BoundingBoxHelper h = BoundingBoxHelper(object.boundingBox)..visible = false;
-    if(crerateThumbnial) await threeV.crerateThumbnial(object);
-    threeV.add(object,h);
+  static Future<three.Object3D> xyz(String path, String name) async{
+    final mesh = await three.XYZLoader().fromPath(path);
+    final object = three.Mesh(mesh,three.MeshStandardMaterial.fromMap({'side': three.DoubleSide}));
+    final three.BoundingBox box = three.BoundingBox();
+    box.setFromObject(object);
+    object.name = name.split('.').first;
+    return object..userData['path'] = path..boundingBox = box;
   }
 
-  Future<void> collada(String path, String name, [bool crerateThumbnial = true]) async{
-    final object = await CreateModels.collada(path, name);
-    BoundingBoxHelper h = BoundingBoxHelper(object.boundingBox)..visible = false;
-    if(crerateThumbnial) await threeV.crerateThumbnial(object);
-    threeV.add(object,h);
+  static Future<three.Object3D> collada(String path, String name) async{
+    final mesh = await three.ColladaLoader().fromPath(path);
+    final object = mesh!.scene!;
+    final three.BoundingBox box = three.BoundingBox();
+    box.setFromObject(object);
+    object.name = name.split('.').first;
+    return object..userData['path'] = path..boundingBox = box;
   }
 
-  Future<void> usdz(String path, String name, [bool crerateThumbnial = true]) async{
-    final object = await CreateModels.usdz(path, name);
-    BoundingBoxHelper h = BoundingBoxHelper(object.boundingBox)..visible = false;
-    if(crerateThumbnial) await threeV.crerateThumbnial(object);
-    threeV.add(object,h);
+  static Future<three.Object3D> usdz(String path, String name) async{
+    final object =  (await three.USDZLoader().fromPath(path))!;
+    final three.BoundingBox box = three.BoundingBox();
+    box.setFromObject(object);
+    object.scale = three.Vector3(0.01,0.01,0.01);
+    return object..userData['path'] = path..name = name.split('.').first..boundingBox = box;
   }
 
-  Future<void> fbx(String path, String name, [bool crerateThumbnial = true, bool moveFiles = false]) async{
-    final List<String> paths = [];
+  static Future<three.Object3D> fbx(String path, String name) async{
     final three.LoadingManager manager = three.LoadingManager();
     final loader = three.FBXLoader(manager:manager, width: 1,height: 1);
 
@@ -117,15 +125,14 @@ class InsertModels {
     }
     manager.urlModifier = (d){
       String changedPath = d.split('.').first+'.tga';
-      paths.add('$resourcePath/$changedPath');
       return changedPath;
     };
+
     final object = await loader.fromPath(path);
+
     object!.geometry?.computeBoundingBox();
     final three.BoundingBox box = three.BoundingBox();
     box.setFromObject(object);
-    BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
-    final skeleton = SkeletonHelper(object)..visible = false;
 
     //scale to normal size
     final temp = three.Vector3().sub2(box.max,box.min);
@@ -153,10 +160,6 @@ class InsertModels {
 
       final mixer = three.AnimationMixer(object);
       object.userData['mixer'] = mixer;
-      threeV.threeJs.addAnimationEvent((dt){
-        mixer.update(dt);
-      });
-      object.userData['animationEvent'] = threeV.threeJs.events.last;
 
       for(int a = 0; a < object.animations.length;a++){
         String actionName = object.animations[a].name;
@@ -173,29 +176,18 @@ class InsertModels {
           weight = 1;
         }
         _actionMap[act]!.setEffectiveWeight( weight );
-        _actionMap[act]!.play();
         i++;
       }
     }
 
-    if(crerateThumbnial) await threeV.crerateThumbnial(object);
-    object.userData['skeleton'] = skeleton;
-    threeV.add(object,h);
-    threeV.threeJs.scene.add(skeleton);
     object.userData['path'] = path;
+    object.boundingBox = box;
 
-   if(moveFiles && paths.isNotEmpty){
-      await threeV.moveTextures(paths);
-    }
+    return object;
   }
 
-  Future<bool> gltf(String path, String name, [bool crerateThumbnial = true, bool moveFiles = false]) async{
-    final List<String> paths = [path];
+  static Future<three.Object3D> gltf(String path, String name) async{
     final three.LoadingManager manager = three.LoadingManager();
-    manager.urlModifier = (d){
-      paths.add(d);
-      return d;
-    };
     final loader = three.GLTFLoader(manager: manager);
     final String setPath = path.replaceAll(path.split('/').last, '');
     loader.setPath(setPath);
@@ -218,9 +210,6 @@ class InsertModels {
       }
     });
 
-    final skeleton = SkeletonHelper(gltf);
-    skeleton.visible = false;
-    BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
     gltf.name = name.split('.').first;
 
     if(object.animations!.isNotEmpty){
@@ -230,10 +219,6 @@ class InsertModels {
       
       final mixer = three.AnimationMixer(gltf);
       gltf.userData['mixer'] = mixer;
-      threeV.threeJs.addAnimationEvent((dt){
-        mixer.update(dt);
-      });
-      gltf.userData['animationEvent'] = threeV.threeJs.events.last;
 
       for(int a = 0; a < object.animations!.length;a++){
         String actionName = (object.animations![a] as three.AnimationClip).name;
@@ -255,44 +240,74 @@ class InsertModels {
       }
     }
 
-    if(crerateThumbnial) await threeV.crerateThumbnial(gltf, box);
-    gltf.userData['skeleton'] = skeleton;
-    threeV.add(gltf,h);
-    threeV.threeJs.scene.add(skeleton);
-    object.userData?['path'] = path;
+    gltf.userData['path'] = path;
+    gltf.boundingBox = box;
 
-    if(moveFiles && paths.length > 1){
-      await threeV.moveFiles(name,paths);
-      return true;
+    return gltf;
+  }
+
+  static Future<three.Object3D> ply(String path, String name) async{
+    final buffer = await three.PLYLoader().fromPath(path);
+    final object = three.Mesh(buffer,three.MeshStandardMaterial());
+    final three.BoundingBox box = three.BoundingBox();
+    box.setFromObject(object);
+    object.scale = three.Vector3(0.001,0.001,0.001);
+    object.name = name.split('.').first;
+    return object..userData['path'] = path..boundingBox = box;
+  }
+
+  static Future<three.Object3D> stl(String path, String name) async{
+    final object = (await three.STLLoader().fromPath(path))!;
+    final three.BoundingBox box = three.BoundingBox();
+    box.setFromObject(object);
+    object.name = name.split('.').first;
+    return object..userData['path'] = path..boundingBox = box;
+  }
+
+  static Future<three.Object3D> obj(String path, String name, [three.MaterialCreator? materials]) async{
+    final three.LoadingManager manager = three.LoadingManager();
+    final loader = three.OBJLoader(manager);
+    loader.setMaterials(materials);
+    final object = await loader.fromPath(path);
+    final three.BoundingBox box = three.BoundingBox();
+    box.setFromObject(object!);
+    object.scale = three.Vector3(0.01,0.01,0.01);
+    object.name = name.split('.').first;
+    return object..userData['path'] = path..boundingBox = box;
+  }
+
+  static Future<three.MaterialCreator?> mtl(String path, String name) async{
+    try{
+      three.MaterialCreator? materials;
+      final manager = three.LoadingManager();
+      final mtlLoader = three.MTLLoader(manager);
+      final last = path.split('/').last;
+      mtlLoader.setPath(path.replaceAll(last,''));
+      materials = await mtlLoader.fromPath(last);
+      await materials?.preload();
+
+      return materials;
+    }catch(e){
+      return null;
     }
+  }
+
+  static Future<three.Object3D> image(String path, String name) async{
+    final geometry = three.PlaneGeometry(10, 10);
+    final material = three.MeshBasicMaterial.fromMap({"side": three.DoubleSide});
     
-    return false;
-  }
+    final loader = three.TextureLoader();
+    loader.flipY = true;
+    final texture = await loader.fromPath(path);
 
-  Future<void> ply(String path, String name, [bool crerateThumbnial = true]) async{
-    final object = await CreateModels.ply(path, name);
-    BoundingBoxHelper h = BoundingBoxHelper(object.boundingBox)..visible = false;
-    if(crerateThumbnial) await threeV.crerateThumbnial(object);
-    threeV.add(object,h);
-  }
+    material.map = texture;
+    material.needsUpdate = true;
 
-  Future<void> stl(String path, String name, [bool crerateThumbnial = true]) async{
-    final object = await CreateModels.stl(path, name);
-    BoundingBoxHelper h = BoundingBoxHelper(object.boundingBox)..visible = false;
-    if(crerateThumbnial) await threeV.crerateThumbnial(object);
-    threeV.add(object,h);
-  }
+    final object = three.Mesh(geometry, material);
 
-  Future<void> obj(String path, String name, [bool crerateThumbnial = true, three.MaterialCreator? materials]) async{
-    final object = await CreateModels.obj(path, name, materials);
-    BoundingBoxHelper h = BoundingBoxHelper(object.boundingBox)..visible = false;
-    if(crerateThumbnial) await threeV.crerateThumbnial(object);
-    threeV.add(object,h);
-  }
+    final three.BoundingBox box = three.BoundingBox();
+    box.setFromObject(object);
 
-  Future<void> image(String path, String name) async{
-    final object = await CreateModels.image(path, name);
-    BoundingBoxHelper h = BoundingBoxHelper(object.boundingBox)..visible = false;
-    threeV.add(object,h);
+    return object..userData['path'] = path..name = name.split('.').first..boundingBox = box;
   }
 }

@@ -1,6 +1,7 @@
 import 'dart:io';
 
-import 'package:three_forge/src/three_viewer/terrain.dart';
+import 'package:three_forge/src/three_viewer/src/terrain.dart';
+import 'package:three_forge/src/three_viewer/src/voxel_painter.dart';
 import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js/three_js.dart';
 
@@ -50,6 +51,26 @@ class ThreeForgeExport{
         if(object.userData['importedActions'] != null)'importedActions': object.userData['importedActions'],
         if(object.userData['scriptPath'] != null)'script': object.userData['scriptPath'],
         if(object.userData['physics'] != null)'physics': object.userData['physics']
+      }
+    };
+  }
+
+  Map<String,dynamic> _voxel(VoxelPainter voxel){
+    Map<String,dynamic> children = {};
+
+    int i = 0;
+    for(final child in voxel.children){
+      if(i != 0){
+        children[child.uuid] = _getTransform(child);
+      }
+      i++;
+    }
+
+    return {
+      'voxel_${voxel.uuid}': {
+        'path': voxel.object?.userData['path'],
+        'transform': _getTransform(voxel),
+        'children': children
       }
     };
   }
@@ -132,6 +153,7 @@ class ThreeForgeExport{
       'scene': {
         'name': scene.name,
         'uuid': scene.uuid,
+        if(scene.userData['audio'] != null)'audio': scene.userData['audio'],
         'backgroundType': scene.background.runtimeType.toString(),
         'background': {
           'texture': scene.background is Texture?{
@@ -193,6 +215,9 @@ class ThreeForgeExport{
       }
       else if(o is Light){
         scene.addAll(_createLight(o));
+      }
+      else if(o is VoxelPainter){
+        scene.addAll(_voxel(o));
       }
       else if(o is Mesh && o.userData['path'] == null){
         if(o.name.contains('Collider-')){

@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
-import 'package:css/css.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -10,7 +9,9 @@ import 'package:three_forge/src/navigation/right_click.dart';
 import 'package:three_forge/src/objects/insert_models.dart';
 import 'package:three_forge/src/styles/globals.dart';
 import 'package:three_forge/src/three_viewer/export.dart';
-import 'package:three_forge/src/three_viewer/terrain.dart';
+import 'package:three_forge/src/three_viewer/src/grid_info.dart';
+import 'package:three_forge/src/three_viewer/src/terrain.dart';
+import 'package:three_forge/src/three_viewer/src/voxel_painter.dart';
 import 'package:three_forge/src/thumbnail/thumbnail.dart';
 import 'package:path/path.dart' as p;
 import 'package:three_js/three_js.dart' as three;
@@ -26,87 +27,12 @@ class IntersectsInfo{
 enum ShadingType{wireframe,solid,material}
 enum ControlSpaceType{global,local}
 enum EditType{point,edge,face}
-enum GridAxis{XZ,YZ,XY}
+enum SelectorType{
+  translate,rotate,scale,select,paint;
 
-class GridInfo{
-  GridInfo();
-  
-  final three.Mesh rollOverMesh = three.Mesh( three.BoxGeometry( 50, 50, 50 ), three.MeshBasicMaterial.fromMap( { 'color': 0xff0000, 'opacity': 0.5, 'transparent': true } ) );
-  late TransformControls control;
-  int divisions = 500;
-  double size = 500;
-  int color = Colors.grey[900]!.value;
-  double x = 0;
-  double y = 0;
-  GridAxis axis = GridAxis.XZ;
-  bool snap = false;
-
-  three.LineSegments? axisX;
-  three.LineSegments? axisY;
-  three.LineSegments? axisZ;
-
-  final GridHelper grid1 = GridHelper( 500, 500)..material?.color.setFromHex32(themeType == LsiThemes.dark?Colors.grey[900]!.value:Colors.grey[700]!.value)..material?.vertexColors = false;
-  final GridHelper grid2 = GridHelper( 500, 100)..material?.color.setFromHex32(themeType == LsiThemes.dark?Colors.grey[500]!.value:Colors.grey[900]!.value)..material?.vertexColors = false;
-  late final three.Group grid = three.Group()..add(grid1)..add(grid2);
-  void addControl(TransformControls control){
-    this.control = control;
-  }
-  void showAxis(GridAxis axis){
-    axisX?.visible = true;
-    axisY?.visible = true;
-    axisZ?.visible = true;
-    if(axis == GridAxis.XY){
-      axisZ?.visible = false;
-    }
-    else if(axis == GridAxis.XZ){
-      axisY?.visible = false;
-    }
-    else{
-      axisX?.visible = false;
-    }
-  }
-
-  void updateGrid(double size, int divisions){
-    this.size = size;
-    this.divisions = divisions;
-    grid1.copy(GridHelper(size, divisions)..material?.color.setFromHex32(themeType == LsiThemes.dark?Colors.grey[900]!.value:Colors.grey[700]!.value)..material?.vertexColors = false);
-    grid2.copy(GridHelper(size, divisions~/5)..material?.color.setFromHex32(themeType == LsiThemes.dark?Colors.grey[500]!.value:Colors.grey[900]!.value)..material?.vertexColors = false);
-  
-    if(control.translationSnap != null){
-      final double snap = size/divisions;
-      control.setTranslationSnap(snap);
-    }
-  }
-  void setGridRotation(GridAxis axis){
-    axis = axis;
-    showAxis(axis);
-    if(axis == GridAxis.XY){
-      rotation.set(math.pi / 2,0,0);
-      rollOverMesh.rotation.set(math.pi / 2,0,0);
-    }
-    else if(axis == GridAxis.XZ){
-      rotation.set(0,0,0);
-      rollOverMesh.rotation.set(0,0,0);
-    }
-    if(axis == GridAxis.YZ){
-      rotation.set(0,0,math.pi / 2);
-      rollOverMesh.rotation.set(0,0,math.pi / 2);
-    }
-  }
-  three.Euler get rotation => grid.rotation;
-
-  Map<String,dynamic> toJson(){
-    return {
-      'divisions': divisions,
-      'size': size,
-      'color': color,
-      'x': x,
-      'y': y,
-      'snap': snap,
-      'axis': axis.index,
-    };
-  }
+  bool get isGimble => index < 3;
 }
+
 class EditInfo{
   bool active = false;
   EditType type = EditType.point;
@@ -154,13 +80,16 @@ class ThreeViewer {
   final three.Vector3 sun = three.Vector3();
 
   bool didClick = false;
-  bool holdingControl = false;
+  String? holdingKey;
   bool usingMouse = false;
   bool sceneSelected = false;
   bool showCameraView = false;
-  bool boxSelection = false;
-  bool voxelPaint = false;
   bool addPhysics = false;
+  bool tempSnap = false;
+  
+  SelectorType _selectorType = SelectorType.translate;
+  SelectorType get selectorType => _selectorType;
+  bool get isVoxelPainter => intersected.isNotEmpty && intersected[0] is VoxelPainter;
 
   GlobalKey<three.PeripheralsState> get listenableKey => threeJs.globalKey;
 
@@ -177,7 +106,8 @@ class ThreeViewer {
   late final three.Camera thumbnailCamera;
   late final Sky sky;
   final List<Terrain> terrains = [];
-  three.Object3D? voxelPainter;
+  three.Object3D? voxelPainterObject;
+  three.Group? voxelPainterGroup;
 
   late final selectionBox = SelectionBox(threeJs.camera, threeJs.scene);
   final List<RightClickOptions> rcOptions = [RightClickOptions.reset_camera,RightClickOptions.game_view];
@@ -269,188 +199,11 @@ class ThreeViewer {
     scene.background = threeJs.scene.background;
     threeJs.scene.add(scene);
 
-    threeJs.domElement.addEventListener(three.PeripheralType.keydown,(event) {
-      event as LogicalKeyboardKey;
-      switch (event.keyLabel.toLowerCase()) {
-        case 'meta left':
-          holdingControl = true;
-        case 'q':
-          control.setSpace( control.space == 'local' ? 'world' : 'local' );
-          break;
-        case 'shift right':
-        case 'shift left':
-          control.setTranslationSnap( 1 );
-          control.setRotationSnap( three.MathUtils.degToRad( 15 ) );
-          control.setScaleSnap( 0.25 );
-          break;
-        case 'w':
-          control.setMode(GizmoType.translate);
-          break;
-        case 'e':
-          control.setMode(GizmoType.rotate);
-          break;
-        case 'r':
-          control.setMode(GizmoType.scale);
-          break;
-        case 'c':
-          if(holdingControl){
-            copy = intersected;
-          }
-          break;
-        case 'v':
-          if(holdingControl){
-            if(copy != null){
-              copyAll(copy);
-            }
-          }
-          break;
-        case '+':
-        case '=':
-          control.setSize( control.size + 0.1 );
-          break;
-        case '-':
-        case '_':
-          control.setSize( math.max( control.size - 0.1, 0.1 ) );
-          break;
-        case 'delete':
-        case 'x':
-          if(intersected.isNotEmpty){
-            rightClick.openMenu('',Offset(mousePosition.x,mousePosition.y),[RightClickOptions.delete]);
-          }
-          break;
-        case 'tab':
-          if(intersected.isNotEmpty){
-            editModes(intersected);
-            editInfo.active = true;
-          }
-          else if(editInfo.active){
-            for(int i = 0; i < editObject.children.length; i++){
-              editObject.children[i].dispose();
-            }
-            editInfo.active = false;
-          }
-          break;
-        case 'y':
-          break;
-        case 'z':
-          break;
-        case ' ':
-          break;
-        case 'escape':
-          break;
-      }
-    });
-    threeJs.domElement.addEventListener(three.PeripheralType.keyup, (event) {
-      event as LogicalKeyboardKey;
-      switch ( event.keyLabel.toLowerCase() ) {
-        case 'meta left':
-          holdingControl = false;
-        case 'shift right':
-        case 'shift left':
-          control.setTranslationSnap( null );
-          control.setRotationSnap( null );
-          control.setScaleSnap( null );
-          break;
-      }
-    });
-    threeJs.domElement.addEventListener(three.PeripheralType.pointerdown, (details){
-      if(voxelPaint){
-        final voxel = voxelPainter?.clone();
-        voxel?.position.setFrom( intersect.point! ).add( intersect.face!.normal );
-        voxel?.position.divideScalar( 50 ).floor().scale( 50 ).addScalar( 25 );
-        intersected[0].add(voxel);
-      }
-      else if(details.button == 2){
-        if(rightClick.isMenuOpen){
-          final showOptions = rcOptions+
-          (copy != null && copy!.isNotEmpty?[RightClickOptions.paste]:[])+
-          (intersected.isNotEmpty?[RightClickOptions.copy,RightClickOptions.delete]:[])
-          ;
-          rightClick.closeMenu();
-          rightClick.openMenu(
-            'Test', 
-            Offset(details.clientX,details.clientY), 
-            showOptions
-          );
-        }
-        else{
-          final showOptions = rcOptions+
-          (copy != null && copy!.isNotEmpty?[RightClickOptions.paste]:[])+
-          (intersected.isNotEmpty?[RightClickOptions.copy,RightClickOptions.delete]:[])
-          ;
-          rightClick.openMenu(            
-            'Test', 
-            Offset(details.clientX,details.clientY), 
-            showOptions
-          );
-        }
-      }
-      else{
-        if(rightClick.isMenuOpen){
-          rightClick.closeMenu();
-        }
-        if(boxSelection){
-          orbit.enableRotate = false;
-          selectionHelperEnabled = true;
-          
-          startPoint.setValues(details.clientX,details.clientY);
-          selectionBox.startPoint.setFrom(convertPosition(startPoint));
-        }
-        else{
-          mousePosition = three.Vector2(details.clientX, details.clientY);
-          if(!control.dragging){
-            checkIntersection(scene.children);
-            mixer = null;
-            currentAnimation = null;
-          }
-        }
-      }
-    });
-    threeJs.domElement.addEventListener(three.PeripheralType.pointermove, (details){
-      mousePosition = three.Vector2(details.clientX, details.clientY);
-      if(voxelPaint){
-        final intersects = raycaster.intersectObjects(intersected[0].children, false );
-
-        if ( intersects.isNotEmpty ) {
-          final intersect = intersects[ 0 ];
-
-          gridInfo.rollOverMesh.position.setFrom( intersect.point! ).add( intersect.face!.normal );
-          gridInfo.rollOverMesh.position.divideScalar( gridInfo.divisions).floor().scale( gridInfo.divisions ).addScalar( gridInfo.size );
-        }
-      }
-      else if (boxSelection) {
-        if(intersected.isNotEmpty){
-          boxSelect(false);
-          intersected.clear();
-        }
-
-        final temp = selectionBox.select();
-
-        for(final s in temp){
-          if(contains(s) && s.visible){
-            intersected.add(s);
-            boxSelect(true);
-          }
-        }
-
-        selectionBox.endPoint.setFrom(convertPosition(mousePosition));
-        setState((){});
-      }
-      else{
-        selectionHelperEnabled = false;
-      }
-      
-      if(control.dragging){}
-    });
-    threeJs.domElement.addEventListener(three.PeripheralType.pointerup, ( event ) {
-      if(event.pointerType == 'mouse'){
-        orbit.enableRotate = true;
-      }
-      if(selectionHelperEnabled){
-        selectionHelperEnabled = false;
-        setState((){});
-      }
-    });
+    threeJs.domElement.addEventListener(three.PeripheralType.keydown,onKeyDown);
+    threeJs.domElement.addEventListener(three.PeripheralType.keyup, onKeyUp);
+    threeJs.domElement.addEventListener(three.PeripheralType.pointerdown, onPointerDown);
+    threeJs.domElement.addEventListener(three.PeripheralType.pointermove, onPointerMove);
+    threeJs.domElement.addEventListener(three.PeripheralType.pointerup, onPointerUp);
 
     threeJs.addAnimationEvent((dt){
       mixer?.update(dt);
@@ -479,6 +232,172 @@ class ThreeViewer {
     };
   }
 
+  void onKeyDown(LogicalKeyboardKey event){
+    switch (event.keyLabel.toLowerCase()) {
+      case 'meta left':
+        holdingKey = 'ctrl';
+      case 'q':
+        control.setSpace( control.space == 'local' ? 'world' : 'local' );
+        break;
+      case 'shift right':
+      case 'shift left':
+        if(SelectorType.paint == _selectorType) return;
+        holdingKey = 'shift';
+        tempSnap = gridInfo.isSnapOn;
+        gridInfo.setSnap(true);
+        break;
+      case 'w':
+        control.setMode(GizmoType.translate);
+        break;
+      case 'e':
+        control.setMode(GizmoType.rotate);
+        break;
+      case 'r':
+        control.setMode(GizmoType.scale);
+        break;
+      case 'c':
+        if(holdingKey == 'ctrl'){
+          copy = intersected;
+        }
+        break;
+      case 'v':
+        if(holdingKey == 'ctrl'){
+          if(copy != null){
+            copyAll(copy);
+          }
+        }
+        break;
+      case '+':
+      case '=':
+        control.setSize( control.size + 0.1 );
+        break;
+      case '-':
+      case '_':
+        control.setSize( math.max( control.size - 0.1, 0.1 ) );
+        break;
+      case 'delete':
+      case 'x':
+        if(intersected.isNotEmpty){
+          rightClick.openMenu('',Offset(mousePosition.x,mousePosition.y),[RightClickOptions.delete]);
+        }
+        break;
+      case 'tab':
+        if(intersected.isNotEmpty){
+          editModes(intersected);
+          editInfo.active = true;
+        }
+        else if(editInfo.active){
+          for(int i = 0; i < editObject.children.length; i++){
+            editObject.children[i].dispose();
+          }
+          editInfo.active = false;
+        }
+        break;
+      case 'y':
+        break;
+      case 'z':
+        break;
+      case ' ':
+        break;
+      case 'escape':
+        break;
+    }
+  }
+  void onKeyUp(LogicalKeyboardKey event){
+    holdingKey = null;
+    switch ( event.keyLabel.toLowerCase() ) {
+      case 'shift right':
+      case 'shift left':
+        if(SelectorType.paint == _selectorType) return;
+        gridInfo.setSnap(tempSnap);
+        break;
+    }
+  }
+  void onPointerDown(details){
+    if(SelectorType.paint == _selectorType) return;
+    if(details.button == 2){
+      if(rightClick.isMenuOpen){
+        final showOptions = rcOptions+
+        (copy != null && copy!.isNotEmpty?[RightClickOptions.paste]:[])+
+        (intersected.isNotEmpty?[RightClickOptions.copy,RightClickOptions.delete]:[])
+        ;
+        rightClick.closeMenu();
+        rightClick.openMenu(
+          'Test', 
+          Offset(details.clientX,details.clientY), 
+          showOptions
+        );
+      }
+      else{
+        final showOptions = rcOptions+
+        (copy != null && copy!.isNotEmpty?[RightClickOptions.paste]:[])+
+        (intersected.isNotEmpty?[RightClickOptions.copy,RightClickOptions.delete]:[])
+        ;
+        rightClick.openMenu(            
+          'Test', 
+          Offset(details.clientX,details.clientY), 
+          showOptions
+        );
+      }
+    }
+    else{
+      if(rightClick.isMenuOpen){
+        rightClick.closeMenu();
+      }
+      if(SelectorType.select == _selectorType){
+        orbit.enableRotate = false;
+        selectionHelperEnabled = true;
+        
+        startPoint.setValues(details.clientX,details.clientY);
+        selectionBox.startPoint.setFrom(convertPosition(startPoint));
+      }
+      else{
+        mousePosition = three.Vector2(details.clientX, details.clientY);
+        if(!control.dragging){
+          checkIntersection(scene.children);
+          mixer = null;
+          currentAnimation = null;
+        }
+      }
+    }
+  }
+  void onPointerMove(details){
+    if(SelectorType.paint == _selectorType) return;
+    mousePosition = three.Vector2(details.clientX, details.clientY);
+    if (SelectorType.select == _selectorType) {
+      if(intersected.isNotEmpty){
+        boxSelect(false);
+        intersected.clear();
+      }
+
+      final temp = selectionBox.select();
+
+      for(final s in temp){
+        if(contains(s) && s.visible){
+          intersected.add(s);
+          boxSelect(true);
+        }
+      }
+
+      selectionBox.endPoint.setFrom(convertPosition(mousePosition));
+      setState((){});
+    }
+    else{
+      selectionHelperEnabled = false;
+    }
+    
+    if(control.dragging){}
+  }
+  void onPointerUp(event){
+    if(event.pointerType == 'mouse'){
+      orbit.enableRotate = true;
+    }
+    if(selectionHelperEnabled){
+      selectionHelperEnabled = false;
+      setState((){});
+    }
+  }
+  
   void generateSky(){
     threeJs.scene.add(threeJs.camera);
     threeJs.camera.lookAt(threeJs.scene.position);
@@ -602,7 +521,7 @@ class ThreeViewer {
       }
     }
   }
-  void addAll1(List<three.Object3D> objects){
+  void addAll(List<three.Object3D> objects){
     for(final object in objects){
       add(object);
     }
@@ -769,7 +688,6 @@ class ThreeViewer {
     }
   }
   
-
   void setControlSpace(ControlSpaceType space){
     _controlSpace = space;
     control.space = space == ControlSpaceType.global?'world':'local';
@@ -821,6 +739,9 @@ class ThreeViewer {
   }
   void boxSelect(bool select){
     if(intersected.isEmpty) return;
+    if(isVoxelPainter){
+      resetVoxelPainter();
+    }
     for(final intersect in intersected){
       if(!select){
         sceneSelected = false;
@@ -846,19 +767,19 @@ class ThreeViewer {
         if(intersect.userData['skeleton'] is SkeletonHelper){
           intersect.userData['skeleton'].visible = true;
         }
-        // if(intersected.length == 1 && contains(intersect)){
+        //if(intersected.length == 1 && contains(intersect)){
+        if(selectorType.isGimble && !isVoxelPainter){
           control.attach( intersect );
-        // }
-        // else{
-        //   control.detach();
-        // }
+        }
+        else{
+          control.detach();
+        }
       }
     }
   }
 
   void setGridRotation(GridAxis axis) => gridInfo.setGridRotation(axis);
   
-
   three.Vector2 convertPosition(three.Vector2 location){
     final RenderBox renderBox = listenableKey.currentContext!.findRenderObject() as RenderBox;
     final size = renderBox.size;
@@ -1037,9 +958,43 @@ class ThreeViewer {
   void viewSky(){
     sky.visible = !sky.visible;
   }
-
+  void addVoxelPainter(){
+    scene.add(
+      VoxelPainter(
+        listenableKey: listenableKey, 
+        camera: threeJs.camera, 
+        gridInfo: gridInfo
+      )..name = 'Voxel Painter'
+    );
+  }
   void createTerrain(){
     terrains.add(Terrain(this,setState,terrains.length));
     terrains.last.setup();
+  }
+  void resetVoxelPainter(){
+    if(isVoxelPainter){
+      (intersected.first as VoxelPainter).deactivate();
+      _selectorType = SelectorType.translate;
+      setState((){});
+    }
+  }
+  void setSelector(SelectorType type){
+    _selectorType = type;
+     if(type != SelectorType.paint) resetVoxelPainter();
+    if(
+      type == SelectorType.select || 
+      type == SelectorType.paint
+    ){
+      control.enabled = false;
+      control.detach();
+
+      if(type == SelectorType.paint && isVoxelPainter){
+        (intersected.first as VoxelPainter).activate();
+      }
+    }
+    else{
+      control.setMode(GizmoType.values[type.index]);
+      control.enabled = true;
+    }
   }
 }

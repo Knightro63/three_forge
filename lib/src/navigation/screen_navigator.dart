@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:three_forge/src/objects/create_models.dart';
 import 'package:three_forge/src/objects/insert_mesh.dart';
 import 'package:three_forge/src/objects/insert_models.dart';
 import 'package:three_forge/src/navigation/navData.dart';
@@ -113,7 +114,7 @@ class ScreenNavigator{
                           }
                         }
                       }
-                      materials = await insert.mtl('$path/$mtlName', mtlName);
+                      materials = await CreateModels.mtl('$path/$mtlName', mtlName);
                       paths.add('$path/$name');
                     }catch(e){}
                     await insert.obj('$path/$name', name, true, materials);
@@ -816,9 +817,16 @@ class ScreenNavigator{
             callBacks(call: LSICallbacks.updatedNav);
             threeV.createTerrain();
           }
+        ),
+        NavItems(
+          name: 'Voxel Painter',
+          icon: Icons.view_in_ar_rounded,
+          onTap: (_){
+            callBacks(call: LSICallbacks.updatedNav);
+            threeV.addVoxelPainter();
+          }
         )
       ]
     )
-
   ];
 }

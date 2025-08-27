@@ -12,6 +12,7 @@ import 'package:three_forge/src/three_viewer/gui/skeleton.dart';
 import 'package:three_forge/src/three_viewer/gui/sky.dart';
 import 'package:three_forge/src/three_viewer/gui/terrain.dart';
 import 'package:three_forge/src/three_viewer/gui/transform.dart';
+import 'package:three_forge/src/three_viewer/src/voxel_painter.dart';
 import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js/three_js.dart' as three;
 
@@ -248,7 +249,7 @@ class _IntersectedGuiState extends State<IntersectedGui> {
           ]
         )
       ),
-      if(threeV.intersected.isNotEmpty && threeV.intersected[0] is! three.Camera && threeV.intersected[0] is! three.Light)Container(
+      if(threeV.intersected.isNotEmpty && threeV.intersected[0] is! three.Camera && threeV.intersected[0] is! three.Light && threeV.intersected[0] is! VoxelPainter)Container(
         margin: const EdgeInsets.fromLTRB(5,5,5,5),
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:three_forge/src/styles/savedWidgets.dart';
 import 'package:three_forge/src/three_viewer/decimal_index_formatter.dart';
+import 'package:three_forge/src/three_viewer/gui/voxel_painter.dart';
+import 'package:three_forge/src/three_viewer/src/voxel_painter.dart';
 import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js/three_js.dart' as three;
 
@@ -67,7 +69,7 @@ class _ObjectGuiState extends State<ObjectGui> {
         ),
         SizedBox(height: 10,),
         Text('Shadow:\t\t\t'),
-        Container(height: 2,color: Theme.of(context).primaryTextTheme.bodySmall!.color,),
+        Container(margin: EdgeInsets.only(bottom: 7), height: 2,color: Theme.of(context).primaryTextTheme.bodySmall!.color,),
         InkWell(
           onTap: (){
             object.castShadow = !object.castShadow;
@@ -160,6 +162,11 @@ class _ObjectGuiState extends State<ObjectGui> {
             object.userData['scriptPath'] = details;
           },
         ),
+
+        if(object is VoxelPainter) SizedBox(height: 10,),
+        if(object is VoxelPainter) Text('Voxel Painter'),
+        if(object is VoxelPainter) Container(margin: EdgeInsets.only(bottom: 7), height: 2,color: Theme.of(context).primaryTextTheme.bodySmall!.color,),
+        if(object is VoxelPainter) VoxelPainterGui(voxelPainter: object)
       ],
     );
   }

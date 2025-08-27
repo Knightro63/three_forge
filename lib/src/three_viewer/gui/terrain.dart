@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:three_forge/src/styles/lsi_functions.dart';
 import 'package:three_forge/src/styles/savedWidgets.dart';
 import 'package:three_forge/src/three_viewer/decimal_index_formatter.dart';
-import 'package:three_forge/src/three_viewer/terrain.dart';
+import 'package:three_forge/src/three_viewer/src/terrain.dart';
 
 class TerrainGui extends StatefulWidget {
   const TerrainGui({Key? key, required this.terrain}):super(key: key);

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:three_forge/src/objects/insert_models.dart';
 import 'package:three_forge/src/navigation/navigation.dart';
 import 'package:three_forge/src/three_viewer/gui/selection_helper.dart';
+import 'package:three_forge/src/three_viewer/src/grid_info.dart';
+import 'package:three_forge/src/three_viewer/src/voxel_painter.dart';
 
 import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js_transform_controls/three_js_transform_controls.dart';
@@ -42,13 +44,13 @@ class Hud extends StatelessWidget{
               InkWell(
                 onTap: (){
                   setState(() {
-                    threeV.boxSelection = true;
+                    threeV.setSelector(SelectorType.select);
                   });
                 },
                 child:Container(
                   width: 25,
                   height: 25,
-                  color: threeV.boxSelection? Theme.of(context).secondaryHeaderColor.withAlpha(200):Theme.of(context).cardColor.withAlpha(200),
+                  color: SelectorType.select == threeV.selectorType? Theme.of(context).secondaryHeaderColor.withAlpha(200):Theme.of(context).cardColor.withAlpha(200),
                   alignment: Alignment.center,
                   child: const Icon(
                     Icons.select_all,
@@ -59,14 +61,13 @@ class Hud extends StatelessWidget{
               InkWell(
                 onTap: (){
                   setState(() {
-                    threeV.boxSelection = false;
-                    threeV.control.setMode(GizmoType.translate);
+                    threeV.setSelector(SelectorType.translate);
                   });
                 },
                 child:Container(
                   width: 25,
                   height: 25,
-                  color: !threeV.boxSelection && threeV.mounted && threeV.control.enabled && threeV.control.mode == GizmoType.translate? Theme.of(context).secondaryHeaderColor.withAlpha(200):Theme.of(context).cardColor.withAlpha(200),
+                  color: SelectorType.translate == threeV.selectorType && threeV.mounted && threeV.control.enabled && threeV.control.mode == GizmoType.translate? Theme.of(context).secondaryHeaderColor.withAlpha(200):Theme.of(context).cardColor.withAlpha(200),
                   alignment: Alignment.center,
                   child: const Icon(
                     Icons.control_camera,
@@ -77,15 +78,14 @@ class Hud extends StatelessWidget{
               InkWell(
                 onTap: (){
                   setState(() {
-                    threeV.boxSelection = false;
-                    threeV.control.setMode(GizmoType.rotate);
+                    threeV.setSelector(SelectorType.rotate);
                   });
                 },
                 child:Container(
                   width: 25,
                   height: 25,
                   margin: const EdgeInsets.only(top: 2),
-                  color: !threeV.boxSelection && threeV.mounted && threeV.control.enabled && threeV.control.mode == GizmoType.rotate? Theme.of(context).secondaryHeaderColor.withAlpha(200):Theme.of(context).cardColor.withAlpha(200),
+                  color: SelectorType.rotate == threeV.selectorType && threeV.mounted && threeV.control.enabled && threeV.control.mode == GizmoType.rotate? Theme.of(context).secondaryHeaderColor.withAlpha(200):Theme.of(context).cardColor.withAlpha(200),
                   alignment: Alignment.center,
                   child: const Icon(
                     Icons.cached,
@@ -96,18 +96,35 @@ class Hud extends StatelessWidget{
               InkWell(
                 onTap: (){
                   setState(() {
-                    threeV.boxSelection = false;
-                    threeV.control.setMode(GizmoType.scale);
+                    threeV.setSelector(SelectorType.scale);
                   });
                 },
                 child: Container(
                   width: 25,
                   height: 25,
                   margin: const EdgeInsets.only(top: 2),
-                  color: !threeV.boxSelection && threeV.mounted && threeV.control.enabled && threeV.control.mode == GizmoType.scale? Theme.of(context).secondaryHeaderColor.withAlpha(200):Theme.of(context).cardColor.withAlpha(200),
+                  color: SelectorType.scale == threeV.selectorType && threeV.mounted && threeV.control.enabled && threeV.control.mode == GizmoType.scale? Theme.of(context).secondaryHeaderColor.withAlpha(200):Theme.of(context).cardColor.withAlpha(200),
                   alignment: Alignment.center,
                   child: const Icon(
                     Icons.aspect_ratio,
+                    size: 20,
+                  ),
+                )
+              ),
+              if(threeV.intersected.isNotEmpty && threeV.intersected[0] is VoxelPainter)InkWell(
+                onTap: (){
+                  setState(() {
+                    threeV.setSelector(SelectorType.paint);
+                  });
+                },
+                child: Container(
+                  width: 25,
+                  height: 25,
+                  margin: const EdgeInsets.only(top: 2),
+                  color: SelectorType.paint == threeV.selectorType? Theme.of(context).secondaryHeaderColor.withAlpha(200):Theme.of(context).cardColor.withAlpha(200),
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    Icons.brush_sharp,
                     size: 20,
                   ),
                 )
@@ -214,14 +231,7 @@ class Hud extends StatelessWidget{
                         icon: Icons.grid_goldenratio_rounded,
                         onTap: (data){
                           setState((){
-                            threeV.gridInfo.snap = !threeV.gridInfo.snap;
-                            if(threeV.gridInfo.snap){
-                              final double snap = threeV.gridInfo.size/threeV.gridInfo.divisions;
-                              threeV.control.setTranslationSnap(snap);
-                            }
-                            else{
-                              threeV.control.setTranslationSnap(null);
-                            }
+                            threeV.gridInfo.setSnap(!threeV.gridInfo.isSnapOn);
                           });
                         }
                       ),
