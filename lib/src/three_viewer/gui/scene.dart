@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:three_forge/src/objects/insert_models.dart';
 import 'package:three_forge/src/styles/savedWidgets.dart';
 import 'package:three_forge/src/three_viewer/decimal_index_formatter.dart';
 import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js/three_js.dart' as three;
-import 'dart:math' as math;
 
 class SceneGui extends StatefulWidget {
   const SceneGui({Key? key, required this.threeV}):super(key: key);
@@ -19,11 +19,13 @@ class _SceneGuiState extends State<SceneGui> {
   bool fog = false;
   List<DropdownMenuItem<int>> mappingSelector = [];
   int mappingValue = three.EquirectangularReflectionMapping;
+  late final InsertModels insertModel;
   
   @override
   void initState() {
     super.initState();
     threeV = widget.threeV;
+    insertModel = InsertModels(threeV);
     fog = threeV.scene.fog != null;
     sameastext = threeV.threeJs.scene.userData['sameTexture'] ?? true;
     mappingSelector.add(DropdownMenuItem(
@@ -81,58 +83,6 @@ class _SceneGuiState extends State<SceneGui> {
     }
   }
 
-  void setAsSame(){
-    threeV.threeJs.scene.userData['sameTexture'] = sameastext;
-    if(sameastext){
-      threeV.threeJs.scene.environment = threeV.threeJs.scene.background;
-      threeV.scene.environment = threeV.threeJs.scene.background;
-    }
-    else{
-      threeV.threeJs.scene.environment = null;
-      threeV.scene.environment = null;
-    }
-  }
-
-  Future<void> insertTexture(String path) async{
-    String fileType = path.split('.').last;
-    String name = path.split('/').last;
-    String dirPath = path.replaceAll(name, '');
-    
-    if(fileType == 'hdr'){
-      final three.DataTexture rgbeLoader = await three.RGBELoader().setPath( dirPath ).fromAsset(name);
-      rgbeLoader.userData['path'] = path;
-      rgbeLoader.mapping = mappingValue;
-      threeV.threeJs.scene.background = rgbeLoader;
-      threeV.scene.background = rgbeLoader;
-      threeV.threeJs.scene.backgroundRotation = three.Euler(math.pi);
-      threeV.scene.backgroundRotation = three.Euler(math.pi);
-      setAsSame();
-    }
-    else if(fileType == 'gltf'){
-      final cubeRenderTarget = three.WebGLCubeRenderTarget( 256 );
-      final cubeCamera = three.CubeCamera( 1, 1000, cubeRenderTarget );
-
-      // envmap
-      List<String> genCubeUrls( prefix, postfix ) {
-        return [
-          prefix + 'px' + postfix, prefix + 'nx' + postfix,
-          '${prefix}ny$postfix', '${prefix}py$postfix',
-          prefix + 'pz' + postfix, prefix + 'nz' + postfix
-        ];
-      }
-
-      final urls = genCubeUrls( dirPath, '.jpg' );
-
-      three.CubeTextureLoader(flipY: true).fromAssetList(urls).then(( cubeTexture ) {
-        threeV.threeJs.scene.background = cubeTexture;
-        threeV.scene.background = cubeTexture;
-        cubeTexture?.userData['path'] = path;
-        setAsSame();
-        cubeCamera.update( threeV.threeJs.renderer!, threeV.threeJs.scene );
-      });
-    }
-  }
-
   final List<TextEditingController> sceneControllers = [
     TextEditingController(),
     TextEditingController(),
@@ -184,7 +134,6 @@ class _SceneGuiState extends State<SceneGui> {
               onChanged: (val){
                 final int? hex = int.tryParse(val.replaceAll('0x', ''),radix: 16);
                 if(hex != null){
-                  print(hex);
                   threeV.scene.background = three.Color.fromHex32(hex);
                 }
                 else{
@@ -215,13 +164,13 @@ class _SceneGuiState extends State<SceneGui> {
             );
           },
           onAcceptWithDetails: (details) async{
-            insertTexture(details.data! as String);
+            insertModel.insertTexture(details.data! as String, mappingValue,sameastext);
           },
         ),
         InkWell(
           onTap: (){
             sameastext = !sameastext;
-            setAsSame();
+            insertModel.setAsSame(sameastext);
             setState(() {});
           },
           child: Row(
@@ -282,7 +231,7 @@ class _SceneGuiState extends State<SceneGui> {
             );
           },
           onAcceptWithDetails: (details){
-            insertTexture(details.data! as String);
+            insertModel.insertTexture(details.data! as String, mappingValue,sameastext);
           },
         ),
         const SizedBox(height: 10,),
@@ -478,7 +427,6 @@ class _SceneGuiState extends State<SceneGui> {
               onChanged: (val){
                 final int? hex = int.tryParse(val.replaceAll('0x', ''),radix: 16);
                 if(hex != null){
-                  print(hex);
                   threeV.scene.fog!.color.setFromHex32(hex);
                 }
                 else{

@@ -23,7 +23,7 @@ class _LightGuiState extends State<CameraGui> {
   void initState() {
     super.initState();
     camera = widget.camera;
-    cameraValue = camera is three.OrthographicCamera?'Orthographic':'Perspective';
+    cameraValue = camera.runtimeType.toString() == 'OrthographicCamera'?'Orthographic':'Perspective';
   }
   @override
   void dispose(){

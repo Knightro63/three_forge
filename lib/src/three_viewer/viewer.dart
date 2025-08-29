@@ -62,8 +62,6 @@ class ThreeViewer {
   three.Raycaster raycaster = three.Raycaster();
   three.Vector2 mousePosition = three.Vector2.zero();
   List<three.Object3D> intersected = [];
-  three.AnimationMixer? mixer;
-  three.AnimationClip? currentAnimation;
 
   late TransformControls control;
   late three.OrbitControls orbit;
@@ -74,17 +72,16 @@ class ThreeViewer {
   three.Group editObject = three.Group();
   ViewHelper? viewHelper;
 
-  three.Group helper = three.Group();
+  final three.Group helper = three.Group();
+  final three.Group skeleton = three.Group();
   final GridInfo gridInfo = GridInfo();
   final three.Fog fog = three.Fog(theme.canvasColor.value, 2,10);
   final three.Vector3 sun = three.Vector3();
 
   bool didClick = false;
   String? holdingKey;
-  bool usingMouse = false;
   bool sceneSelected = false;
   bool showCameraView = false;
-  bool addPhysics = false;
   bool tempSnap = false;
   
   SelectorType _selectorType = SelectorType.translate;
@@ -106,8 +103,6 @@ class ThreeViewer {
   late final three.Camera thumbnailCamera;
   late final Sky sky;
   final List<Terrain> terrains = [];
-  three.Object3D? voxelPainterObject;
-  three.Group? voxelPainterGroup;
 
   late final selectionBox = SelectionBox(threeJs.camera, threeJs.scene);
   final List<RightClickOptions> rcOptions = [RightClickOptions.reset_camera,RightClickOptions.game_view];
@@ -135,9 +130,14 @@ class ThreeViewer {
   }
 
   void _addCamera(){
-    final CameraHelper cameraHelper = CameraHelper(camera);
-    helper.add(cameraHelper);
-    scene.add(camera..userData['helper'] = cameraHelper);
+    if(camera.userData['helper'] == null){
+      final CameraHelper cameraHelper = CameraHelper(camera);
+      helper.add(cameraHelper);
+      scene.add(camera..userData['helper'] = cameraHelper);
+    }
+    else{
+      scene.add(camera);
+    }
   }
 
   double aspectRatio(){
@@ -150,8 +150,8 @@ class ThreeViewer {
     final aspect = aspectRatio();
     const frustumSize = 5.0;
 
-    cameraOrtho = three.OrthographicCamera( - frustumSize * aspect, frustumSize * aspect, frustumSize, - frustumSize, 0.1, 10 )..name = 'Main Camera';
-    cameraPersp = three.PerspectiveCamera(40, aspect, 0.1, 10)..name = 'Main Camera';
+    cameraOrtho = three.OrthographicCamera( - frustumSize * aspect, frustumSize * aspect, frustumSize, - frustumSize, 0.1, 10 )..name = 'Main Camera'..userData['mainCamera'] = true;
+    cameraPersp = three.PerspectiveCamera(40, aspect, 0.1, 10)..name = 'Main Camera'..userData['mainCamera'] = true;
     camera = cameraPersp;
     camera.position.setValues(5,5,-5);
     camera.lookAt(three.Vector3());
@@ -193,9 +193,9 @@ class ThreeViewer {
     threeJs.scene.add( control );
     threeJs.scene.add(helper);
     threeJs.scene.add(editObject);
+    threeJs.scene.add(skeleton);
     generateSky();
     _addCamera();
-    scene.userData['animationClips'] = <String,dynamic>{};
     scene.background = threeJs.scene.background;
     threeJs.scene.add(scene);
 
@@ -206,7 +206,6 @@ class ThreeViewer {
     threeJs.domElement.addEventListener(three.PeripheralType.pointerup, onPointerUp);
 
     threeJs.addAnimationEvent((dt){
-      mixer?.update(dt);
       orbit.update();
       if (viewHelper != null && viewHelper!.animating ) {
         viewHelper!.update( dt );
@@ -355,8 +354,6 @@ class ThreeViewer {
         mousePosition = three.Vector2(details.clientX, details.clientY);
         if(!control.dragging){
           checkIntersection(scene.children);
-          mixer = null;
-          currentAnimation = null;
         }
       }
     }
@@ -400,11 +397,15 @@ class ThreeViewer {
   
   void generateSky(){
     threeJs.scene.add(threeJs.camera);
+    sky = Sky.create();
+    threeJs.scene.add( sky );
+    _setSky();
+  }
+  void _setSky(){
+    
     threeJs.camera.lookAt(threeJs.scene.position);
 
-    sky = Sky.create();
     sky.scale.setScalar( 10000 );
-    threeJs.scene.add( sky );
 
     final skyUniforms = sky.material!.uniforms;
 
@@ -420,8 +421,6 @@ class ThreeViewer {
 
     sky.visible = false;
 
-    threeJs.scene.add( sky );
-
     void updateSun(r) {
       final phi = three.MathUtils.degToRad( 90 - parameters['elevation']!);
       final theta = three.MathUtils.degToRad( parameters['azimuth']!);
@@ -432,36 +431,8 @@ class ThreeViewer {
 
     updateSun('');
   }
-  void createLine(int rgb){
-    List<double> vertices = rgb == 0?[500,0,0,-500,0,0]:rgb == 1?[0,500,0,0,-500,0]:[0,0,500,0,0,-500];
-    List<double> colors = rgb == 0?[1,0,0,1,0,0]:rgb == 1?[0,1,0,0,1,0]:[0,0,1,0,0,1];
-    final geometry = three.BufferGeometry();
-    geometry.setAttributeFromString('position',three.Float32BufferAttribute.fromList(vertices, 3, false));
-    geometry.setAttributeFromString('color',three.Float32BufferAttribute.fromList(colors, 3, false));
 
-    final material = three.LineBasicMaterial.fromMap({
-      "vertexColors": true, 
-      "toneMapped": true,
-    })
-      ..depthTest = false
-      ..linewidth = 5.0
-      ..depthWrite = true;
-
-    final ls = three.LineSegments(geometry,material);
-
-    helper.add(
-      ls
-      ..computeLineDistances()
-      ..scale.setValues(1,1,1)
-    );
-
-    rgb == 0?gridInfo.axisX = ls:rgb==1?gridInfo.axisY = ls:gridInfo.axisZ = ls;
-  }
   void creteHelpers(){
-    createLine(0);
-    createLine(1);
-    createLine(2);
-
     gridInfo.showAxis(GridAxis.XZ);
     
     viewHelper = ViewHelper(
@@ -479,7 +450,7 @@ class ThreeViewer {
     three.Vector3(1, 1, 1)
   );
 
-  void add(three.Object3D? object, [three.Object3D? helper]){
+  void add(three.Object3D? object){//}, [three.Object3D? helper]){
     if(object != null){
       scene.add(object..add(helper));
       
@@ -546,7 +517,7 @@ class ThreeViewer {
           h = BoundingBoxHelper(box)..visible = false;
         }
 
-        add(copy,h);
+        add(copy..add(h));
         setState((){});
       }
     }
@@ -927,7 +898,7 @@ class ThreeViewer {
 
     final last = name != ''?name:scene.name != ''?scene.name:scene.uuid;
     final tfe = ThreeForgeExport().export(this);
-    await File('$path$last.json').writeAsString(json.encode(tfe));
+    await File('$path$last.json').writeAsString(json.encode(await tfe));
   }
   Future<void> moveObjects(List<PlatformFile> files) async{
     String path ='$dirPath/assets/models/' ;
@@ -996,5 +967,84 @@ class ThreeViewer {
       control.setMode(GizmoType.values[type.index]);
       control.enabled = true;
     }
+  }
+
+  void selectScene(){
+    control.detach();
+    intersected.clear();
+    sceneSelected = true;
+  }
+
+  void selectPart(three.Object3D child){
+    boxSelect(false);
+    intersected.clear();
+    intersected.add(child);
+    boxSelect(true);
+    sceneSelected = false;
+  }
+
+  void reset(){
+    copy = null;
+    _controlSpace = ControlSpaceType.global;
+    shading = ShadingType.solid;
+    _selectorType = SelectorType.translate;
+    mousePosition.setValues(0, 0);
+    holdingKey = null;
+    selectionHelperEnabled = false;
+    control.detach();
+
+    helper.remove(camera..userData['helper']);
+
+    didClick = false;
+    sceneSelected = false;
+    showCameraView = false;
+    tempSnap = false;
+
+    intersected.clear();
+    terrains.clear();
+    scene.clear();
+    skeleton.clear();
+
+    threeJs.scene.background = three.Color.fromHex32(theme.canvasColor.value);
+    threeJs.scene.fog?.color = three.Color.fromHex32(theme.canvasColor.value);
+    threeJs.scene.fog?.near = 10;
+    threeJs.scene.fog?.far = 500;
+
+    fog.color = three.Color.fromHex32(theme.canvasColor.value);
+    fog.near = 2;
+    fog.far = 10;
+    
+    final aspect = aspectRatio();
+    const frustumSize = 5.0;
+
+    cameraOrtho.left = - frustumSize * aspect;
+    cameraOrtho.right = frustumSize * aspect;
+    cameraOrtho.top = frustumSize;
+    cameraOrtho.bottom = - frustumSize;
+    cameraOrtho.near = 0.1;
+    cameraOrtho.far = 10;
+    cameraOrtho.zoom = 1;
+    cameraOrtho..name = 'Main Camera'..userData['mainCamera'] = true;
+
+    cameraPersp.fov = 40;
+    cameraPersp.aspect = aspect;
+    cameraPersp.near = 0.1;
+    cameraPersp.far = 10;
+    cameraPersp.zoom = 1;
+    cameraPersp..name = 'Main Camera'..userData['mainCamera'] = true;
+    
+    camera = cameraPersp;
+    camera.position.setValues(5,5,-5);
+    camera.lookAt(three.Vector3());
+
+    _setSky();
+    _addCamera();
+    resetCamera();
+
+    setSelector(_selectorType);
+    control.setSpace('world');
+
+    gridInfo.reset();
+    setState((){});
   }
 }

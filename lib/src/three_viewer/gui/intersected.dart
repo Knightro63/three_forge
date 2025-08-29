@@ -180,14 +180,22 @@ class _IntersectedGuiState extends State<IntersectedGui> {
               padding: const EdgeInsets.fromLTRB(10,10,5,5),
               child: CameraGui(camera: threeV.intersected[0] as three.Camera, update:
               (String cameraValue){
-                final temp = threeV.camera.userData['helper'];
-                if(cameraValue == 'Perspective'){
-                  threeV.camera = threeV.cameraPersp;
+                if(threeV.intersected[0].userData['mainCamera'] == true){
+                  print(threeV.camera.runtimeType);
+                  print(cameraValue);
+                  //final temp = threeV.camera.userData['helper'];
+                  if(cameraValue == 'Perspective'){
+                    threeV.intersected[0] = threeV.cameraPersp;
+                  }
+                  else{
+                    threeV.intersected[0] = threeV.cameraOrtho;
+                  }
+                  //threeV.camera.userData['helper'] = temp;
+                  print(threeV.camera.runtimeType);
                 }
                 else{
-                  threeV.camera = threeV.cameraOrtho;
+
                 }
-                threeV.camera.userData['helper'] = temp;
               },)
             )
           ]

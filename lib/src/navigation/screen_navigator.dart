@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
@@ -6,6 +7,7 @@ import 'package:three_forge/src/objects/insert_mesh.dart';
 import 'package:three_forge/src/objects/insert_models.dart';
 import 'package:three_forge/src/navigation/navData.dart';
 import 'package:three_forge/src/styles/globals.dart';
+import 'package:three_forge/src/three_viewer/import.dart';
 import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js_advanced_exporters/usdz_exporter.dart';
 import 'package:three_js_exporters/three_js_exporters.dart';
@@ -18,6 +20,7 @@ class ScreenNavigator{
   final ThreeViewer threeV;
   late final InsertModels insert;
   late final InsertMesh insertMesh;
+  late final import = ThreeForgeImport(threeV);
 
   String saveName = '';
 
@@ -34,6 +37,22 @@ class ScreenNavigator{
           name: 'New',
           icon: Icons.new_label_outlined,
           onTap: (data){
+            threeV.reset();
+            callBacks(call: LSICallbacks.updatedNav);
+          }
+        ),
+        NavItems(
+          name: 'Open',
+          icon: Icons.file_open,
+          onTap: (data){
+            GetFilePicker.pickFiles(['json']).then((value)async{
+              if(value != null){
+                final json = jsonDecode(String.fromCharCodes(value.files.first.bytes!));
+                threeV.reset();
+                import.import(json);
+              }
+              setState(() {});
+            });
             callBacks(call: LSICallbacks.updatedNav);
           }
         ),
@@ -594,7 +613,7 @@ class ScreenNavigator{
                 final camera = three.PerspectiveCamera(40, aspect, 0.1, 10);
                 camera.name = 'Perspective Camera';
                 final helper = CameraHelper(camera);
-                threeV.add(camera,helper);
+                threeV.add(camera..add(helper));
               },
             ),
             NavItems(
@@ -607,7 +626,7 @@ class ScreenNavigator{
                 final camera = three.OrthographicCamera(- frustumSize * aspect, frustumSize * aspect, frustumSize, - frustumSize, 0.1, 10);
                 camera.name = 'Ortographic Camera';
                 final helper = CameraHelper(camera);
-                threeV.add(camera,helper);
+                threeV.add(camera..add(helper));
               },
             ),
           ]
@@ -638,8 +657,8 @@ class ScreenNavigator{
                 final light = three.SpotLight(0xffffff,100,2,math.pi / 6, 1, 2);
                 light.name = 'Spot Light';
                 final helper = SpotLightHelper(light,0xffff00);
-                threeV.add(light,helper);
-                threeV.helper.add(helper);
+                threeV.add(light);
+                threeV.skeleton.add(helper);
               },
             ),
             NavItems(
@@ -650,7 +669,8 @@ class ScreenNavigator{
                 final light = three.DirectionalLight(0xffffff);
                 light.name = 'Directional Light';
                 final helper = DirectionalLightHelper(light,1,three.Color.fromHex32(0xffff00));
-                threeV.add(light,helper);
+                threeV.add(light);
+                threeV.skeleton.add(helper);
               },
             ),
             NavItems(
@@ -661,7 +681,8 @@ class ScreenNavigator{
                 final light = three.PointLight(0xffffff,10);
                 final helper = PointLightHelper(light,1,0xffff00);
                 light.name = 'Point Light';
-                threeV.add(light,helper);
+                threeV.add(light);
+                threeV.skeleton.add(helper);
               },
             ),
             NavItems(
@@ -672,7 +693,8 @@ class ScreenNavigator{
                 final light = three.HemisphereLight(0xffffff,0x444444);
                 final helper = HemisphereLightHelper(light,1,three.Color.fromHex32(0xffff00));
                 light.name = 'Hemisphere Light';
-                threeV.add(light,helper);
+                threeV.add(light);
+                threeV.skeleton.add(helper);
               },
             ),
             NavItems(
@@ -683,7 +705,8 @@ class ScreenNavigator{
                 final light = three.RectAreaLight(0xffffff,0x444444);
                 final helper = RectAreaLightHelper(light,three.Color.fromHex32(0xffff00));
                 light.name = 'Rect Area Light';
-                threeV.add(light,helper);
+                threeV.add(light);
+                threeV.skeleton.add(helper);
               },
             ),
           ]

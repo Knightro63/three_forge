@@ -24,21 +24,31 @@ class ThreeForgeExport{
 
   Map<String,dynamic> _getRotation(Euler rotation){
     return{
-      'rotation': {
-        'x': rotation.x,
-        'y': rotation.y,
-        'z': rotation.z
-      }
+      'x': rotation.x,
+      'y': rotation.y,
+      'z': rotation.z
     };
   }
 
   Map<String,dynamic> _createObject(Object3D object){
-    Map<String,List<String>> attachedObjects = {};
+    Map<String,List<Map<String,dynamic>>> attachedObjects = {};
     if(object.userData['attachedObjects'] != null){
       for(final key in object.userData['attachedObjects'].keys){
-        final List<String> list = [];
-        for(final l in object.userData['attachedObjects'][key]){
-          list.add(l.uuid);
+        final List<Map<String,dynamic>> list = [];
+        for(final o in object.userData['attachedObjects'][key]){
+          if(o is Mesh && o.userData['path'] == null){
+            if(o.name.contains('Collider-')){
+              list.add(_createCollider(o));
+            }
+            else{
+              list.add(_createMesh(o));
+            }
+          }
+          else{
+            list.add(_createObject(o));
+          }
+
+          list.last['parent'] = o.parent.name;
         }
         attachedObjects[key] = list;
       }
@@ -47,10 +57,13 @@ class ThreeForgeExport{
       'object_${object.uuid}': {
         'path': object.userData['path'],
         'transform': _getTransform(object),
+        'uuid': object.uuid,
+        'name': object.name,
         if(attachedObjects != {})'attachedObjects': attachedObjects,
         if(object.userData['importedActions'] != null)'importedActions': object.userData['importedActions'],
         if(object.userData['scriptPath'] != null)'script': object.userData['scriptPath'],
-        if(object.userData['physics'] != null)'physics': object.userData['physics']
+        if(object.userData['physics'] != null)'physics': object.userData['physics'],
+        if(object.userData['audio'] != null)'audio': object.userData['audio'],
       }
     };
   }
@@ -70,7 +83,10 @@ class ThreeForgeExport{
       'voxel_${voxel.uuid}': {
         'path': voxel.object?.userData['path'],
         'transform': _getTransform(voxel),
-        'children': children
+        'children': children,
+        'object': voxel.object?.userData['path'],
+        'uuid': voxel.uuid,
+        'name': voxel.name,
       }
     };
   }
@@ -92,7 +108,10 @@ class ThreeForgeExport{
         'top': camera.top,
         'right': camera.right,
         'bottom': camera.bottom,
-        'transform': _getTransform(camera)
+        'transform': _getTransform(camera),
+        'uuid': camera.uuid,
+        'name': camera.name,
+        if(camera.userData['mainCamera'] != null)'mainCamera': camera.userData['mainCamera']
       },
     };
   }
@@ -100,6 +119,8 @@ class ThreeForgeExport{
   Map<String,dynamic> _createLight(Light light){
     return {
       'light_${light.uuid}': {
+        'uuid': light.uuid,
+        'name': light.name,
         'type': light.runtimeType.toString(),
         'color': light.color?.getHex(),
         'intensity': light.intensity,
@@ -129,11 +150,15 @@ class ThreeForgeExport{
   Map<String,dynamic> _createMesh(Mesh mesh){
     return {
       'mesh_${mesh.uuid}': {
+        'type': mesh.userData['meshType'],
+        'uuid': mesh.uuid,
+        'name': mesh.name,
         'subdivisions': mesh.userData['subdivisions'],
         'decimate': mesh.userData['decimate'],
         'subdivisionType': mesh.userData['subdivisionType'],
         'material': _createMaterial(mesh),
         'transform': _getTransform(mesh),
+        if(mesh.userData['audio'] != null)'audio': mesh.userData['audio'],
         if(mesh.userData['scriptPath'] != null)'script': mesh.userData['scriptPath'],
         if(mesh.userData['physics'] != null)'physics': mesh.userData['physics']
       }
@@ -142,8 +167,12 @@ class ThreeForgeExport{
   Map<String,dynamic> _createCollider(Mesh mesh){
     return {
       'collider_${mesh.uuid}': {
+        'type': mesh.userData['meshType'],
+        'uuid': mesh.uuid,
+        'name': mesh.name,
         'transform': _getTransform(mesh),
-        'physics': mesh.userData['physics']
+        'physics': mesh.userData['physics'],
+        if(mesh.userData['audio'] != null)'audio': mesh.userData['audio'],
       }
     };
   }
@@ -163,9 +192,8 @@ class ThreeForgeExport{
           }:null,
           'color': scene.background is Color?(scene.background as Color).getHex():null,
         },
-        'backgroundTexture': scene.background is Color?null:scene.background?.userData['path'],
         'sameastext': scene.environment == scene.background,
-        'environment': {
+        if(scene.environment != null)'environment': {
           'path': scene.environment?.userData['path'],
           'type': scene.environment?.runtimeType.toString(),
           'mapping': scene.environment?.mapping
@@ -190,15 +218,17 @@ class ThreeForgeExport{
   }
 
   Future<Map<String,dynamic>> _createTerrain(Terrain terrain, ThreeViewer viewer) async{
-    String path ='${viewer.dirPath}/assets/terrain/';
+    String path ='${viewer.dirPath}/assets/terrain';
     bool exists = await Directory(path).exists();
     if(!exists) await Directory(path).create(recursive: true);
     final name = 'terrain_${terrain.terrainScene?.uuid}';
-    final file = await File('$path/$name.bmp').writeAsBytes(terrain.heightmap);
+    final file = await File('$path/$name.bmp').writeAsBytes(terrain.heightMapImage!);
     terrain.guiSettings['imagePath'] = file.path;
     return {
-      name: terrain.guiSettings,
-      if(terrain.terrainScene?.userData['scriptPath'] != null)'script': terrain.terrainScene?.userData['scriptPath'],
+      name: {
+        'settings': terrain.guiSettings,
+        if(terrain.terrainScene?.userData['scriptPath'] != null)'script': terrain.terrainScene?.userData['scriptPath'],
+      }
     };
   }
 

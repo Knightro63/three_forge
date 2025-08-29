@@ -1,12 +1,15 @@
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 import 'package:three_forge/src/objects/create_models.dart';
+import 'package:three_forge/src/three_viewer/import.dart';
 import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js/three_js.dart' as three;
 import 'package:three_js_helpers/three_js_helpers.dart';
 
 class InsertModels {
   ThreeViewer threeV;
+  late final ThreeForgeImport import = ThreeForgeImport(threeV);
 
   InsertModels(this.threeV);
 
@@ -33,7 +36,13 @@ class InsertModels {
         }
       }
     }
-
+    
+    if(fileType == 'json'){
+      File file = File(path);
+      final json = jsonDecode(await file.readAsString());
+      threeV.reset();
+      import.import(json);
+    }
     if(fileType == 'obj'){
       final mat = await CreateModels.mtl('${path.replaceAll('.obj', '.mtl')}', '${name.replaceAll('.obj', '.mtl')}');
       await obj(path,name,false,mat);
@@ -69,30 +78,26 @@ class InsertModels {
 
   Future<void> vox(String path, String name, [bool crerateThumbnial = true]) async{
     final object = await CreateModels.vox(path, name);
-    BoundingBoxHelper h = BoundingBoxHelper(object.boundingBox)..visible = false;
     if(crerateThumbnial) await threeV.crerateThumbnial(object);
-    threeV.add(object,h);
+    threeV.add(object);
   }
   
   Future<void> xyz(String path, String name, [bool crerateThumbnial = true]) async{
     final object = await CreateModels.xyz(path, name);
-    BoundingBoxHelper h = BoundingBoxHelper(object.boundingBox)..visible = false;
     if(crerateThumbnial) await threeV.crerateThumbnial(object);
-    threeV.add(object,h);
+    threeV.add(object);
   }
 
   Future<void> collada(String path, String name, [bool crerateThumbnial = true]) async{
     final object = await CreateModels.collada(path, name);
-    BoundingBoxHelper h = BoundingBoxHelper(object.boundingBox)..visible = false;
     if(crerateThumbnial) await threeV.crerateThumbnial(object);
-    threeV.add(object,h);
+    threeV.add(object);
   }
 
   Future<void> usdz(String path, String name, [bool crerateThumbnial = true]) async{
     final object = await CreateModels.usdz(path, name);
-    BoundingBoxHelper h = BoundingBoxHelper(object.boundingBox)..visible = false;
     if(crerateThumbnial) await threeV.crerateThumbnial(object);
-    threeV.add(object,h);
+    threeV.add(object);
   }
 
   Future<void> fbx(String path, String name, [bool crerateThumbnial = true, bool moveFiles = false]) async{
@@ -125,6 +130,7 @@ class InsertModels {
     final three.BoundingBox box = three.BoundingBox();
     box.setFromObject(object);
     BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
+    object.add(h);
     final skeleton = SkeletonHelper(object)..visible = false;
 
     //scale to normal size
@@ -180,8 +186,8 @@ class InsertModels {
 
     if(crerateThumbnial) await threeV.crerateThumbnial(object);
     object.userData['skeleton'] = skeleton;
-    threeV.add(object,h);
-    threeV.threeJs.scene.add(skeleton);
+    threeV.add(object);
+    threeV.skeleton.add(skeleton);
     object.userData['path'] = path;
 
    if(moveFiles && paths.isNotEmpty){
@@ -222,6 +228,7 @@ class InsertModels {
     skeleton.visible = false;
     BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
     gltf.name = name.split('.').first;
+    gltf.add(h);
 
     if(object.animations!.isNotEmpty){
       gltf.userData['animations'] = object.animations!;
@@ -257,8 +264,8 @@ class InsertModels {
 
     if(crerateThumbnial) await threeV.crerateThumbnial(gltf, box);
     gltf.userData['skeleton'] = skeleton;
-    threeV.add(gltf,h);
-    threeV.threeJs.scene.add(skeleton);
+    threeV.add(gltf);
+    threeV.skeleton.add(skeleton);
     object.userData?['path'] = path;
 
     if(moveFiles && paths.length > 1){
@@ -271,28 +278,76 @@ class InsertModels {
 
   Future<void> ply(String path, String name, [bool crerateThumbnial = true]) async{
     final object = await CreateModels.ply(path, name);
-    BoundingBoxHelper h = BoundingBoxHelper(object.boundingBox)..visible = false;
     if(crerateThumbnial) await threeV.crerateThumbnial(object);
-    threeV.add(object,h);
+    threeV.add(object);
   }
 
   Future<void> stl(String path, String name, [bool crerateThumbnial = true]) async{
     final object = await CreateModels.stl(path, name);
-    BoundingBoxHelper h = BoundingBoxHelper(object.boundingBox)..visible = false;
     if(crerateThumbnial) await threeV.crerateThumbnial(object);
-    threeV.add(object,h);
+    threeV.add(object);
   }
 
   Future<void> obj(String path, String name, [bool crerateThumbnial = true, three.MaterialCreator? materials]) async{
     final object = await CreateModels.obj(path, name, materials);
-    BoundingBoxHelper h = BoundingBoxHelper(object.boundingBox)..visible = false;
     if(crerateThumbnial) await threeV.crerateThumbnial(object);
-    threeV.add(object,h);
+    threeV.add(object);
   }
 
   Future<void> image(String path, String name) async{
     final object = await CreateModels.image(path, name);
-    BoundingBoxHelper h = BoundingBoxHelper(object.boundingBox)..visible = false;
-    threeV.add(object,h);
+    threeV.add(object);
+  }
+
+  void setAsSame(bool sameastext){
+    threeV.threeJs.scene.userData['sameTexture'] = sameastext;
+    if(sameastext){
+      threeV.threeJs.scene.environment = threeV.threeJs.scene.background;
+      threeV.scene.environment = threeV.threeJs.scene.background;
+    }
+    else{
+      threeV.threeJs.scene.environment = null;
+      threeV.scene.environment = null;
+    }
+  }
+
+  Future<void> insertTexture(String path, int mappingValue, bool sameastext) async{
+    String fileType = path.split('.').last;
+    String name = path.split('/').last;
+    String dirPath = path.replaceAll(name, '');
+
+    if(fileType == 'hdr'){
+      final three.DataTexture rgbeLoader = await three.RGBELoader().setPath( dirPath ).fromAsset(name);
+      rgbeLoader.userData['path'] = path;
+      rgbeLoader.mapping = mappingValue;
+      threeV.threeJs.scene.background = rgbeLoader;
+      threeV.scene.background = rgbeLoader;
+      threeV.threeJs.scene.backgroundRotation = three.Euler(math.pi);
+      threeV.scene.backgroundRotation = three.Euler(math.pi);
+      setAsSame(sameastext);
+    }
+    else if(fileType == 'folder'){
+      final cubeRenderTarget = three.WebGLCubeRenderTarget( 256 );
+      final cubeCamera = three.CubeCamera( 1, 1000, cubeRenderTarget );
+
+      // envmap
+      List<String> genCubeUrls( prefix, postfix ) {
+        return [
+          prefix + 'px' + postfix, prefix + 'nx' + postfix,
+          '${prefix}ny$postfix', '${prefix}py$postfix',
+          prefix + 'pz' + postfix, prefix + 'nz' + postfix
+        ];
+      }
+
+      final urls = genCubeUrls( dirPath, '.jpg' );
+
+      three.CubeTextureLoader(flipY: true).fromAssetList(urls).then(( cubeTexture ) {
+        threeV.threeJs.scene.background = cubeTexture;
+        threeV.scene.background = cubeTexture;
+        cubeTexture?.userData['path'] = path;
+        setAsSame(sameastext);
+        cubeCamera.update( threeV.threeJs.renderer!, threeV.threeJs.scene );
+      });
+    }
   }
 }

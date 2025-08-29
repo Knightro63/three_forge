@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:three_forge/src/objects/create_models.dart';
 import 'package:three_forge/src/styles/savedWidgets.dart';
 import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js/three_js.dart' as three;
@@ -24,35 +25,6 @@ class _AnimationGuiState extends State<AnimationGui> {
     super.dispose();
   }
 
-  void ifNull(three.Object3D object){
-    final mixer = three.AnimationMixer(object);
-    object.userData['mixer'] = mixer;
-    threeV.threeJs.addAnimationEvent((dt){
-      mixer.update(dt);
-    });
-    object.userData['animationEvent'] = threeV.threeJs.events.last;
-  }
-
-  Future<void> addFBX(three.Object3D target, String path) async{
-    final loader = three.FBXLoader();
-    final bvh = await loader.fromPath(path);
-
-    String name = path.split('/').last.split('.').first;
-    if(target.userData['mixer'] == null){
-      ifNull(target);
-    }
-    if(target.userData['importedActions'] == null){
-      target.userData['importedActions'] = <String,dynamic>{};
-    }
-    target.userData['importedActions'][bvh!.uuid] = path;
-    target.userData['actionMap'][name] = (target.userData['mixer'] as three.AnimationMixer).clipAction(bvh.animations[0])!;
-    target.userData['actionMap'][name]!.enabled = true;
-    target.userData['actionMap'][name]!.setEffectiveTimeScale( 1.0 );
-    target.userData['actionMap'][name]!.setEffectiveWeight( 0.0 );
-    target.userData['actionMap'][name]!.play();
-
-    setState(() {});
-  }
   // Future<void> addBVH(three.Object3D target, String path) async{
   //   final loader = three.BVHLoader();
   //   final bvh = await loader.fromPath(path);
@@ -183,7 +155,7 @@ class _AnimationGuiState extends State<AnimationGui> {
           },
           onAcceptWithDetails: (details) async{
             if((details.data as String).split('.').last == 'fbx'){
-              addFBX(threeV.intersected[0],details.data! as String);
+              CreateModels.addFBXAnimation(threeV.intersected[0],details.data! as String,threeV);
             }else{
               //addBVH(threeV.intersected[0],details.data! as String);
             }

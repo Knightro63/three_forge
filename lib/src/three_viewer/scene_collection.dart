@@ -12,10 +12,7 @@ class SceneCollection extends StatelessWidget{
       padding: isSub?EdgeInsetsGeometry.only(left: 20):EdgeInsetsGeometry.only(left: 0),
       child: InkWell(
         onTap: (){
-          threeV.boxSelect(false);
-          threeV.intersected.clear();
-          threeV.intersected.add(child);
-          threeV.boxSelect(true);
+          threeV.selectPart(child);
           setState(() {
             
           });
@@ -64,8 +61,9 @@ class SceneCollection extends StatelessWidget{
     List<Widget> widgets = [
       InkWell(
         onTap: (){
+          threeV.selectScene();
           setState((){
-            threeV.sceneSelected = !threeV.sceneSelected;
+            
           });
         },
         child: Container(

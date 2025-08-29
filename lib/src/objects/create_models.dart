@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'dart:math' as math;
+import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js/three_js.dart' as three;
+import 'package:three_js_helpers/three_js_helpers.dart';
 
 class CreateModels {
   static Future<three.Object3D?> create(String path)async{
@@ -62,6 +64,34 @@ class CreateModels {
     return null;
   }
 
+  static void _ifNull(three.Object3D object, ThreeViewer threeV){
+    final mixer = three.AnimationMixer(object);
+    object.userData['mixer'] = mixer;
+    threeV.threeJs.addAnimationEvent((dt){
+      mixer.update(dt);
+    });
+    object.userData['animationEvent'] = threeV.threeJs.events.last;
+  }
+
+  static Future<void> addFBXAnimation(three.Object3D target, String path, ThreeViewer threeV) async{
+    final loader = three.FBXLoader();
+    final bvh = await loader.fromPath(path);
+
+    String name = path.split('/').last.split('.').first;
+    if(target.userData['mixer'] == null){
+      _ifNull(target,threeV);
+    }
+    if(target.userData['importedActions'] == null){
+      target.userData['importedActions'] = <String,dynamic>{};
+    }
+    target.userData['importedActions'][bvh!.uuid] = path;
+    target.userData['actionMap'][name] = (target.userData['mixer'] as three.AnimationMixer).clipAction(bvh.animations[0])!;
+    target.userData['actionMap'][name]!.enabled = true;
+    target.userData['actionMap'][name]!.setEffectiveTimeScale( 1.0 );
+    target.userData['actionMap'][name]!.setEffectiveWeight( 0.0 );
+    target.userData['actionMap'][name]!.play();
+  }
+
   static Future<three.Object3D> vox(String path, String name) async{
     final chunks = await three.VOXLoader().fromPath(path);
     final object = three.Group();
@@ -73,8 +103,9 @@ class CreateModels {
     }
     final three.BoundingBox box = three.BoundingBox();
     box.setFromObject(object);
+    BoundingBoxHelper h = BoundingBoxHelper(object.boundingBox)..visible = false;
     object.name = name.split('.').first;
-
+    object.add(h);
     return object..userData['path'] = path..boundingBox = box;
   }
   
@@ -83,7 +114,9 @@ class CreateModels {
     final object = three.Mesh(mesh,three.MeshStandardMaterial.fromMap({'side': three.DoubleSide}));
     final three.BoundingBox box = three.BoundingBox();
     box.setFromObject(object);
+    BoundingBoxHelper h = BoundingBoxHelper(object.boundingBox)..visible = false;
     object.name = name.split('.').first;
+    object.add(h);
     return object..userData['path'] = path..boundingBox = box;
   }
 
@@ -92,14 +125,18 @@ class CreateModels {
     final object = mesh!.scene!;
     final three.BoundingBox box = three.BoundingBox();
     box.setFromObject(object);
+    BoundingBoxHelper h = BoundingBoxHelper(object.boundingBox)..visible = false;
     object.name = name.split('.').first;
+    object.add(h);
     return object..userData['path'] = path..boundingBox = box;
   }
 
   static Future<three.Object3D> usdz(String path, String name) async{
     final object =  (await three.USDZLoader().fromPath(path))!;
     final three.BoundingBox box = three.BoundingBox();
-    box.setFromObject(object);
+    BoundingBoxHelper h = BoundingBoxHelper(object.boundingBox)..visible = false;
+    object.name = name.split('.').first;
+    object.add(h);
     object.scale = three.Vector3(0.01,0.01,0.01);
     return object..userData['path'] = path..name = name.split('.').first..boundingBox = box;
   }
@@ -146,7 +183,9 @@ class CreateModels {
     }
     object.scale = three.Vector3(scalar,scalar,scalar);
 
+    BoundingBoxHelper h = BoundingBoxHelper(object.boundingBox)..visible = false;
     object.name = name.split('.').first;
+    object.add(h);
     object.traverse((child) {
       if (child is three.Mesh) {
         child.geometry?.computeVertexNormals(); // Compute normals for the mesh
@@ -210,7 +249,9 @@ class CreateModels {
       }
     });
 
+    BoundingBoxHelper h = BoundingBoxHelper(gltf.boundingBox)..visible = false;
     gltf.name = name.split('.').first;
+    gltf.add(h);
 
     if(object.animations!.isNotEmpty){
       gltf.userData['animations'] = object.animations!;
@@ -252,7 +293,9 @@ class CreateModels {
     final three.BoundingBox box = three.BoundingBox();
     box.setFromObject(object);
     object.scale = three.Vector3(0.001,0.001,0.001);
+    BoundingBoxHelper h = BoundingBoxHelper(object.boundingBox)..visible = false;
     object.name = name.split('.').first;
+    object.add(h);
     return object..userData['path'] = path..boundingBox = box;
   }
 
@@ -260,7 +303,9 @@ class CreateModels {
     final object = (await three.STLLoader().fromPath(path))!;
     final three.BoundingBox box = three.BoundingBox();
     box.setFromObject(object);
+    BoundingBoxHelper h = BoundingBoxHelper(object.boundingBox)..visible = false;
     object.name = name.split('.').first;
+    object.add(h);
     return object..userData['path'] = path..boundingBox = box;
   }
 
@@ -272,7 +317,9 @@ class CreateModels {
     final three.BoundingBox box = three.BoundingBox();
     box.setFromObject(object!);
     object.scale = three.Vector3(0.01,0.01,0.01);
+    BoundingBoxHelper h = BoundingBoxHelper(object.boundingBox)..visible = false;
     object.name = name.split('.').first;
+    object.add(h);
     return object..userData['path'] = path..boundingBox = box;
   }
 
@@ -307,7 +354,9 @@ class CreateModels {
 
     final three.BoundingBox box = three.BoundingBox();
     box.setFromObject(object);
-
-    return object..userData['path'] = path..name = name.split('.').first..boundingBox = box;
+    BoundingBoxHelper h = BoundingBoxHelper(object.boundingBox)..visible = false;
+    object.name = name.split('.').first;
+    object.add(h);
+    return object..userData['path'] = path..boundingBox = box;
   }
 }

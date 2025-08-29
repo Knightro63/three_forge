@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:three_forge/src/objects/create_mesh.dart';
 import 'package:three_forge/src/styles/savedWidgets.dart';
 import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js/three_js.dart' as three;
-import 'package:three_js_modifers/loop_subdivision.dart';
-import 'package:three_js_modifers/simplify_modifer.dart';
 
 class ModiferGui extends StatefulWidget {
   const ModiferGui({Key? key, required this.threeV}):super(key: key);
@@ -30,36 +29,6 @@ class _ModiferGuiState extends State<ModiferGui> {
 
   final TextEditingController modiferController1 = TextEditingController();
   final TextEditingController modiferController2 = TextEditingController();
-
-  void subdivision(three.Object3D object){
-    object.userData['subdivisionType'] = subdivisionCC?'catmull':'simple';
-    final smoothGeometry = LoopSubdivision.modify(
-      object.userData['origionalGeometry'], 
-      object.userData['subdivisions'], 
-      LoopParameters(
-        split: true,
-        uvSmooth: false,
-        preserveEdges: false,
-        flatOnly: !subdivisionCC,
-      )
-    );
-
-    object.geometry = smoothGeometry;
-  }
-
-  void decimate(three.Object3D object){
-    if(object.userData['decimate'] != null && object.userData['decimate'] != 0){
-      final count = ( object.userData['origionalGeometry']?.attributes['position'].count * (object.userData['decimate']/100) ).floor();
-      final smoothGeometry = SimplifyModifier.modify(object.userData['origionalGeometry'], count );
-
-      object.geometry = smoothGeometry;
-    }
-  }
-
-  void simplify(three.Object3D object, double percent){
-    int count = ( object.geometry?.attributes['position'].count * percent/100 ).floor();
-    SimplifyModifier.modify( object.geometry!, count );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -134,7 +103,7 @@ class _ModiferGuiState extends State<ModiferGui> {
                     intersected.userData['subdivisions'] = 0;
                   }
 
-                  subdivision(intersected);
+                  CreateMesh.subdivision(intersected, !subdivisionCC);
                 });
               },
               child: const Icon(Icons.arrow_back_ios_new_rounded,size:10),
@@ -165,7 +134,7 @@ class _ModiferGuiState extends State<ModiferGui> {
                     intersected.userData['subdivisions'] = 1;
                   }
 
-                  subdivision(intersected);
+                  CreateMesh.subdivision(intersected, !subdivisionCC);
                 });
               },
               child: const Icon(Icons.arrow_forward_ios_rounded,size:10),
@@ -201,7 +170,7 @@ class _ModiferGuiState extends State<ModiferGui> {
                   intersected.userData['decimate'] = 0;
                 }
 
-                decimate(intersected);
+                CreateMesh.decimate(intersected);
               },
               controller: modiferController2,
             ),

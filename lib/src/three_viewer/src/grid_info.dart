@@ -9,7 +9,11 @@ import 'package:three_forge/src/styles/globals.dart';
 enum GridAxis{XZ,YZ,XY}
 
 class GridInfo{
-  GridInfo();
+  GridInfo(){
+    _createLine(0);
+    _createLine(1);
+    _createLine(2);
+  }
   
   final three.Mesh intersectPlane = three.Mesh(three.PlaneGeometry( 1000, 1000 )..rotateX( - math.pi / 2 ),three.MeshBasicMaterial.fromMap( { 'visible': false } ));//three.Mesh( three.BoxGeometry( 50, 50, 50 ), three.MeshBasicMaterial.fromMap( { 'color': 0xff0000, 'opacity': 0.5, 'transparent': true } ) );
   late TransformControls control;
@@ -29,7 +33,45 @@ class GridInfo{
 
   final GridHelper grid1 = GridHelper( 500, 500)..material?.color.setFromHex32(themeType == LsiThemes.dark?Colors.grey[900]!.value:Colors.grey[700]!.value)..material?.vertexColors = false;
   final GridHelper grid2 = GridHelper( 500, 100)..material?.color.setFromHex32(themeType == LsiThemes.dark?Colors.grey[500]!.value:Colors.grey[900]!.value)..material?.vertexColors = false;
-  late final three.Group grid = three.Group()..add(grid1)..add(grid2)..add(intersectPlane);
+  late final three.Group grid = three.Group()..add(_grid);
+  late final three.Group _grid = three.Group()..add(grid1)..add(grid2)..add(intersectPlane);
+
+  void reset(){
+    x = 0;
+    y = 0;
+    divisions = 500;
+    size = 500;
+    setSnap(false);
+    updateGrid(size, divisions);
+    setGridRotation(GridAxis.XZ);
+    showAxis(GridAxis.XZ);
+  }
+  void _createLine(int rgb){
+    List<double> vertices = rgb == 0?[500,0,0,-500,0,0]:rgb == 1?[0,500,0,0,-500,0]:[0,0,500,0,0,-500];
+    List<double> colors = rgb == 0?[1,0,0,1,0,0]:rgb == 1?[0,1,0,0,1,0]:[0,0,1,0,0,1];
+    final geometry = three.BufferGeometry();
+    geometry.setAttributeFromString('position',three.Float32BufferAttribute.fromList(vertices, 3, false));
+    geometry.setAttributeFromString('color',three.Float32BufferAttribute.fromList(colors, 3, false));
+
+    final material = three.LineBasicMaterial.fromMap({
+      "vertexColors": true, 
+      "toneMapped": true,
+    })
+      ..depthTest = false
+      ..linewidth = 5.0
+      ..depthWrite = true;
+
+    final ls = three.LineSegments(geometry,material);
+
+    grid.add(
+      ls
+      ..computeLineDistances()
+      ..scale.setValues(1,1,1)
+      ..renderOrder = 1
+    );
+
+    rgb == 0?axisX = ls:rgb==1?axisY = ls:axisZ = ls;
+  }
   void addControl(TransformControls control){
     this.control = control;
   }
@@ -67,7 +109,7 @@ class GridInfo{
     }
   }
   void setGridRotation(GridAxis axis){
-    axis = axis;
+    this.axis = axis;
     showAxis(axis);
     if(axis == GridAxis.XY){
       rotation.set(math.pi / 2,0,0);
@@ -82,7 +124,7 @@ class GridInfo{
       intersectPlane.rotation.set(math.pi / 2,0,0);
     }
   }
-  three.Euler get rotation => grid.rotation;
+  three.Euler get rotation => _grid.rotation;
 
   Map<String,dynamic> toJson(){
     return {
