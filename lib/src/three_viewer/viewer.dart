@@ -95,9 +95,10 @@ class ThreeViewer {
   final three.Quaternion resetCamQuant = three.Quaternion();
 
   final three.Scene scene = three.Scene();
-  late three.Camera camera;
+  //late three.Camera camera;
   late final three.PerspectiveCamera cameraPersp;
   late final three.OrthographicCamera cameraOrtho;
+  String cameraType = 'PerspectiveCamera';
 
   final three.Scene thumbnailScene = three.Scene();
   late final three.Camera thumbnailCamera;
@@ -130,14 +131,60 @@ class ThreeViewer {
   }
 
   void _addCamera(){
-    if(camera.userData['helper'] == null){
-      final CameraHelper cameraHelper = CameraHelper(camera);
+    if(cameraPersp.userData['helper'] == null){
+      final CameraHelper cameraHelper = CameraHelper(cameraPersp);
       helper.add(cameraHelper);
-      scene.add(camera..userData['helper'] = cameraHelper);
+      cameraPersp.userData['helper'] = cameraHelper;
+      cameraHelper.visible = true;
+      scene.add(cameraPersp);
     }
-    else{
-      scene.add(camera);
+    else if(cameraPersp.userData['helper'] != null){
+      final CameraHelper cameraHelper = CameraHelper(cameraPersp);
+      cameraPersp.userData['helper'].copy(cameraHelper);
+      cameraPersp.userData['helper'].visible = true;
+      scene.add(cameraPersp);
     }
+
+    if(cameraOrtho.userData['helper'] == null){
+      final CameraHelper cameraHelper = CameraHelper(cameraOrtho);
+      helper.add(cameraHelper);
+      cameraOrtho.userData['helper'] = cameraHelper;
+      cameraOrtho.visible = false;
+      cameraHelper.visible = false;
+      scene.add(cameraOrtho);
+    }
+    else if(cameraOrtho.userData['helper'] != null){
+      final CameraHelper cameraHelper = CameraHelper(cameraOrtho);
+      cameraOrtho.userData['helper'].copy(cameraHelper);
+      cameraOrtho.userData['helper'].visible = false;
+      scene.add(cameraOrtho);
+    }
+  }
+
+  void changeCamera(String cameraValue){
+    if(cameraType == cameraValue) return;
+    cameraOrtho.visible = false;
+    cameraOrtho.userData['helper'].visible = false;
+    cameraPersp.visible = false;
+    cameraPersp.userData['helper'].visible = false;
+
+    cameraType = cameraValue;
+    final three.Camera camera = cameraType == 'PerspectiveCamera'?cameraPersp:cameraOrtho;
+    final three.Camera camera2 = cameraType != 'PerspectiveCamera'?cameraPersp:cameraOrtho;
+
+    camera.position.setFrom( camera2.position );
+    camera.quaternion.setFrom( camera2.quaternion );
+
+    final direction = three.Vector3(); // Create once and reuse
+    camera2.getWorldDirection(direction); 
+    camera.lookAt(direction);
+
+    camera.visible = true;
+    camera.userData['helper'].visible  = true;
+    camera2.visible = false;
+    camera2.userData['helper'].visible  = false;
+    control.detach();
+    setState((){});
   }
 
   double aspectRatio(){
@@ -152,9 +199,8 @@ class ThreeViewer {
 
     cameraOrtho = three.OrthographicCamera( - frustumSize * aspect, frustumSize * aspect, frustumSize, - frustumSize, 0.1, 10 )..name = 'Main Camera'..userData['mainCamera'] = true;
     cameraPersp = three.PerspectiveCamera(40, aspect, 0.1, 10)..name = 'Main Camera'..userData['mainCamera'] = true;
-    camera = cameraPersp;
-    camera.position.setValues(5,5,-5);
-    camera.lookAt(three.Vector3());
+    cameraPersp.position.setValues(5,5,-5);
+    cameraPersp.lookAt(three.Vector3());
     
     threeJs.camera = three.PerspectiveCamera( 50, aspect, 0.1, 500 );
     threeJs.camera.position.setFrom(resetCamPos);
@@ -224,7 +270,12 @@ class ThreeViewer {
         threeJs.renderer?.setScissor( 20, 20, threeJs.width/4, threeJs.height/4 );
         threeJs.renderer?.setViewport( 20, 20, threeJs.width/4, threeJs.height/4 );
 
-        threeJs.renderer?.render(scene, camera );
+        if(cameraType == 'PerspectiveCamera'){
+          threeJs.renderer?.render(scene, cameraPersp );
+        }
+        else{
+          threeJs.renderer?.render(scene, cameraOrtho );
+        }
 
         threeJs.renderer?.setScissorTest( false );
       }
@@ -450,9 +501,9 @@ class ThreeViewer {
     three.Vector3(1, 1, 1)
   );
 
-  void add(three.Object3D? object){//}, [three.Object3D? helper]){
+  void add(three.Object3D? object){
     if(object != null){
-      scene.add(object..add(helper));
+      scene.add(object);
       
       // final three.BoundingBox modelBoundingBox = three.BoundingBox();
       // modelBoundingBox.setFromObject(object);
@@ -669,6 +720,7 @@ class ThreeViewer {
     orbit.target.setFrom(resetCamLookAt);
   }
   void setToMainCamera(){
+    final three.Camera camera = cameraType == 'PerspectiveCamera'?cameraPersp:cameraOrtho;
     threeJs.camera.position.setFrom( camera.position );
     threeJs.camera.quaternion.setFrom( camera.quaternion );
 
@@ -993,8 +1045,6 @@ class ThreeViewer {
     selectionHelperEnabled = false;
     control.detach();
 
-    helper.remove(camera..userData['helper']);
-
     didClick = false;
     sceneSelected = false;
     showCameraView = false;
@@ -1024,18 +1074,19 @@ class ThreeViewer {
     cameraOrtho.near = 0.1;
     cameraOrtho.far = 10;
     cameraOrtho.zoom = 1;
-    cameraOrtho..name = 'Main Camera'..userData['mainCamera'] = true;
+    cameraOrtho.name = 'Main Camera';
+    cameraOrtho.userData['mainCamera'] = true;
 
     cameraPersp.fov = 40;
     cameraPersp.aspect = aspect;
     cameraPersp.near = 0.1;
     cameraPersp.far = 10;
     cameraPersp.zoom = 1;
-    cameraPersp..name = 'Main Camera'..userData['mainCamera'] = true;
-    
-    camera = cameraPersp;
-    camera.position.setValues(5,5,-5);
-    camera.lookAt(three.Vector3());
+    cameraPersp.name = 'Main Camera';
+    cameraPersp.userData['mainCamera'] = true;
+
+    cameraPersp.position.setValues(5,5,-5);
+    cameraPersp.lookAt(three.Vector3());
 
     _setSky();
     _addCamera();

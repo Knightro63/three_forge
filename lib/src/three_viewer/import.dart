@@ -112,14 +112,13 @@ class ThreeForgeImport{
     return mesh.material!.toJson();
   }
 
-  void _setMainCamera(Map<String,dynamic> map){
+  void _setMainCameras(Map<String,dynamic> map){
     if('PerspectiveCamera' == map['type']){
-      threeV.camera = threeV.cameraPersp;
+      _setCamera(threeV.cameraPersp, map);
     }
     else{
-      threeV.camera = threeV.cameraOrtho;
+      _setCamera(threeV.cameraOrtho, map);
     }
-    _setCamera(threeV.camera, map);
   }
 
   void _createCamera(Map<String,dynamic> map, bool add){
@@ -328,7 +327,7 @@ class ThreeForgeImport{
         await _insertMesh(map);
       }
       else if(key.contains('camera') && map['camera']?['mainCamera'] == true){
-        _setMainCamera(map);
+        _setMainCameras(map);
       }
       else if(key.contains('camera')){
         _createCamera(map, true);

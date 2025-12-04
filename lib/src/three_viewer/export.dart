@@ -209,7 +209,9 @@ class ThreeForgeExport{
         }
       },
       'settings':{
-        'camera': _getTransform(viewer.camera),
+        'cameraPerspective': _getTransform(viewer.cameraPersp),
+        'cameraOrtographic': _getTransform(viewer.cameraOrtho),
+        'cameraType': viewer.cameraType,
         'grid': viewer.gridInfo.toJson(),
         'shading': viewer.shading.index,
         'controlSpace': viewer.controlSpace.index,

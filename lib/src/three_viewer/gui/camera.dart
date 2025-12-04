@@ -2,20 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:three_forge/src/styles/lsi_functions.dart';
 import 'package:three_forge/src/styles/savedWidgets.dart';
+import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js/three_js.dart' as three;
 import 'package:three_js_helpers/three_js_helpers.dart';
 
 class CameraGui extends StatefulWidget {
-  const CameraGui({Key? key, required this.camera, this.update}):super(key: key);
+  const CameraGui({Key? key, required this.camera, this.threeV}):super(key: key);
   final three.Camera camera;
-  final void Function(String)? update;
+  final ThreeViewer? threeV;
 
   @override
   _LightGuiState createState() => _LightGuiState();
 }
 
 class _LightGuiState extends State<CameraGui> {
-  late final three.Camera camera;
+  late three.Camera camera;
   List<DropdownMenuItem<String>> cameraSelector = LSIFunctions.setDropDownItems(['Orthographic', 'Perspective']);
   late String cameraValue;
 
@@ -23,7 +24,7 @@ class _LightGuiState extends State<CameraGui> {
   void initState() {
     super.initState();
     camera = widget.camera;
-    cameraValue = camera.runtimeType.toString() == 'OrthographicCamera'?'Orthographic':'Perspective';
+    cameraValue = widget.camera.runtimeType.toString() == 'PerspectiveCamera'?'Perspective':'Orthographic';
   }
   @override
   void dispose(){
@@ -50,8 +51,16 @@ class _LightGuiState extends State<CameraGui> {
     TextEditingController(),
   ];
 
+  void updateMainCamera(String cameraValue){
+    if(camera.userData['mainCamera'] == true){
+      widget.threeV!.changeCamera(cameraValue);
+    }
+    else{}
+    setState(() {});
+  }
+
   void updateCameraHelper(three.Camera camera){
-    (camera.userData['helper'] as three.Object3D).copy(CameraHelper(camera));
+    (camera.userData['helper'] as CameraHelper?)?.copy(CameraHelper(camera));
   }
   
   @override
@@ -63,7 +72,7 @@ class _LightGuiState extends State<CameraGui> {
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if(widget.update != null)Container(
+        if(camera.userData['mainCamera'] == true)Container(
           margin: const EdgeInsets.fromLTRB(0, 5, 0, 5),
           alignment: Alignment.center,
           height:20,
@@ -83,7 +92,7 @@ class _LightGuiState extends State<CameraGui> {
               style: Theme.of(context).primaryTextTheme.bodySmall,
               onChanged:(value){
                 cameraValue = value;
-                widget.update?.call(cameraValue);
+                updateMainCamera(cameraValue == 'Perspective'?'PerspectiveCamera':'OrthographicCamera');
                 updateCameraHelper(camera);
                 setState(() {});
               },

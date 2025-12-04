@@ -83,14 +83,16 @@ class SceneCollection extends StatelessWidget{
 
     for(final obj in threeV.scene.children){
       final child = obj;
-      final int? len = (child.userData['attachedObjects'] as Map?)?.length;
-      widgets.add(subModel(context, child, false, len != null));
+      if((child.userData['mainCamera'] == true && child.runtimeType.toString() == threeV.cameraType) || child.userData['mainCamera'] == null){
+        final int? len = (child.userData['attachedObjects'] as Map?)?.length;
+        widgets.add(subModel(context, child, false, len != null));
 
-      if(child.userData['opened'] == true) (child.userData['attachedObjects'] as Map?)?.forEach((key,list){
-        for(int i = 0; i < list.length; i++){
-          widgets.add(subModel(context, list[i], true, false));
-        }
-      });
+        if(child.userData['opened'] == true) (child.userData['attachedObjects'] as Map?)?.forEach((key,list){
+          for(int i = 0; i < list.length; i++){
+            widgets.add(subModel(context, list[i], true, false));
+          }
+        });
+      }
     }
 
     return ListView(
