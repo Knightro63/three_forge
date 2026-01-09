@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+import 'package:three_forge/src/history/commands.dart';
 import 'package:three_forge/src/styles/lsi_functions.dart';
 import 'package:three_forge/src/styles/savedWidgets.dart';
 import 'package:three_forge/src/three_viewer/decimal_index_formatter.dart';
@@ -36,7 +36,9 @@ class _MaterialGuiState extends State<MaterialGui> {
     'ShaderMaterial': three.ShaderMaterial(),
     'ShadowMaterial': three.ShadowMaterial(),
     'SpriteMaterial': three.SpriteMaterial(),
-    'PointsMaterial': three.PointsMaterial()
+    'PointsMaterial': three.PointsMaterial(),
+    // 'HexTilingMaterial': three.HexTilingMaterial(),
+    // 'ProjectedMaterial': three.ProjectedMaterial(),
   };
 
   @override
@@ -145,12 +147,12 @@ class _MaterialGuiState extends State<MaterialGui> {
     nameController.clear();
   }
 
-  void setNewMaterial(String key, three.Material? material){
+  void setNewMaterial(three.Material? material, three.Material? newMaterial){
     if(threeV.shading == ShadingType.material){
-      material = materialClasses[key];
+      material = newMaterial;
     }
     else{
-      material = materialClasses[key] ;
+      material = newMaterial;
     }
   }
 
@@ -206,23 +208,26 @@ class _MaterialGuiState extends State<MaterialGui> {
         SizedBox(width:80, child: Text(LSIFunctions.capFirstLetter(name))),
         Container(width: 10,height: 20, color: Color.fromRGBO((color.red*255).toInt(), (color.green*255).toInt(), (color.blue*255).toInt(), opacity),),
         EnterTextFormField(
-          label: '0x${color.getHex().toRadixString(16)}',
+          //label: '0x${color.getHex().toRadixString(16)}',
           width: 52,
           height: 20,
           maxLines: 1,
           textStyle: Theme.of(context).primaryTextTheme.bodySmall,
           color: Theme.of(context).canvasColor,
           onChanged: (val){
-            final int? hex = int.tryParse(val.replaceAll('0x', ''),radix: 16);
+            final int? hex = int.tryParse(val.replaceAll('0x', '').replaceAll('x', ''),radix: 16);
+            String nn = LSIFunctions.matString(name);
             if(hex != null){
+              threeV.execute(SetMaterialValueCommand(threeV, threeV.intersected[0], nn, hex)..allowDispatch=false);
               color.setFrom(three.Color.fromHex32(hex));
             }
             else{
+              threeV.execute(SetMaterialValueCommand(threeV, threeV.intersected[0], nn, Theme.of(context).canvasColor.toARGB32())..allowDispatch=false);
               color.setFrom(three.Color.fromHex64(Theme.of(context).canvasColor.toARGB32()));
             }
             //setState(() {});
           },
-          controller: colorControllers[c],
+          controller: colorControllers[c]..text = '0x${color.getHex().toRadixString(16)}',
         )
       ],
     );
@@ -234,16 +239,19 @@ class _MaterialGuiState extends State<MaterialGui> {
         SizedBox(width:90, child: Text(LSIFunctions.capFirstLetter(name))),
         EnterTextFormField(
           inputFormatters: [DecimalTextInputFormatter()],
-          label: numb.toString(),
+          //label: numb.toString(),
           width: 52,
           height: 20,
           maxLines: 1,
           textStyle: Theme.of(context).primaryTextTheme.bodySmall,
           color: Theme.of(context).canvasColor,
           onChanged: (val){
-            onChange.call(double.parse(val));
+            double v = double.tryParse(val) ?? 0;
+            String nn = LSIFunctions.matString(name);
+            threeV.execute(SetMaterialValueCommand(threeV, threeV.intersected[0], nn, v)..allowDispatch=false);
+            onChange.call(v);
           },
-          controller: numControllers[c],
+          controller: numControllers[c]..text = numb.toString(),
         )
       ],
     );
@@ -252,13 +260,8 @@ class _MaterialGuiState extends State<MaterialGui> {
   @override
   Widget build(BuildContext context) {
     controllerReset();
-    three.Material? material = threeV.intersected[0].userData['mainMaterial'];//.children[0].material;//.children[1].material;//.userData['mainMaterial'];
-    // threeV.intersected[0].traverse((callback){
-    //   if(callback.material != null){
-    //     print(callback.material);
-    //     //material = callback.material!;
-    //   }
-    // });
+    three.Material? material = threeV.intersected[0].userData['mainMaterial'];
+
     if(threeV.shading == ShadingType.material){
       material = threeV.intersected[0].material;
     }
@@ -281,6 +284,7 @@ class _MaterialGuiState extends State<MaterialGui> {
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
+                threeV.execute(SetMaterialValueCommand(threeV, threeV.intersected[0], 'name', val)..allowDispatch=false);
                 material!.name = val;
               },
               controller: nameController,
@@ -308,7 +312,10 @@ class _MaterialGuiState extends State<MaterialGui> {
               style: Theme.of(context).primaryTextTheme.bodySmall,
               onChanged:(value){
                 setState(() {
-                  setNewMaterial(value,material);
+                  final mat = materialClasses[value];
+                  threeV.execute(SetMaterialCommand(threeV, threeV.intersected[0], mat)..allowDispatch=false);
+                  setNewMaterial(material, mat);
+                  threeV.intersected[0].userData['mainMaterial'] = mat;
                 });
               },
             ),
@@ -395,7 +402,8 @@ class _MaterialGuiState extends State<MaterialGui> {
               focusColor: Theme.of(context).secondaryHeaderColor,
               style: Theme.of(context).primaryTextTheme.bodySmall,
               onChanged:(value){
-                setState(() {
+                setState(() { 
+                  threeV.execute(SetMaterialValueCommand(threeV, threeV.intersected[0], 'side', value));
                   material!.side = value;
                 });
               },
@@ -405,7 +413,8 @@ class _MaterialGuiState extends State<MaterialGui> {
         number('Size', material.size ?? 0, 15, (d){material!.size = d;}),
         InkWell(
           onTap: (){
-            material!.sizeAttenuation = !material.sizeAttenuation;
+            threeV.execute(SetMaterialValueCommand(threeV, threeV.intersected[0], 'sizeAttenuation', !material!.sizeAttenuation));
+            material.sizeAttenuation = !material.sizeAttenuation;
             setState(() {});
           },
           child: Row(
@@ -418,7 +427,8 @@ class _MaterialGuiState extends State<MaterialGui> {
         ),
         InkWell(
           onTap: (){
-            material!.flatShading = !material.flatShading;
+            threeV.execute(SetMaterialValueCommand(threeV, threeV.intersected[0], 'flatShading', !material!.flatShading));
+            material.flatShading = !material.flatShading;
             material.needsUpdate = true;
             setState(() {});
           },
@@ -451,6 +461,7 @@ class _MaterialGuiState extends State<MaterialGui> {
               style: Theme.of(context).primaryTextTheme.bodySmall,
               onChanged:(value){
                 setState(() {
+                  threeV.execute(SetMaterialValueCommand(threeV, threeV.intersected[0], 'blending', value));
                   material!.blending = value;
                 });
               },
@@ -460,7 +471,8 @@ class _MaterialGuiState extends State<MaterialGui> {
         number('Opacity', material.opacity, 16, (d){material!.opacity = d;}),
         InkWell(
           onTap: (){
-            material!.transparent = !material.transparent;
+            threeV.execute(SetMaterialValueCommand(threeV, threeV.intersected[0], 'transparent', !material!.transparent));
+            material.transparent = !material.transparent;
             setState(() {});
           },
           child: Row(
@@ -474,6 +486,7 @@ class _MaterialGuiState extends State<MaterialGui> {
         InkWell(
           onTap: (){
             material!.forceSinglePass = !material.forceSinglePass;
+            threeV.execute(SetMaterialValueCommand(threeV, threeV.intersected[0], 'forceSinglePass', material.forceSinglePass));
             setState(() {});
           },
           child: Row(
@@ -488,6 +501,7 @@ class _MaterialGuiState extends State<MaterialGui> {
         InkWell(
           onTap: (){
             material!.depthTest = !material.depthTest;
+            threeV.execute(SetMaterialValueCommand(threeV, threeV.intersected[0], 'depthTest', material.depthTest));
             setState(() {
               
             });
@@ -502,7 +516,8 @@ class _MaterialGuiState extends State<MaterialGui> {
         ),
         InkWell(
           onTap: (){
-            material!.depthWrite = !material.depthWrite;
+            threeV.execute(SetMaterialValueCommand(threeV, threeV.intersected[0], 'depthWrite', !material!.depthWrite));
+            material.depthWrite = !material.depthWrite;
             setState(() {});
           },
           child: Row(
@@ -515,7 +530,8 @@ class _MaterialGuiState extends State<MaterialGui> {
         ),
         InkWell(
           onTap: (){
-            material!.wireframe = !material.wireframe;
+            threeV.execute(SetMaterialValueCommand(threeV, threeV.intersected[0], 'wireframe', !material!.wireframe));
+            material.wireframe = !material.wireframe;
             setState(() {});
           },
           child: Row(

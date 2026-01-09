@@ -61,7 +61,7 @@ class ThreeForgeExport{
         'name': object.name,
         if(attachedObjects != {})'attachedObjects': attachedObjects,
         if(object.userData['importedActions'] != null)'importedActions': object.userData['importedActions'],
-        if(object.userData['scriptPath'] != null)'script': object.userData['scriptPath'],
+        if(object.userData['scripts'] != null)'scripts': object.userData['scripts'],
         if(object.userData['physics'] != null)'physics': object.userData['physics'],
         if(object.userData['audio'] != null)'audio': object.userData['audio'],
       }
@@ -92,7 +92,7 @@ class ThreeForgeExport{
   }
 
   Map<String,dynamic> _createMaterial(Mesh mesh){
-    return mesh.material!.toJson();
+    return mesh.userData['mainMaterial'].toJson();
   }
 
   Map<String,dynamic> _createCamera(Camera camera){
@@ -142,7 +142,7 @@ class ThreeForgeExport{
           'bias': light.shadow?.bias,
           'radius': light.shadow?.radius,
         },
-        if(light.userData['scriptPath'] != null)'script': light.userData['scriptPath'],
+        if(light.userData['scripts'] != null)'scripts': light.userData['scripts'],
       },
     };
   }
@@ -159,7 +159,7 @@ class ThreeForgeExport{
         'material': _createMaterial(mesh),
         'transform': _getTransform(mesh),
         if(mesh.userData['audio'] != null)'audio': mesh.userData['audio'],
-        if(mesh.userData['scriptPath'] != null)'script': mesh.userData['scriptPath'],
+        if(mesh.userData['scripts'] != null)'scripts': mesh.userData['scripts'],
         if(mesh.userData['physics'] != null)'physics': mesh.userData['physics']
       }
     };
@@ -229,7 +229,7 @@ class ThreeForgeExport{
     return {
       name: {
         'settings': terrain.guiSettings,
-        if(terrain.terrainScene?.userData['scriptPath'] != null)'script': terrain.terrainScene?.userData['scriptPath'],
+        if(terrain.terrainScene?.userData['scripts'] != null)'scripts': terrain.terrainScene?.userData['scripts'],
       }
     };
   }

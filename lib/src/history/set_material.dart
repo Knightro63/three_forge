@@ -1,30 +1,28 @@
 
 
-import 'package:three_forge/src/history/commands.dart';
+import "commands.dart";
 import 'package:three_js/three_js.dart';
 import 'package:three_js_tjs_loader/object_loader.dart';
 
 class SetMaterialCommand extends Command {
-  Object3D? object;
   Material? newMaterial;
   Material? oldMaterial;
   int materialSlot;
 
-	SetMaterialCommand(super.editor, [this.object = null, this.newMaterial = null, this.materialSlot = - 1 ]) {
-		this.type = 'SetMaterialCommand';
-		this.name = editor.strings.getKey( 'command/SetMaterial' );
-
+	SetMaterialCommand(super.editor, [super.object = null, this.newMaterial = null, this.materialSlot = - 1 ]) {
 		this.oldMaterial = ( object != null ) ? editor.getObjectMaterial( object!, materialSlot ) : null;
 	}
 
 	void execute() {
 		this.editor.setObjectMaterial( this.object!, this.materialSlot, this.newMaterial );
-		this.editor.signals.materialChanged.dispatch( [this.object, this.materialSlot] );
+		this.editor.dispatch();
 	}
 
+  @override
 	void undo() {
+    super.undo();
 		this.editor.setObjectMaterial( this.object!, this.materialSlot, this.oldMaterial );
-		this.editor.signals.materialChanged.dispatch( [this.object, this.materialSlot] );
+		this.editor.dispatch();
 	}
 
   @override

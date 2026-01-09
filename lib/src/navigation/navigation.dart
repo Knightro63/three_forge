@@ -167,6 +167,7 @@ class _NavState extends State<Navigation>{
           selected: currentItem,
           icon: data[i].icon,
           useName: data[i].useName,
+          loading: data[i].loading,
           onHover: (){
             setState(() {
               if(location != i){
@@ -379,6 +380,7 @@ class NavItem extends StatefulWidget{
     required this.style,
     required this.icon,
     this.useName = true,
+    this.loading = false,
   }):super(key: key);
 
   final String itemName;
@@ -390,6 +392,7 @@ class NavItem extends StatefulWidget{
   final GlobalKey itemKey;
   final IconData? icon;
   final bool useName;
+  final bool loading;
 
   @override
   _NavItemState createState() => _NavItemState();
@@ -435,7 +438,7 @@ class _NavItemState extends State<NavItem>{
             borderRadius: const BorderRadius.all(Radius.circular(2)),
             //border: border
           ),
-          child: !widget.useName && widget.icon != null?Icon(
+          child: widget.loading?SizedBox(height: widget.style.fontSize, width: widget.style.fontSize,child:CircularProgressIndicator()):!widget.useName && widget.icon != null?Icon(
             widget.icon,
             color: widget.style.color,
             size: widget.style.fontSize,

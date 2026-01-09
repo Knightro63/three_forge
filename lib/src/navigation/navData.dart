@@ -12,6 +12,7 @@ class NavItems{
     this.quarterTurns = 0,
     this.show = true,
     this.useName = true,
+    this.loading = false,
   });
 
   String name;
@@ -24,6 +25,7 @@ class NavItems{
   int quarterTurns;
   bool show;
   bool useName;
+  bool loading;
 }
 
 class NavTab{

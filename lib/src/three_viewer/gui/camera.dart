@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:three_forge/src/history/commands.dart';
 import 'package:three_forge/src/styles/lsi_functions.dart';
 import 'package:three_forge/src/styles/savedWidgets.dart';
 import 'package:three_forge/src/three_viewer/viewer.dart';
@@ -16,6 +17,7 @@ class CameraGui extends StatefulWidget {
 }
 
 class _LightGuiState extends State<CameraGui> {
+  ThreeViewer? get threeV => widget.threeV;
   late three.Camera camera;
   List<DropdownMenuItem<String>> cameraSelector = LSIFunctions.setDropDownItems(['Orthographic', 'Perspective']);
   late String cameraValue;
@@ -104,7 +106,7 @@ class _LightGuiState extends State<CameraGui> {
             SizedBox(width:d, child: const Text('Near')),
             EnterTextFormField(
               inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$'))],
-              label: camera.near.toString(),
+              //label: camera.near.toString(),
               width: d2,
               height: 20,
               maxLines: 1,
@@ -113,11 +115,18 @@ class _LightGuiState extends State<CameraGui> {
               onChanged: (val){
                 final double? hex = double.tryParse(val);
                 if(hex != null){
+                  threeV?.execute(
+                    SetValueCommand(threeV!, threeV!.intersected[0], 'near', hex)
+                    ..allowDispatch=false
+                    ..onRedoDone = (){
+                      updateCameraHelper(camera);
+                    }
+                  );
                   camera.near = hex;
                   updateCameraHelper(camera);
                 }
               },
-              controller: cameraControllers[0],
+              controller: cameraControllers[0]..text = camera.near.toString(),
             )
           ],
         ),
@@ -126,7 +135,7 @@ class _LightGuiState extends State<CameraGui> {
             SizedBox(width:d, child: const Text('Far')),
             EnterTextFormField(
               inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$'))],
-              label: camera.far.toString(),
+              //label: camera.far.toString(),
               width: d2,
               height: 20,
               maxLines: 1,
@@ -135,11 +144,17 @@ class _LightGuiState extends State<CameraGui> {
               onChanged: (val){
                 final double? hex = double.tryParse(val);
                 if(hex != null){
+                  threeV?.execute(SetValueCommand(threeV!, threeV!.intersected[0], 'far', hex)                    
+                  ..allowDispatch=false
+                    ..onRedoDone = (){
+                      updateCameraHelper(camera);
+                    }
+                  );
                   camera.far = hex;
                   updateCameraHelper(camera);
                 }
               },
-              controller: cameraControllers[1],
+              controller: cameraControllers[1]..text = camera.far.toString(),
             )
           ],
         ),
@@ -148,7 +163,7 @@ class _LightGuiState extends State<CameraGui> {
             SizedBox(width:d, child: const Text('Zoom')),
             EnterTextFormField(
               inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$'))],
-              label: camera.zoom.toString(),
+              //label: camera.zoom.toString(),
               width: d2,
               height: 20,
               maxLines: 1,
@@ -157,11 +172,17 @@ class _LightGuiState extends State<CameraGui> {
               onChanged: (val){
                 final double? hex = double.tryParse(val);
                 if(hex != null){
+                  threeV?.execute(SetValueCommand(threeV!, threeV!.intersected[0], 'zoom', hex)
+                    ..allowDispatch=false
+                    ..onRedoDone = (){
+                      updateCameraHelper(camera);
+                    }
+                  );
                   camera.zoom = hex;
                   updateCameraHelper(camera);
                 }
               },
-              controller: cameraControllers[2],
+              controller: cameraControllers[2]..text = camera.zoom.toString(),
             )
           ],
         ),
@@ -170,7 +191,7 @@ class _LightGuiState extends State<CameraGui> {
             SizedBox(width:d, child: const Text('Aspect')),
             EnterTextFormField(
               inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$'))],
-              label: camera.aspect.toString(),
+              //label: camera.aspect.toString(),
               width: d2,
               height: 20,
               maxLines: 1,
@@ -179,11 +200,17 @@ class _LightGuiState extends State<CameraGui> {
               onChanged: (val){
                 final double? hex = double.tryParse(val);
                 if(hex != null){
+                  threeV?.execute(SetValueCommand(threeV!, threeV!.intersected[0], 'aspect', hex)
+                    ..allowDispatch=false
+                    ..onRedoDone = (){
+                      updateCameraHelper(camera);
+                    }
+                  );
                   camera.aspect = hex;
                   updateCameraHelper(camera);
                 }
               },
-              controller: cameraControllers[3],
+              controller: cameraControllers[3]..text = camera.aspect.toString(),
             )
           ],
         ),
@@ -192,7 +219,7 @@ class _LightGuiState extends State<CameraGui> {
             SizedBox(width:d, child: const Text('FOV')),
             EnterTextFormField(
               inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$'))],
-              label: camera.fov.toString(),
+              //label: camera.fov.toString(),
               width: d2,
               height: 20,
               maxLines: 1,
@@ -201,11 +228,17 @@ class _LightGuiState extends State<CameraGui> {
               onChanged: (val){
                 final double? hex = double.tryParse(val);
                 if(hex != null){
+                  threeV?.execute(SetValueCommand(threeV!, threeV!.intersected[0], 'fov', hex)
+                    ..allowDispatch=false
+                    ..onRedoDone = (){
+                      updateCameraHelper(camera);
+                    }
+                  );
                   camera.fov = hex;
                   updateCameraHelper(camera);
                 }
               },
-              controller: cameraControllers[5],
+              controller: cameraControllers[5]..text = camera.fov.toString(),
             )
           ],
         ),
@@ -223,11 +256,17 @@ class _LightGuiState extends State<CameraGui> {
               onChanged: (val){
                 final double? hex = double.tryParse(val);
                 if(hex != null){
+                  threeV?.execute(SetValueCommand(threeV!, threeV!.intersected[0], 'left', hex)
+                    ..allowDispatch=false
+                    ..onRedoDone = (){
+                      updateCameraHelper(camera);
+                    }
+                  );
                   camera.left = hex;
                   updateCameraHelper(camera);
                 }
               },
-              controller: cameraControllers[6],
+              controller: cameraControllers[6]..text = camera.left.toString(),
             )
           ],
         ),
@@ -236,7 +275,7 @@ class _LightGuiState extends State<CameraGui> {
             SizedBox(width:d, child: const Text('Top')),
             EnterTextFormField(
               inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$'))],
-              label: camera.top.toString(),
+              //label: camera.top.toString(),
               width: d2,
               height: 20,
               maxLines: 1,
@@ -245,11 +284,17 @@ class _LightGuiState extends State<CameraGui> {
               onChanged: (val){
                 final double? hex = double.tryParse(val);
                 if(hex != null){
+                  threeV?.execute(SetValueCommand(threeV!, threeV!.intersected[0], 'top', hex)
+                    ..allowDispatch=false
+                    ..onRedoDone = (){
+                      updateCameraHelper(camera);
+                    }
+                  );
                   camera.top = hex;
                   updateCameraHelper(camera);
                 }
               },
-              controller: cameraControllers[7],
+              controller: cameraControllers[7]..text = camera.top.toString(),
             )
           ],
         ),
@@ -258,7 +303,7 @@ class _LightGuiState extends State<CameraGui> {
             SizedBox(width:d, child: Text('right')),
             EnterTextFormField(
               inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$'))],
-              label: camera.right.toString(),
+              //label: camera.right.toString(),
               width: d2,
               height: 20,
               maxLines: 1,
@@ -267,11 +312,17 @@ class _LightGuiState extends State<CameraGui> {
               onChanged: (val){
                 final double? hex = double.tryParse(val);
                 if(hex != null){
+                  threeV?.execute(SetValueCommand(threeV!, threeV!.intersected[0], 'right', hex)
+                    ..allowDispatch=false
+                    ..onRedoDone = (){
+                      updateCameraHelper(camera);
+                    }
+                  );
                   camera.right = hex;
                   updateCameraHelper(camera);
                 }
               },
-              controller: cameraControllers[8],
+              controller: cameraControllers[8]..text = camera.right.toString(),
             )
           ],
         ),
@@ -280,7 +331,7 @@ class _LightGuiState extends State<CameraGui> {
             SizedBox(width:d, child: Text('bottom')),
             EnterTextFormField(
               inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*$'))],
-              label: camera.bottom.toString(),
+              //label: camera.bottom.toString(),
               width: d2,
               height: 20,
               maxLines: 1,
@@ -289,11 +340,17 @@ class _LightGuiState extends State<CameraGui> {
               onChanged: (val){
                 final double? hex = double.tryParse(val);
                 if(hex != null){
+                  threeV?.execute(SetValueCommand(threeV!, threeV!.intersected[0], 'bottom', hex)
+                    ..allowDispatch=false
+                    ..onRedoDone = (){
+                      updateCameraHelper(camera);
+                    }
+                  );
                   camera.bottom = hex;
                   updateCameraHelper(camera);
                 }
               },
-              controller: cameraControllers[9],
+              controller: cameraControllers[9]..text = camera.bottom.toString(),
             )
           ],
         )

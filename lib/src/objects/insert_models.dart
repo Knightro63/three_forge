@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
+import 'package:three_forge/src/history/commands.dart';
 import 'package:three_forge/src/objects/create_models.dart';
 import 'package:three_forge/src/three_viewer/import.dart';
 import 'package:three_forge/src/three_viewer/viewer.dart';
@@ -79,24 +80,28 @@ class InsertModels {
   Future<void> vox(String path, String name, [bool crerateThumbnial = true]) async{
     final object = await CreateModels.vox(path, name);
     if(crerateThumbnial) await threeV.crerateThumbnial(object);
+    object.userData['path'] = path;
     threeV.add(object);
   }
   
   Future<void> xyz(String path, String name, [bool crerateThumbnial = true]) async{
     final object = await CreateModels.xyz(path, name);
     if(crerateThumbnial) await threeV.crerateThumbnial(object);
+    object.userData['path'] = path;
     threeV.add(object);
   }
 
   Future<void> collada(String path, String name, [bool crerateThumbnial = true]) async{
     final object = await CreateModels.collada(path, name);
     if(crerateThumbnial) await threeV.crerateThumbnial(object);
+    object.userData['path'] = path;
     threeV.add(object);
   }
 
   Future<void> usdz(String path, String name, [bool crerateThumbnial = true]) async{
     final object = await CreateModels.usdz(path, name);
     if(crerateThumbnial) await threeV.crerateThumbnial(object);
+    object.userData['path'] = path;
     threeV.add(object);
   }
 
@@ -191,7 +196,7 @@ class InsertModels {
     object.userData['path'] = path;
 
    if(moveFiles && paths.isNotEmpty){
-      await threeV.moveTextures(paths);
+      await threeV.fileSort.moveTextures(paths);
     }
   }
 
@@ -266,10 +271,10 @@ class InsertModels {
     gltf.userData['skeleton'] = skeleton;
     threeV.add(gltf);
     threeV.skeleton.add(skeleton);
-    object.userData?['path'] = path;
+    gltf.userData['path'] = path;
 
     if(moveFiles && paths.length > 1){
-      await threeV.moveFiles(name,paths);
+      await threeV.fileSort.moveFiles(name,paths);
       return true;
     }
     
@@ -279,33 +284,49 @@ class InsertModels {
   Future<void> ply(String path, String name, [bool crerateThumbnial = true]) async{
     final object = await CreateModels.ply(path, name);
     if(crerateThumbnial) await threeV.crerateThumbnial(object);
+    object.userData['path'] = path;
     threeV.add(object);
   }
 
   Future<void> stl(String path, String name, [bool crerateThumbnial = true]) async{
     final object = await CreateModels.stl(path, name);
     if(crerateThumbnial) await threeV.crerateThumbnial(object);
+    object.userData['path'] = path;
     threeV.add(object);
   }
 
   Future<void> obj(String path, String name, [bool crerateThumbnial = true, three.MaterialCreator? materials]) async{
     final object = await CreateModels.obj(path, name, materials);
     if(crerateThumbnial) await threeV.crerateThumbnial(object);
+    object.userData['path'] = path;
     threeV.add(object);
   }
 
   Future<void> image(String path, String name) async{
     final object = await CreateModels.image(path, name);
+    object.userData['path'] = path;
     threeV.add(object);
   }
 
   void setAsSame(bool sameastext){
     threeV.threeJs.scene.userData['sameTexture'] = sameastext;
     if(sameastext){
+      threeV.execute(
+        MultiCmdsCommand(threeV,[
+          SetValueCommand(threeV, threeV.scene, 'environment', threeV.threeJs.scene.background)..allowDispatch=false,
+          SetValueCommand(threeV, threeV.threeJs.scene, 'environment', threeV.threeJs.scene.background)..allowDispatch=false,
+        ])
+      );
       threeV.threeJs.scene.environment = threeV.threeJs.scene.background;
       threeV.scene.environment = threeV.threeJs.scene.background;
     }
     else{
+      threeV.execute(
+        MultiCmdsCommand(threeV,[
+          SetValueCommand(threeV, threeV.scene, 'environment', null)..allowDispatch=false,
+          SetValueCommand(threeV, threeV.threeJs.scene, 'environment', null)..allowDispatch=false,
+        ])
+      );
       threeV.threeJs.scene.environment = null;
       threeV.scene.environment = null;
     }
@@ -320,6 +341,14 @@ class InsertModels {
       final three.DataTexture rgbeLoader = await three.RGBELoader().setPath( dirPath ).fromAsset(name);
       rgbeLoader.userData['path'] = path;
       rgbeLoader.mapping = mappingValue;
+      threeV.execute(
+        MultiCmdsCommand(threeV,[
+          SetValueCommand(threeV, threeV.scene, 'background', rgbeLoader)..allowDispatch=false,
+          SetValueCommand(threeV, threeV.threeJs.scene, 'background', rgbeLoader)..allowDispatch=false,
+          SetValueCommand(threeV, threeV.scene, 'backgroundRotation', three.Euler(math.pi))..allowDispatch=false,
+          SetValueCommand(threeV, threeV.threeJs.scene, 'backgroundRotation', three.Euler(math.pi))
+        ])
+      );
       threeV.threeJs.scene.background = rgbeLoader;
       threeV.scene.background = rgbeLoader;
       threeV.threeJs.scene.backgroundRotation = three.Euler(math.pi);
@@ -342,6 +371,12 @@ class InsertModels {
       final urls = genCubeUrls( dirPath, '.jpg' );
 
       three.CubeTextureLoader(flipY: true).fromAssetList(urls).then(( cubeTexture ) {
+        threeV.execute(
+          MultiCmdsCommand(threeV,[
+            SetValueCommand(threeV, threeV.scene, 'background', cubeTexture)..allowDispatch=false,
+            SetValueCommand(threeV, threeV.threeJs.scene, 'background', cubeTexture)..allowDispatch=false,
+          ])
+        );
         threeV.threeJs.scene.background = cubeTexture;
         threeV.scene.background = cubeTexture;
         cubeTexture?.userData['path'] = path;

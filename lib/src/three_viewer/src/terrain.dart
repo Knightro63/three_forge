@@ -121,7 +121,6 @@ class Terrain{
   }
 
   Future<void> setup() async{
-
     three.TextureLoader loader = three.TextureLoader();
     final t1 = await loader.fromAsset('assets/terrain/sand1.jpg');
     t1?.wrapS = t1.wrapT = three.RepeatWrapping;

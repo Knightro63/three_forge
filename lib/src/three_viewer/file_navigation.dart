@@ -1,11 +1,19 @@
 import 'dart:io';
-
 import 'package:flutter/material.dart';
+import 'package:three_forge/src/history/history.dart';
+import 'package:three_forge/src/styles/savedWidgets.dart';
+
+enum NavigationType{
+  project,
+  console,
+  history
+}
 
 class FileNavigation extends StatefulWidget {
-  const FileNavigation({Key? key, required this.files, required this.consoleLog}):super(key: key);
+  const FileNavigation({Key? key, required this.files, required this.consoleLog, required this.history}):super(key: key);
   final Map<String,dynamic> files;
   final String consoleLog;
+  final History history;
 
   @override
   _FileNavigationState createState() => _FileNavigationState();
@@ -13,10 +21,13 @@ class FileNavigation extends StatefulWidget {
 
 class _FileNavigationState extends State<FileNavigation>{
   late final String mainPath;
-  bool consoleSelected = false;
+  NavigationType selectedNav = NavigationType.project;
   Map<String,List<FileSystemEntity>> files = {};
   List<String> filesOpen = [];
   String? folderSelected;
+
+  late TextEditingController controller1 = TextEditingController(text: widget.history.undoString);
+  late TextEditingController controller2 = TextEditingController(text: widget.history.redoString);
 
   @override
   void initState() {
@@ -52,7 +63,12 @@ class _FileNavigationState extends State<FileNavigation>{
       return Icon(Icons.flutter_dash);
     }
     else if(isImag){
-      return SizedBox(width: 75, height: 75, child: Image.file(File(path)));
+      return SizedBox(width: 75, height: 75, child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: Theme.of(context).primaryColorLight)
+        ),
+        child: Image.file(File(path)))
+      );
     }
     else if(path.contains('mp3') || path.contains('ogg')){
       return Icon(Icons.audio_file);
@@ -185,6 +201,100 @@ class _FileNavigationState extends State<FileNavigation>{
     );
   }
 
+  Widget fileNav(double width){
+    controller1.text = widget.history.undoString;
+    controller2.text = widget.history.redoString;
+    
+    switch (selectedNav) {
+      case NavigationType.project:
+        return Row(
+          children: [
+            folderStructure(),
+            folderSelected != null?displayFilesInFolder(width-160):
+            Container(
+              color: Theme.of(context).cardColor,
+              width: width-160,
+              height: 220,
+            )
+          ],
+        );
+      case NavigationType.console:
+        return Container(
+          width: width,
+          height: 220,
+          padding: EdgeInsets.all(5),
+          decoration: BoxDecoration(
+            color: Theme.of(context).canvasColor,
+            borderRadius: BorderRadius.circular(5)
+          ),
+          child: SingleChildScrollView(
+            reverse: true,
+            child: Text(
+              widget.consoleLog
+            ),
+          )
+        );
+      case NavigationType.history:
+        return Container(
+          width: width,
+          height: 220,
+          padding: EdgeInsets.all(5),
+          decoration: BoxDecoration(
+            color: Theme.of(context).canvasColor,
+            borderRadius: BorderRadius.circular(5)
+          ),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: width/2-7.5,
+                    child: Text(
+                      'Undos:',
+                      style: Theme.of(context).primaryTextTheme.bodyMedium,
+                    ),
+                  ),
+                  Container(
+                    width: width/2-7.5,
+                    padding: EdgeInsets.only(left: 5),
+                    child: Text(
+                      'Redos:',
+                      style: Theme.of(context).primaryTextTheme.bodyMedium,
+                    ),
+                  ),
+                ],
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  EnterTextFormField(
+                    width: width/2-7.5-20,
+                    height: 194,
+                    maxLines: 12,
+                    readOnly: true,
+                    controller: controller1,
+                    textStyle: Theme.of(context).primaryTextTheme.bodySmall,
+                  ),
+                  EnterTextFormField(
+                    width: width/2-7.5-20,
+                    height: 194,
+                    maxLines: 12,
+                    readOnly: true,
+                    controller: controller2,
+                    textStyle: Theme.of(context).primaryTextTheme.bodySmall,
+                  ),
+                ]
+              )
+            ],
+          )
+
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width*.8;
@@ -199,7 +309,7 @@ class _FileNavigationState extends State<FileNavigation>{
               children: [
                 InkWell(
                   onTap: (){
-                    consoleSelected = false;
+                    selectedNav = NavigationType.project;
                     setState(() {
                       
                     });
@@ -210,7 +320,7 @@ class _FileNavigationState extends State<FileNavigation>{
                     height: 25,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: consoleSelected?Theme.of(context).cardColor:Theme.of(context).secondaryHeaderColor,
+                      color: selectedNav == NavigationType.project?Theme.of(context).secondaryHeaderColor:Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(5)
                     ),
                     child: Text(
@@ -221,7 +331,7 @@ class _FileNavigationState extends State<FileNavigation>{
                 ),
                 InkWell(
                   onTap: (){
-                    consoleSelected = true;
+                    selectedNav = NavigationType.console;
                     setState(() {
                       
                     });
@@ -231,11 +341,32 @@ class _FileNavigationState extends State<FileNavigation>{
                     height: 25,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: consoleSelected?Theme.of(context).secondaryHeaderColor:Theme.of(context).cardColor,
+                      color: selectedNav == NavigationType.console?Theme.of(context).secondaryHeaderColor:Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(5)
                     ),
                     child: Text(
                       'Console',
+                      style: Theme.of(context).primaryTextTheme.bodySmall,
+                    ),
+                  ),
+                ),
+                InkWell(
+                  onTap: (){
+                    selectedNav = NavigationType.history;
+                    setState(() {
+                      
+                    });
+                  },
+                  child: Container(
+                    width: 80,
+                    height: 25,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: selectedNav == NavigationType.history?Theme.of(context).secondaryHeaderColor:Theme.of(context).cardColor,
+                      borderRadius: BorderRadius.circular(5)
+                    ),
+                    child: Text(
+                      'History',
                       style: Theme.of(context).primaryTextTheme.bodySmall,
                     ),
                   ),
@@ -250,31 +381,7 @@ class _FileNavigationState extends State<FileNavigation>{
               color: Theme.of(context).canvasColor,
               borderRadius: BorderRadius.circular(5)
             ),
-            child: consoleSelected?Container(
-                width: width,
-                height: 220,
-                padding: EdgeInsets.all(5),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).canvasColor,
-                  borderRadius: BorderRadius.circular(5)
-                ),
-                child: SingleChildScrollView(
-                  reverse: true,
-                  child: Text(
-                    widget.consoleLog
-                  ),
-                )
-              ):Row(
-              children: [
-                folderStructure(),
-                folderSelected != null?displayFilesInFolder(width-160):
-                Container(
-                  color: Theme.of(context).cardColor,
-                  width: width-160,
-                  height: 220,
-                )
-              ],
-            ),
+            child: fileNav(width),
           )
         ],
       ),

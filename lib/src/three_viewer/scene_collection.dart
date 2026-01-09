@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:three_forge/src/history/commands.dart';
 import 'package:three_forge/src/three_viewer/viewer.dart';
 
 class SceneCollection extends StatelessWidget{
@@ -42,8 +43,15 @@ class SceneCollection extends StatelessWidget{
               InkWell(
                 onTap: (){
                   setState(() {
+                    threeV.execute(
+                      SetValueCommand(threeV, child, 'visible', !child.visible)
+                        ..onRedoDone = (){
+                          if(child.userData['helper'] != null)child.userData['helper'].visible = !child.visible;
+                        }
+                    );
                     child.visible = !child.visible;
                     if(child.userData['helper'] != null)child.userData['helper'].visible = child.visible;
+                    threeV.control.detach();
                   });
                 },
                 child: Icon(child.visible?Icons.visibility:Icons.visibility_off,size: 15,),

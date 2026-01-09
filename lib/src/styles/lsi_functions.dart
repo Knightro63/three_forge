@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
 class LSIFunctions{
+  static String matString(String input) {
+    final String firstPart = input[0].toLowerCase();
+    final String secondPart = input.substring(1).replaceAll(' ', '');
+    return firstPart + secondPart;
+  }
   static String toLowercaseFromCharacter(String input, String character) {
     final int index = input.indexOf(character);
 

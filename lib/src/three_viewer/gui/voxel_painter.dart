@@ -12,9 +12,8 @@ class VoxelPainterGui extends StatefulWidget {
 }
 
 class _VoxelPainterGuiState extends State<VoxelPainterGui> {
-  late final VoxelPainter voxelPainter;
+  late VoxelPainter voxelPainter;
   final TextEditingController objectController = TextEditingController();
-  final TextEditingController helperController = TextEditingController();
 
   @override
   void initState() {
@@ -28,6 +27,10 @@ class _VoxelPainterGuiState extends State<VoxelPainterGui> {
 
   @override
   Widget build(BuildContext context) {
+    if(voxelPainter != widget.voxelPainter){
+      voxelPainter = widget.voxelPainter;
+    }
+    objectController.text = voxelPainter.helper?.name ?? '';
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,

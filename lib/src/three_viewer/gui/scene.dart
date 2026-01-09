@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:three_forge/src/history/commands.dart';
 import 'package:three_forge/src/objects/insert_models.dart';
 import 'package:three_forge/src/styles/savedWidgets.dart';
 import 'package:three_forge/src/three_viewer/decimal_index_formatter.dart';
@@ -125,7 +126,6 @@ class _SceneGuiState extends State<SceneGui> {
             const Text('Color'),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: threeV.scene.background is three.Color?'0x'+(threeV.scene.background as three.Color).getHex().toRadixString(16):'',
               width: 80,
               height: 20,
               maxLines: 1,
@@ -134,13 +134,27 @@ class _SceneGuiState extends State<SceneGui> {
               onChanged: (val){
                 final int? hex = int.tryParse(val.replaceAll('0x', ''),radix: 16);
                 if(hex != null){
+                  threeV.execute(
+                    MultiCmdsCommand(threeV,[
+                      SetValueCommand(threeV, threeV.scene, 'background', hex)..allowDispatch=false,
+                      SetValueCommand(threeV, threeV.threeJs.scene, 'background', hex)..allowDispatch=false
+                    ])
+                  );
                   threeV.scene.background = three.Color.fromHex32(hex);
+                  threeV.threeJs.scene.background = three.Color.fromHex32(hex);
                 }
                 else{
+                 threeV.execute(
+                    MultiCmdsCommand(threeV,[
+                      SetValueCommand(threeV, threeV.scene, 'background', Theme.of(context).canvasColor.toARGB32())..allowDispatch=false,
+                      SetValueCommand(threeV, threeV.threeJs.scene, 'background', Theme.of(context).canvasColor.toARGB32())..allowDispatch=false
+                    ])
+                  );
                   threeV.scene.background = three.Color.fromHex64(Theme.of(context).canvasColor.toARGB32());
+                  threeV.threeJs.scene.background = three.Color.fromHex64(Theme.of(context).canvasColor.toARGB32());
                 }
               },
-              controller: sceneControllers[0],
+              controller: sceneControllers[0]..text = threeV.scene.background is three.Color?'0x'+(threeV.scene.background as three.Color).getHex().toRadixString(16):'',
             )
           ],
         ),
@@ -242,16 +256,18 @@ class _SceneGuiState extends State<SceneGui> {
             const Text('Text   '),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: threeV.scene.backgroundIntensity.toString(),
+              //label: threeV.scene.backgroundIntensity.toString(),
               width: 80,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                threeV.scene.backgroundIntensity = double.parse(val);
+                final v = double.tryParse(val) ?? 1;
+                threeV.execute(SetValueCommand(threeV, threeV.scene, 'backgroundIntensity', v)..allowDispatch=false);
+                threeV.scene.backgroundIntensity = v;
               },
-              controller: sceneControllers[3],
+              controller: sceneControllers[3]..text = threeV.scene.backgroundIntensity.toString(),
             )
           ],
         ),
@@ -260,16 +276,18 @@ class _SceneGuiState extends State<SceneGui> {
             const Text('Env    '),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: threeV.scene.environmentIntensity.toString(),
+              //label: threeV.scene.environmentIntensity.toString(),
               width: 80,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                threeV.scene.environmentIntensity = double.parse(val);
+                final v = double.tryParse(val) ?? 1;
+                threeV.execute(SetValueCommand(threeV, threeV.scene, 'environmentIntensity', v)..allowDispatch=false);
+                threeV.scene.environmentIntensity = v;
               },
-              controller: sceneControllers[4],
+              controller: sceneControllers[4]..text = threeV.scene.environmentIntensity.toString(),
             )
           ],
         ),
@@ -282,16 +300,17 @@ class _SceneGuiState extends State<SceneGui> {
             const Text('X'),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: threeV.scene.backgroundRotation.x.toString(),
               width: 80,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                threeV.scene.backgroundRotation.x = double.parse(val);
+                final v = double.tryParse(val)?.toRad() ?? 0;
+                threeV.execute(SetValueCommand(threeV, threeV.scene, 'backgroundRotation', three.Euler(v))..allowDispatch=false);
+                threeV.scene.backgroundRotation.x = v;
               },
-              controller: sceneControllers[5],
+              controller: sceneControllers[5]..text = threeV.scene.backgroundRotation.x.toDeg().toString(),
             )
           ],
         ),
@@ -300,16 +319,18 @@ class _SceneGuiState extends State<SceneGui> {
             const Text('Y'),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: threeV.scene.backgroundRotation.y.toString(),
+              //label: threeV.scene.backgroundRotation.y.toString(),
               width: 80,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                threeV.scene.backgroundRotation.y = double.parse(val);
+                final v = double.tryParse(val)?.toRad() ?? 0;
+                threeV.execute(SetValueCommand(threeV, threeV.scene, 'backgroundRotation', three.Euler(threeV.scene.backgroundRotation.x,v))..allowDispatch=false);
+                threeV.scene.backgroundRotation.y = v;
               },
-              controller: sceneControllers[6],
+              controller: sceneControllers[6]..text = threeV.scene.backgroundRotation.y.toDeg().toString(),
             )
           ],
         ),
@@ -318,16 +339,18 @@ class _SceneGuiState extends State<SceneGui> {
             const Text('Z'),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: threeV.scene.backgroundRotation.z.toString(),
+              //label: threeV.scene.backgroundRotation.z.toString(),
               width: 80,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                threeV.scene.backgroundRotation.z = double.parse(val);
+                final v = double.tryParse(val)?.toRad() ?? 0;
+                threeV.execute(SetValueCommand(threeV, threeV.scene, 'backgroundRotation', three.Euler(threeV.scene.backgroundRotation.x,threeV.scene.backgroundRotation.y,v))..allowDispatch=false);
+                threeV.scene.backgroundRotation.z = v;
               },
-              controller: sceneControllers[7],
+              controller: sceneControllers[7]..text = threeV.scene.backgroundRotation.z.toDeg().toString(),
             )
           ],
         ),
@@ -340,16 +363,18 @@ class _SceneGuiState extends State<SceneGui> {
             const Text('X'),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: threeV.scene.environmentRotation.x.toString(),
+              //label: threeV.scene.environmentRotation.x.toString(),
               width: 80,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                threeV.scene.environmentRotation.x = double.parse(val);
+                final v = double.tryParse(val)?.toRad() ?? 0;
+                threeV.execute(SetValueCommand(threeV, threeV.scene, 'environmentRotation', three.Euler(v))..allowDispatch=false);
+                threeV.scene.environmentRotation.x = v;
               },
-              controller: sceneControllers[6],
+              controller: sceneControllers[6]..text = threeV.scene.environmentRotation.x.toDeg().toString(),
             )
           ],
         ),
@@ -365,9 +390,11 @@ class _SceneGuiState extends State<SceneGui> {
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                threeV.scene.environmentRotation.y = double.parse(val);
+                final v = double.tryParse(val)?.toRad() ?? 0;
+                threeV.execute(SetValueCommand(threeV, threeV.scene, 'environmentRotation', three.Euler(threeV.scene.environmentRotation.x,v))..allowDispatch=false);
+                threeV.scene.environmentRotation.y = v;
               },
-              controller: sceneControllers[8],
+              controller: sceneControllers[8]..text = threeV.scene.environmentRotation.x.toDeg().toString(),
             )
           ],
         ),
@@ -383,9 +410,11 @@ class _SceneGuiState extends State<SceneGui> {
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                threeV.scene.environmentRotation.z = double.parse(val);
+                final v = double.tryParse(val)?.toRad() ?? 0;
+                threeV.execute(SetValueCommand(threeV, threeV.scene, 'environmentRotation', three.Euler(threeV.scene.environmentRotation.x,threeV.scene.environmentRotation.y,v))..allowDispatch=false);
+                threeV.scene.environmentRotation.z = v;
               },
-              controller: sceneControllers[9],
+              controller: sceneControllers[9]..text = threeV.scene.environmentRotation.x.toDeg().toString(),
             )
           ],
         ),
@@ -395,9 +424,11 @@ class _SceneGuiState extends State<SceneGui> {
           onTap: (){
             fog = !fog;
             if(!fog){
+              threeV.execute(SetValueCommand(threeV, threeV.scene, 'fog', null));
               threeV.scene.fog = null;
             }
             else{
+              threeV.execute(SetValueCommand(threeV, threeV.scene, 'fog', threeV.fog));
               threeV.scene.fog = threeV.fog;
             }
             setState(() {
@@ -418,7 +449,7 @@ class _SceneGuiState extends State<SceneGui> {
             const Text('Color'),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: threeV.scene.fog != null?'0x'+threeV.scene.fog!.color.getHex().toRadixString(16):'',
+              //label: threeV.scene.fog != null?'0x'+threeV.scene.fog!.color.getHex().toRadixString(16):'',
               width: 80,
               height: 20,
               maxLines: 1,
@@ -427,13 +458,15 @@ class _SceneGuiState extends State<SceneGui> {
               onChanged: (val){
                 final int? hex = int.tryParse(val.replaceAll('0x', ''),radix: 16);
                 if(hex != null){
+                  threeV.execute(SetFogValueCommand(threeV, threeV.scene.fog, 'color', hex)..allowDispatch = false);
                   threeV.scene.fog!.color.setFromHex32(hex);
                 }
                 else{
-                  threeV.scene.fog!.color.setFromHex32(Theme.of(context).canvasColor.value);
+                  threeV.execute(SetFogValueCommand(threeV, threeV.scene.fog, 'color', Theme.of(context).canvasColor.toARGB32())..allowDispatch = false);
+                  threeV.scene.fog!.color.setFromHex32(Theme.of(context).canvasColor.toARGB32());
                 }
               },
-              controller: sceneControllers[10],
+              controller: sceneControllers[10]..text = threeV.scene.fog != null?'0x'+threeV.scene.fog!.color.getHex().toRadixString(16):'',
             )
           ],
         ),
@@ -442,17 +475,20 @@ class _SceneGuiState extends State<SceneGui> {
             const Text('Near '),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: threeV.scene.fog?.near.toString() ?? '',
+              //label: threeV.scene.fog?.near.toString() ?? '',
               width: 80,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                final double hex = double.tryParse(val) ?? 10;
-                threeV.scene.fog?.near = hex;
+                if(threeV.scene.fog != null){
+                  final double hex = double.tryParse(val) ?? 10;
+                  threeV.execute(SetFogValueCommand(threeV, threeV.scene.fog, 'near', hex)..allowDispatch = false);
+                  threeV.scene.fog?.near = hex;
+                }
               },
-              controller: sceneControllers[11],
+              controller: sceneControllers[11]..text = threeV.scene.fog?.near.toString() ?? '',
             )
           ],
         ),
@@ -461,17 +497,20 @@ class _SceneGuiState extends State<SceneGui> {
             const Text('Far    '),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: threeV.scene.fog?.far.toString() ?? '',
+              //label: threeV.scene.fog?.far.toString() ?? '',
               width: 80,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                final double hex = double.tryParse(val) ?? 10;
-                threeV.scene.fog?.far = hex;
+                if(threeV.scene.fog != null){
+                  final double hex = double.tryParse(val) ?? 10;
+                  threeV.execute(SetFogValueCommand(threeV, threeV.scene.fog, 'far', hex)..allowDispatch = false);
+                  threeV.scene.fog?.far = hex;
+                }
               },
-              controller: sceneControllers[12],
+              controller: sceneControllers[12]..text = threeV.scene.fog?.far.toString() ?? '',
             )
           ],
         ),

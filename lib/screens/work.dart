@@ -1,5 +1,6 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:process_run/stdio.dart';
 import 'package:three_forge/src/navigation/screen_navigator.dart';
 import 'package:three_forge/src/three_viewer/file_navigation.dart';
 import 'package:three_forge/src/three_viewer/hud.dart';
@@ -10,7 +11,7 @@ import '../src/navigation/right_click.dart';
 import 'package:three_js/three_js.dart' as three;
 import '../src/navigation/navigation.dart';
 import '../src/styles/globals.dart';
-import 'package:process_run/shell.dart';
+import 'dart:io';
 
 class UIScreen extends StatefulWidget {
   const UIScreen({Key? key, required this.currentProject, required this.setProject}):super(key: key);
@@ -31,14 +32,14 @@ class _UIPageState extends State<UIScreen> {
   late three.Scene scene = threeV.scene;
   late three.Group helper = threeV.helper;
   bool isPlaying = false;
+  bool loading = false;
   bool didDispose = false;
   String consoleLog = '';
   Map<String,String> devices = {};
 
   String? selectedDevice;
-
-  final ShellLinesController controller = ShellLinesController();
-  late final Shell shell;
+  StreamSubscription? _stdoutSub;
+  Process? process;
 
   @override
   void initState(){
@@ -48,16 +49,6 @@ class _UIPageState extends State<UIScreen> {
       onTap: rightClickActions,
     );
     threeV = ThreeViewer(setState,rightClick,widget.currentProject['location']);
-    shell = Shell(stdout: controller.sink);
-    controller.stream.listen(
-      (data1) {
-        convertShellData(data1);
-      },
-      onDone: (){
-        controller.close();
-        if(!didDispose)setState(() {});
-      }
-    );
     getDevices();
     super.initState();
   }
@@ -66,8 +57,8 @@ class _UIPageState extends State<UIScreen> {
     didDispose = true;
     threeV.dispose();
     rightClick.dispose();
-    shell.kill();
-    controller.close();
+    _stdoutSub?.cancel();
+    process?.kill(ProcessSignal.sigint);
     super.dispose();
   }
   void rightClickActions(RightClickOptions options){
@@ -125,65 +116,116 @@ class _UIPageState extends State<UIScreen> {
     }
   }
 
-  void convertShellData(String data1){
+  Future<void> setupProcess(String deviceId) async{
+    if(isPlaying){
+      _stdoutSub?.cancel();
+      process?.kill(ProcessSignal.sigint);
+      isPlaying = false;
+      loading = false;
+      setState(() { });
+      return;
+    }
+
+    isPlaying = true;
+    loading = true;
+    process = await Process.start(
+      'flutter',
+      ['run', '-d', deviceId],
+      workingDirectory: widget.currentProject['location'],
+      runInShell: true,  
+      mode: ProcessStartMode.normal,
+    );
+
+    _stdoutSub = process?.stdout.listen(
+      (data1) {
+        convertShellData(String.fromCharCodes(data1));
+      },
+      onDone: (){
+        process?.kill(ProcessSignal.sigint);
+        process = null;
+        isPlaying = false;
+        if(!didDispose)setState(() {});
+      }
+    );
+    setState(() { });
+  }
+
+  void convertShellData(String data1, [bool isGetDevices = false]){
     setState(() {
       consoleLog += '\n$data1';
     });
-    final data = data1.trim().replaceAll(' ', '').toLowerCase();
-    final splitDevice = data.split('•');
-    String device = '';
-    if(splitDevice.length > 1){
-      device = splitDevice[1];
+    if(!isGetDevices){
+      final data = data1.trim().replaceAll(' ', '').toLowerCase();
+      if(data.contains('flutterrunkeycommands')){
+        loading = false;
+        setState(() {});
+      }
     }
-    if(data.contains('macos(desktop)') && !devices.containsKey('macos')){
-      devices['macos'] = 'macos';
-      callBacks(call: LSICallbacks.updatedNav);
-    }
-    else if(data.contains('windows(desktop)') && !devices.containsKey('windows')){
-      devices['windows'] = 'windows';
-      callBacks(call: LSICallbacks.updatedNav);
-    }
-    else if(data.contains('linux(desktop)') && !devices.containsKey('linux')){
-      devices['linux'] = 'linux';
-      callBacks(call: LSICallbacks.updatedNav);
-    }
-    else if(data.contains('chrome(web)') && !devices.containsKey('chrome')  && !devices.containsKey('WASM')){
-      devices['chrome'] = 'chrome';
-      devices['WASM'] = 'chrome --wasm';
-      callBacks(call: LSICallbacks.updatedNav);
-    }
-    else if(data.contains('(mobile)•emulator') && !devices.containsKey('emulator')){
-      devices['emulator'] = device;
-      callBacks(call: LSICallbacks.updatedNav);
-    }
-    else if(data.contains('linux(desktop)') && !devices.containsKey('android')){
-      devices['android'] = device;
-      callBacks(call: LSICallbacks.updatedNav);
-    }
-    else if(data.contains('ipad(wireless)(mobile)') && !devices.containsKey('ipad')){
-      devices['ipad'] = device;
-      callBacks(call: LSICallbacks.updatedNav);
-    }
-    else if(data.contains('ios•com.apple.coresimulator') && data.contains('ipad') && !devices.containsKey('ipad-sim')){
-      devices['ipad-sim'] = device;
-      callBacks(call: LSICallbacks.updatedNav);
-    }
-    else if(data.contains('iphone(wireless)(mobile)') && !devices.containsKey('iphone')){
-      devices['iphone'] = device;
-      callBacks(call: LSICallbacks.updatedNav);
-    }
-    else if(data.contains('ios•com.apple.coresimulator') && data.contains('iphone') && !devices.containsKey('iphone-sim')){
-      devices['iphone-sim'] = device;
-      callBacks(call: LSICallbacks.updatedNav);
-    }
-    else if(data.contains('lostconnectiontodevice.')){
-      isPlaying = false;
-      setState(() {});
+    else{
+      final combinedData = data1.trim().replaceAll(' ', '').toLowerCase();
+      for(final data in combinedData.split('\n')){
+        final splitDevice = data.split('•');
+        String device = '';
+        if(splitDevice.length > 1){
+          device = splitDevice[1];
+        }
+        if(data.contains('macos(desktop)') && !devices.containsKey('macos')){
+          devices['macos'] = 'macos';
+          callBacks(call: LSICallbacks.updatedNav);
+        }
+        else if(data.contains('windows(desktop)') && !devices.containsKey('windows')){
+          devices['windows'] = 'windows';
+          callBacks(call: LSICallbacks.updatedNav);
+        }
+        else if(data.contains('linux(desktop)') && !devices.containsKey('linux')){
+          devices['linux'] = 'linux';
+          callBacks(call: LSICallbacks.updatedNav);
+        }
+        else if(data.contains('chrome(web)') && !devices.containsKey('chrome')  && !devices.containsKey('WASM')){
+          devices['chrome'] = 'chrome';
+          devices['WASM'] = 'chrome --wasm';
+          callBacks(call: LSICallbacks.updatedNav);
+        }
+        else if(data.contains('(mobile)•emulator') && !devices.containsKey('emulator')){
+          devices['emulator'] = device;
+          callBacks(call: LSICallbacks.updatedNav);
+        }
+        else if(data.contains('linux(desktop)') && !devices.containsKey('android')){
+          devices['android'] = device;
+          callBacks(call: LSICallbacks.updatedNav);
+        }
+        else if(data.contains('ipad(wireless)(mobile)') && !devices.containsKey('ipad')){
+          devices['ipad'] = device;
+          callBacks(call: LSICallbacks.updatedNav);
+        }
+        else if(data.contains('ios•com.apple.coresimulator') && data.contains('ipad') && !devices.containsKey('ipad-sim')){
+          devices['ipad-sim'] = device;
+          callBacks(call: LSICallbacks.updatedNav);
+        }
+        else if(data.contains('iphone(wireless)(mobile)') && !devices.containsKey('iphone')){
+          devices['iphone'] = device;
+          callBacks(call: LSICallbacks.updatedNav);
+        }
+        else if(data.contains('ios•com.apple.coresimulator') && data.contains('iphone') && !devices.containsKey('iphone-sim')){
+          devices['iphone-sim'] = device;
+          callBacks(call: LSICallbacks.updatedNav);
+        }
+        else if(data.contains('lostconnectiontodevice.')){
+          isPlaying = false;
+          setState(() {});
+        }
+      }
     }
   }
 
   Future<void> getDevices() async{
-    await shell.run('flutter devices');
+    final result = await Process.run(
+      'flutter',
+      ['devices'],
+    );
+    final output = result.stdout.toString();
+    convertShellData(output,true);
+    //await shell.run('flutter devices');
   }
 
   @override
@@ -315,37 +357,30 @@ class _UIPageState extends State<UIScreen> {
               NavItems(
                 useName: false,
                 icon: !isPlaying?Icons.play_arrow_rounded:Icons.stop_rounded,
+                loading: loading,
                 name: 'Play',
                 onTap: (_){
                   if(selectedDevice != null){
-                    isPlaying = !isPlaying;
-
-                    if(isPlaying){
-                      shell.cd(widget.currentProject['location']).run('flutter run -d ${devices[selectedDevice]}');
-                    }
-                    else{
-                      shell.kill(ProcessSignal.sigint);
-                    }
-                    setState(() { });
+                    setupProcess(devices[selectedDevice]!);
                   }
                 }
               ),
               NavItems(
-                show: isPlaying,
+                show: isPlaying && !loading,
                 useName: false,
                 icon: Icons.refresh,
                 name: 'Refresh',
                 onTap: (_){
-                  controller.write('r');
+                  process?.stdin.write('r');
                 }
               ),
               NavItems(
-                show: isPlaying,
+                show: isPlaying && !loading,
                 useName: false,
                 icon: Icons.arrow_back,
                 name: 'Reload',
                 onTap: (_){
-                  controller.write('R');
+                  process?.stdin.write('R');
                 }
               ),
             ],
@@ -359,7 +394,7 @@ class _UIPageState extends State<UIScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Hud(threeV, setState),
-                FileNavigation(files: widget.currentProject,consoleLog: consoleLog)
+                FileNavigation(files: widget.currentProject,consoleLog: consoleLog, history: threeV.history,)
              ],
             ),
             Container(

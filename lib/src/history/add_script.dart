@@ -1,32 +1,30 @@
-import 'package:three_forge/src/history/commands.dart';
-import 'package:three_js/three_js.dart';
+import "commands.dart";
 
 class AddScriptCommand extends Command {
-  String type = 'AddScriptCommand';
-  Object3D? object;
-
-	AddScriptCommand(super.editor, [this.object, Map<String,dynamic>? script]){
+	AddScriptCommand(super.editor, [super.object, Map<String,dynamic>? script]){
     this.script = script ?? {};
   }
 
 	void execute() {
-		if ( this.editor.scripts[ this.object?.uuid ] == null ) {
-			this.editor.scripts[ this.object!.uuid ] = [];
+		if ( this.object?.userData['scripts'] == null ) {
+			this.object?.userData['scripts'] = [];
 		}
 
-		this.editor.scripts[ this.object?.uuid ].add( this.script );
-		this.editor.signals.scriptAdded.dispatch( this.script );
+		this.object?.userData['scripts'].add( this.script );
+		this.editor.dispatch();
 	}
 
+  @override
 	void undo() {
-		if ( this.editor.scripts[ this.object?.uuid ] == null ) return;
-		final index = this.editor.scripts[ this.object?.uuid ].indexOf( this.script );
+    super.undo();
+		if ( this.object?.userData['scripts'] == null ) return;
+		final index = (this.object?.userData['scripts'] as List).indexOf( this.script );
 
 		if ( index != - 1 ) {
-			this.editor.scripts[ this.object?.uuid ].removeAt(index);//.splice( index, 1 );
+			(this.object?.userData['scripts'] as List).removeAt(index);
 		}
 
-		this.editor.signals.scriptRemoved.dispatch( this.script );
+		this.editor.dispatch();
 	}
 
   @override

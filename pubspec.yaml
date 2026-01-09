@@ -13,15 +13,14 @@ dependencies:
   file_picker: ^10.1.2
   flutter_colorpicker: ^1.1.0
   package_info_plus: ^8.3.0
-  process_run: ^1.2.4
-  shared_preferences: ^2.5.3
-  three_js: ^0.2.6
-  three_js_terrain: ^0.2.0
+  shared_preferences: ^2.5.4
+  three_js: ^0.2.7
+  three_js_terrain: ^0.2.1
   three_js_helpers: ^0.2.3
-  three_js_transform_controls: ^0.2.0
-  three_js_objects: ^0.2.0
+  three_js_transform_controls: ^0.2.1
+  three_js_objects: ^0.2.1
   three_js_exporters: ^0.2.0
-  three_js_modifers: ^0.2.0
+  three_js_modifers: ^0.2.1
   three_js_advanced_exporters: ^0.0.1
   three_js_tjs_loader: ^0.2.1
   css:
@@ -39,6 +38,8 @@ dependency_overrides:
       url: https://github.com/alex-melnyk/flutter-permission-handler.git 
       path: permission_handler_apple
   file_picker: ^10.1.9
+  three_js_core:
+    path: ../three_js/packages/three_js_core
   
 flutter:
   uses-material-design: true

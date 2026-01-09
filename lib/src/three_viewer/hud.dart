@@ -129,6 +129,24 @@ class Hud extends StatelessWidget{
                   ),
                 )
               ),
+              // if(threeV.intersected.isNotEmpty && threeV.intersected[0] is VoxelPainter)InkWell(
+              //   onTap: (){
+              //     setState(() {
+              //       threeV.setSelector(SelectorType.erase);
+              //     });
+              //   },
+              //   child: Container(
+              //     width: 25,
+              //     height: 25,
+              //     margin: const EdgeInsets.only(top: 2),
+              //     color: SelectorType.erase == threeV.selectorType? Theme.of(context).secondaryHeaderColor.withAlpha(200):Theme.of(context).cardColor.withAlpha(200),
+              //     alignment: Alignment.center,
+              //     child: const Icon(
+              //       Icons.brunch_dining_sharp,
+              //       size: 20,
+              //     ),
+              //   )
+              // ),
             ],
           )
         ),

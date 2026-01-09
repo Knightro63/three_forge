@@ -1,5 +1,7 @@
 import 'dart:io';
 import 'dart:math' as math;
+import 'package:three_forge/src/history/commands.dart';
+import 'package:three_forge/src/styles/lsi_functions.dart';
 import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js/three_js.dart' as three;
 import 'package:three_js_helpers/three_js_helpers.dart';
@@ -84,8 +86,23 @@ class CreateModels {
     if(target.userData['importedActions'] == null){
       target.userData['importedActions'] = <String,dynamic>{};
     }
-    target.userData['importedActions'][bvh!.uuid] = path;
-    target.userData['actionMap'][name] = (target.userData['mixer'] as three.AnimationMixer).clipAction(bvh.animations[0])!;
+    final ba = (target.userData['mixer'] as three.AnimationMixer).clipAction(bvh!.animations[0])!;
+
+    threeV.execute(MultiCmdsCommand(threeV,[
+      SetUserDataValueCommand(threeV,target,'importedActions',bvh.uuid,path),
+      SetUserDataValueCommand(threeV,target,'actionMap', name, ba)..onUndoDone = (){//<String,dynamic>{name: ba}..addAll(target.userData['actionMap']??{}))..onUndoDone = (){
+        print(target.userData['actionMap']);
+        target.userData['actionMap'][name]?.enabled = false;
+        target.userData['actionMap'][name]?.setEffectiveWeight( 0.0 );
+        target.userData['actionMap'][name]?.stop();
+        LSIFunctions.removeNull(target.userData['actionMap']);
+        print(target.userData['actionMap']);
+        //(target.userData['mixer'] as three.AnimationMixer).uncacheAction(bvh.animations[0]);
+      }
+    ]));
+    
+    target.userData['importedActions'][bvh.uuid] = path;
+    target.userData['actionMap'][name] = ba;
     target.userData['actionMap'][name]!.enabled = true;
     target.userData['actionMap'][name]!.setEffectiveTimeScale( 1.0 );
     target.userData['actionMap'][name]!.setEffectiveWeight( 0.0 );
@@ -280,7 +297,6 @@ class CreateModels {
         i++;
       }
     }
-
     gltf.userData['path'] = path;
     gltf.boundingBox = box;
 

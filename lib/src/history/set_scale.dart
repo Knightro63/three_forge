@@ -1,15 +1,12 @@
-import "package:three_forge/src/history/commands.dart";
+import "commands.dart";
 import "package:three_js/three_js.dart";
 
 class SetScaleCommand extends Command {
-  Object3D? object;
   Vector3? newScale;
   Vector3? optionalOldScale;
   Vector3? oldScale;
 
-	SetScaleCommand(super.editor, [this.object,this.newScale,this.optionalOldScale]) {
-		this.type = 'SetScaleCommand';
-		this.name = editor.strings.getKey( 'command/SetScale' );
+	SetScaleCommand(super.editor, [super.object,this.newScale,this.optionalOldScale]) {
 		this.updatable = true;
 
 		if ( object != null && newScale != null ) {
@@ -25,13 +22,15 @@ class SetScaleCommand extends Command {
 	void execute() {
 		this.object?.scale.setFrom( this.newScale! );
 		this.object?.updateMatrixWorld( true );
-		this.editor.signals.objectChanged.dispatch( this.object );
+		this.editor.dispatch();
 	}
 
+  @override
 	void undo() {
+    super.undo();
 		this.object?.scale.setFrom( this.oldScale! );
 		this.object?.updateMatrixWorld( true );
-		this.editor.signals.objectChanged.dispatch( this.object );
+		this.editor.dispatch();
 	}
 
   @override

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:three_forge/src/history/commands.dart';
 import 'package:three_forge/src/styles/savedWidgets.dart';
 import 'package:three_forge/src/three_viewer/decimal_index_formatter.dart';
 import 'package:three_forge/src/three_viewer/gui/voxel_painter.dart';
@@ -54,16 +55,17 @@ class _ObjectGuiState extends State<ObjectGui> {
             SizedBox(child: const Text('Name:')),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: object.name.toString(),
+              //label: object.name.toString(),
               ///width: d2,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
+                threeV.execute(SetValueCommand(threeV, threeV.intersected[0], 'name',val)..allowDispatch=false);
                 object.name = val;
               },
-              controller: transfromControllers[0],
+              controller: transfromControllers[0]..text = object.name.toString(),
             )
           ],
         ),
@@ -72,6 +74,7 @@ class _ObjectGuiState extends State<ObjectGui> {
         Container(margin: EdgeInsets.only(bottom: 7), height: 2,color: Theme.of(context).primaryTextTheme.bodySmall!.color,),
         InkWell(
           onTap: (){
+            threeV.execute(SetValueCommand(threeV, threeV.intersected[0], 'castShadow', !object.castShadow)..allowDispatch=false);
             object.castShadow = !object.castShadow;
             setState(() {});
           },
@@ -85,6 +88,7 @@ class _ObjectGuiState extends State<ObjectGui> {
         ),
         InkWell(
           onTap: (){
+            threeV.execute(SetValueCommand(threeV, threeV.intersected[0], 'receiveShadow', !object.receiveShadow)..allowDispatch=false);
             object.receiveShadow = !object.receiveShadow;
             setState(() {});
           },
@@ -99,6 +103,7 @@ class _ObjectGuiState extends State<ObjectGui> {
         SizedBox(height: 20,),
         InkWell(
           onTap: (){
+            threeV.execute(SetValueCommand(threeV, threeV.intersected[0], 'visible', !object.visible)..allowDispatch=false);
             object.visible = !object.visible;
             setState(() {});
           },
@@ -112,6 +117,7 @@ class _ObjectGuiState extends State<ObjectGui> {
         ),
         InkWell(
           onTap: (){
+            threeV.execute(SetValueCommand(threeV, threeV.intersected[0], 'frustumCulled', !object.frustumCulled)..allowDispatch=false);
             object.frustumCulled = !object.frustumCulled;
             setState(() {});
           },
@@ -128,16 +134,18 @@ class _ObjectGuiState extends State<ObjectGui> {
             SizedBox(child: const Text('Order:')),
             EnterTextFormField(
               inputFormatters: [DecimalTextInputFormatter()],
-              label: object.renderOrder.toString(),
+              //label: object.renderOrder.toString(),
               width: d2,
               height: 20,
               maxLines: 1,
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                object.renderOrder = int.parse(val);
+                final int v = int.tryParse(val) ?? 0;
+                threeV.execute(SetValueCommand(threeV, threeV.intersected[0], 'renderOrder', v)..allowDispatch=false);
+                object.renderOrder = v;
               },
-              controller: transfromControllers[1],
+              controller: transfromControllers[1]..text = object.renderOrder.toString(),
             )
           ],
         ),
@@ -159,7 +167,10 @@ class _ObjectGuiState extends State<ObjectGui> {
             );
           },
           onAcceptWithDetails: (details) async{
-            object.userData['scriptPath'] = details;
+            if(object.userData['scripts'] == null){
+              object.userData['scripts'] = <String>[];
+            }
+            object.userData['scripts'].add(details);
           },
         ),
 

@@ -1,19 +1,16 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 import 'dart:math' as math;
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:three_forge/src/history/commands.dart';
 import 'package:three_forge/src/navigation/right_click.dart';
 import 'package:three_forge/src/objects/insert_models.dart';
 import 'package:three_forge/src/styles/globals.dart';
-import 'package:three_forge/src/three_viewer/export.dart';
+import 'package:three_forge/src/three_viewer/src/file_sort.dart';
 import 'package:three_forge/src/three_viewer/src/grid_info.dart';
 import 'package:three_forge/src/three_viewer/src/terrain.dart';
 import 'package:three_forge/src/three_viewer/src/voxel_painter.dart';
 import 'package:three_forge/src/thumbnail/thumbnail.dart';
-import 'package:path/path.dart' as p;
 import 'package:three_js/three_js.dart' as three;
 import 'package:three_js_helpers/three_js_helpers.dart';
 import 'package:three_js_transform_controls/three_js_transform_controls.dart';
@@ -28,7 +25,7 @@ enum ShadingType{wireframe,solid,material}
 enum ControlSpaceType{global,local}
 enum EditType{point,edge,face}
 enum SelectorType{
-  translate,rotate,scale,select,paint;
+  translate,rotate,scale,select,paint,erase;
 
   bool get isGimble => index < 3;
 }
@@ -40,6 +37,7 @@ class EditInfo{
 }
 
 class ThreeViewer {
+  late final FileSort fileSort = FileSort(dirPath);
   void Function(void Function()) setState;
   RightClick rightClick;
 
@@ -47,6 +45,7 @@ class ThreeViewer {
     init();
   }
 
+  late final History history = History(this);
   String dirPath;
   late three.ThreeJS threeJs;
 
@@ -75,7 +74,7 @@ class ThreeViewer {
   final three.Group helper = three.Group();
   final three.Group skeleton = three.Group();
   final GridInfo gridInfo = GridInfo();
-  final three.Fog fog = three.Fog(theme.canvasColor.value, 2,10);
+  final three.Fog fog = three.Fog(theme.canvasColor.toARGB32(), 2,10);
   final three.Vector3 sun = three.Vector3();
 
   bool didClick = false;
@@ -111,7 +110,7 @@ class ThreeViewer {
   //SelectionHelper
   bool selectionHelperEnabled = false;
   final three.Vector2 startPoint = three.Vector2();
-
+  
   void init(){
     threeJs = three.ThreeJS(
       onSetupComplete: (){
@@ -129,6 +128,11 @@ class ThreeViewer {
     viewHelper?.dispose();
     editObject.dispose();
   }
+
+  void dispatch() => setState((){});
+	void execute( cmd ) => this.history.execute( cmd );
+	void undo() => this.history.undo();
+	void redo() => this.history.redo();
 
   void _addCamera(){
     if(cameraPersp.userData['helper'] == null){
@@ -208,8 +212,8 @@ class ThreeViewer {
     resetCamQuant.setFrom(threeJs.camera.quaternion);
 
     threeJs.scene = three.Scene();
-    threeJs.scene.background = three.Color.fromHex32(theme.canvasColor.value);
-    threeJs.scene.fog = three.Fog(theme.canvasColor.value, 10,500);
+    threeJs.scene.background = three.Color.fromHex32(theme.canvasColor.toARGB32());
+    threeJs.scene.fog = three.Fog(theme.canvasColor.toARGB32(), 10,500);
     threeJs.scene.add( gridInfo.grid );
 
     final ambientLight = three.AmbientLight( 0xffffff,0 );
@@ -229,19 +233,25 @@ class ThreeViewer {
     thumbnail = Thumbnail(threeJs.renderer!, thumbnailScene, thumbnailCamera);
 
     orbit = three.OrbitControls(threeJs.camera, threeJs.globalKey);
+    orbit.mouseButtons = {
+      'left': three.Mouse.rotate,
+      'MIDDLE': three.Mouse.pan,
+      //'right': three.Mouse.pan
+    };
     control = TransformControls(threeJs.camera, threeJs.globalKey);
     gridInfo.addControl(control);
-    control.addEventListener( 'dragging-changed', (event) {
-      orbit.enabled = ! event.value;
-    });
 
+    changeListener();
     creteHelpers();
+    
     threeJs.scene.add( control );
     threeJs.scene.add(helper);
     threeJs.scene.add(editObject);
     threeJs.scene.add(skeleton);
+
     generateSky();
     _addCamera();
+    
     scene.background = threeJs.scene.background;
     threeJs.scene.add(scene);
 
@@ -282,6 +292,39 @@ class ThreeViewer {
     };
   }
 
+  void changeListener(){
+    final oldScale = three.Vector3();
+    final oldPosition = three.Vector3();
+    final oldRotation = three.Euler();
+    control.addEventListener('dragging-changed', (event){
+      orbit.enabled = ! event.value;
+      if (control.object != null) {
+        oldScale.setFrom(control.object!.scale);
+        oldPosition.setFrom(control.object!.position);
+        oldRotation.copy(control.object!.rotation);
+      }
+    });
+    control.addEventListener('mouseDown', (event){
+      if (control.object != null) {
+        oldScale.setFrom(control.object!.scale);
+        oldPosition.setFrom(control.object!.position);
+        oldRotation.copy(control.object!.rotation);
+      }
+    });
+    control.addEventListener('mouseUp', (event){
+      final object = control.object;
+      if (control.getMode() == GizmoType.scale) {
+        execute(SetScaleCommand(this,object,object?.scale,oldScale));
+      }
+      else if (control.getMode() == GizmoType.translate) {
+        execute(SetPositionCommand(this,object,object?.position,oldPosition));
+      }
+      else if (control.getMode() == GizmoType.rotate) {
+        execute(SetRotationCommand(this,object,object?.rotation,oldRotation));
+      }
+    });
+  }
+
   void onKeyDown(LogicalKeyboardKey event){
     switch (event.keyLabel.toLowerCase()) {
       case 'meta left':
@@ -291,7 +334,7 @@ class ThreeViewer {
         break;
       case 'shift right':
       case 'shift left':
-        if(SelectorType.paint == _selectorType) return;
+        if(SelectorType.paint == _selectorType || SelectorType.erase == _selectorType) return;
         holdingKey = 'shift';
         tempSnap = gridInfo.isSnapOn;
         gridInfo.setSnap(true);
@@ -356,15 +399,23 @@ class ThreeViewer {
   void onKeyUp(LogicalKeyboardKey event){
     holdingKey = null;
     switch ( event.keyLabel.toLowerCase() ) {
+      case 'y':
+        redo();
+        setState((){});
+        break;
+      case 'z':
+        undo();
+        setState((){});
+        break;
       case 'shift right':
       case 'shift left':
-        if(SelectorType.paint == _selectorType) return;
+        if(SelectorType.paint == _selectorType || SelectorType.erase == _selectorType) return;
         gridInfo.setSnap(tempSnap);
         break;
     }
   }
   void onPointerDown(details){
-    if(SelectorType.paint == _selectorType) return;
+    if(SelectorType.paint == _selectorType || SelectorType.erase == _selectorType) return;
     if(details.button == 2){
       if(rightClick.isMenuOpen){
         final showOptions = rcOptions+
@@ -410,7 +461,7 @@ class ThreeViewer {
     }
   }
   void onPointerMove(details){
-    if(SelectorType.paint == _selectorType) return;
+    if(SelectorType.paint == _selectorType || SelectorType.erase == _selectorType) return;
     mousePosition = three.Vector2(details.clientX, details.clientY);
     if (SelectorType.select == _selectorType) {
       if(intersected.isNotEmpty){
@@ -501,47 +552,29 @@ class ThreeViewer {
     three.Vector3(1, 1, 1)
   );
 
-  void add(three.Object3D? object){
-    if(object != null){
-      scene.add(object);
-      
-      // final three.BoundingBox modelBoundingBox = three.BoundingBox();
-      // modelBoundingBox.setFromObject(object);
-
-      // print(
-      //   {
-      //     'min': modelBoundingBox.min.toJson(),
-      //     'max': modelBoundingBox.max.toJson()
-      //   }
-      // );
-
-      // final modelSize = three.Vector3();
-      // modelBoundingBox.getSize(modelSize);
-
-      // print(modelSize.toJson());
-
-      // final targetSize = three.Vector3();
-      // targetBoundingBox.getSize(targetSize);
-
-      // print(targetSize.toJson());
-
-      // final scaleX = targetSize.x / modelSize.x;
-      // final scaleY = targetSize.y / modelSize.y;
-      // final scaleZ = targetSize.z / modelSize.z;
-
-      // final scaleFactor = math.max(scaleX, math.max(scaleY, scaleZ));
-      // print(scaleFactor);
-      // object.scale.scale(scaleFactor);
-      
-      object.position.setFrom(orbit.target);
-    
-      if(shading == ShadingType.wireframe){
-        materialWireframe(ShadingType.material,object,true);
-      }
-      else if(shading == ShadingType.solid){
-        materialSolid(ShadingType.material,object,true);
-      }
+	three.Object3D? objectByUuid(String uuid ) {
+		return this.scene.getObjectByProperty( 'uuid', uuid);//, true );
+	}
+  void add(three.Object3D? object,{three.Object3D? parent, int? index, bool usingUndo = false}){
+    if(object == null) return;
+		if ( parent == null ) {
+			this.scene.add( object );
+		} 
+    else {
+			parent.children.insert(index ?? 0, object);
+			object.parent = parent;
+		}
+    object.position.setFrom(orbit.target);
+    object.userData['mainMaterial'] = object.material;
+  
+    if(shading == ShadingType.wireframe){
+      materialWireframe(ShadingType.material,object,true);
     }
+    else if(shading == ShadingType.solid){
+      materialSolid(ShadingType.material,object,true);
+    }
+
+    if(!usingUndo) execute(AddObjectCommand(this, object));
   }
   void addAll(List<three.Object3D> objects){
     for(final object in objects){
@@ -578,7 +611,8 @@ class ThreeViewer {
       remove(object);
     }
   }
-  void remove(three.Object3D object){
+  void remove(three.Object3D object, [bool usingUndo = false]){
+    if(!usingUndo) execute(RemoveObjectCommand(this, object));
     scene.remove(object);
     if(object.name.contains('terrain_')){
       terrains.remove(object);
@@ -596,6 +630,8 @@ class ThreeViewer {
     }
     else if(object.userData['skeleton'] != null){
       threeJs.scene.remove(object.userData['skeleton']);
+      scene.remove(object.userData['skeleton']);
+      skeleton.remove(object.userData['skeleton']);
     }
   }
 
@@ -696,6 +732,24 @@ class ThreeViewer {
     }
   }
 
+	three.Material? getObjectMaterial(three.Object3D object, [int? slot ]) {
+		three.Material? material = object.material;
+
+		if (material is three.GroupMaterial && slot != null ) {
+			material = material.children[ slot ];
+		}
+
+		return material;
+	}
+	void setObjectMaterial(three.Object3D object, int? slot, newMaterial ) {
+		if (object.material is three.GroupMaterial && slot != null ) {
+			(object.material as three.GroupMaterial?)?.children[ slot ] = newMaterial;
+		} 
+    else {
+			object.material = newMaterial;
+		}
+	}
+
   void editModes(List<three.Object3D> obj){
     for(final o in obj){
       if(o is! BoundingBoxHelper && o is! SkeletonHelper){
@@ -722,11 +776,15 @@ class ThreeViewer {
   void setToMainCamera(){
     final three.Camera camera = cameraType == 'PerspectiveCamera'?cameraPersp:cameraOrtho;
     threeJs.camera.position.setFrom( camera.position );
-    threeJs.camera.quaternion.setFrom( camera.quaternion );
 
-    final direction = three.Vector3(); // Create once and reuse
-    camera.getWorldDirection(direction); 
-    orbit.target.setFrom(orbit.target);
+    final direction = three.Vector3();
+    camera.getWorldDirection(direction);
+
+    final distance = 10; // Use a distance appropriate for your scene
+    final newTarget = three.Vector3().setFrom(camera.position).add(direction.scale(distance));
+
+    orbit.target.setFrom(newTarget);
+    orbit.update();
   }
   IntersectsInfo getIntersections(List<three.Object3D> objects){
     IntersectsInfo ii = IntersectsInfo([], []);
@@ -845,135 +903,6 @@ class ThreeViewer {
     return scene.children.contains(object) || threeJs.scene.children.contains(object);
   }
 
-  Future<void> _copyDirectory(Directory source, Directory destination) async {
-    if (!destination.existsSync()) {
-      destination.createSync(recursive: true);
-    }
-
-    await for (FileSystemEntity entity in source.list(recursive: false, followLinks: false)) {
-      if (entity is File) {
-        File newFile = File('${destination.path}/${entity.uri.pathSegments.last}');
-        await entity.copy(newFile.path);
-      } else if (entity is Directory) {
-        Directory newDirectory = Directory('${destination.path}/${entity.uri.pathSegments.last}');
-        await _copyDirectory(entity, newDirectory); // Recursive call for subdirectories
-      }
-    }
-  }
-  Future<void> moveTextures(List<String> paths) async{
-    String destinationPath ='$dirPath/assets/textures/' ;
-    bool exists = await Directory(destinationPath).exists();
-    if(!exists) await Directory(destinationPath).create(recursive: true);
-
-    for(final sourcePath in paths){
-      File sourceFile = File(sourcePath);
-      File destinationFile = File('$destinationPath${sourcePath.split('/').last}');
-
-      try {
-        // Check if the source file exists before attempting to copy
-        if (await sourceFile.exists()) {
-          await sourceFile.copy(destinationFile.path);
-          three.console.info('File copied successfully from $sourcePath to $destinationPath');
-        } else {
-          three.console.info('Source file does not exist: $sourcePath');
-        }
-      } catch (e) {
-        three.console.info('Error copying file: $e');
-      }
-    }
-  }
-
-  Future<void> moveTexture(String path) async{
-    String resourcePth ='$dirPath/assets/textures' ;
-    Directory sourceDir = Directory(path);
-    Directory destinationDir = Directory(resourcePth);
-
-    await for (FileSystemEntity entity in sourceDir.list(recursive: false)) {
-      if (entity is File) {
-        final String fileName = p.basename(entity.path);
-        final String newFilePath = p.join(destinationDir.path, fileName);
-        await entity.copy(newFilePath);
-      }
-    }
-  }
-
-  Future<void> moveFiles(String name, List<String> paths) async{
-    String destinationPath ='$dirPath/assets/models/${name.split('.').first}/' ;
-    bool exists = await Directory(destinationPath).exists();
-    if(!exists) await Directory(destinationPath).create(recursive: true);
-
-    for(final sourcePath in paths){
-      File sourceFile = File(sourcePath);
-      File destinationFile = File('$destinationPath${sourcePath.split('/').last}');
-
-      try {
-        // Check if the source file exists before attempting to copy
-        if (await sourceFile.exists()) {
-          await sourceFile.copy(destinationFile.path);
-          three.console.info('File copied successfully from $sourcePath to $destinationPath');
-        } else {
-          three.console.info('Source file does not exist: $sourcePath');
-        }
-      } catch (e) {
-        three.console.info('Error copying file: $e');
-      }
-    }
-  }
-  Future<void> moveFolder(PlatformFile file) async{
-    String path ='$dirPath/assets/models/${file.name.split('.').first}/' ;
-    Directory sourceDir = Directory(file.path!.replaceAll(file.path!.split('/').last, ''));
-    Directory destinationDir = Directory(path);
-
-    if (sourceDir.existsSync()) {
-      await _copyDirectory(sourceDir, destinationDir);
-      three.console.info('Folder copied successfully!');
-    } else {
-      three.console.info('Source folder does not exist.');
-    }
-  }
-  Future<void> moveTextures1(String path, String name) async{
-    String resourcePth ='$dirPath/assets/textures/$name' ;
-    Directory sourceDir = Directory(path);
-    Directory destinationDir = Directory(resourcePth);
-
-    if (sourceDir.existsSync()) {
-      await _copyDirectory(sourceDir, destinationDir);
-      three.console.info('Folder copied successfully!');
-    } else {
-      three.console.info('Source folder does not exist.');
-    }
-  }
-  Future<void> export(String name) async{
-    String path ='$dirPath/assets/scenes/';
-    bool exists = await Directory(path).exists();
-    if(!exists) await Directory(path).create(recursive: true);
-
-    final last = name != ''?name:scene.name != ''?scene.name:scene.uuid;
-    final tfe = ThreeForgeExport().export(this);
-    await File('$path$last.json').writeAsString(json.encode(await tfe));
-  }
-  Future<void> moveObjects(List<PlatformFile> files) async{
-    String path ='$dirPath/assets/models/' ;
-    bool exists = await Directory(path).exists();
-    if(!exists) await Directory(path).create(recursive: true);
-
-    for(final file in files){
-      if(file.bytes != null){
-        final last = file.name;
-        await File('$path$last').writeAsBytes(file.bytes!);
-      }
-    }
-  }
-  Future<void> moveObject(PlatformFile file) async{
-    String path ='$dirPath/assets/models/' ;
-    bool exists = await Directory(path).exists();
-    if(!exists) await Directory(path).create(recursive: true);
-
-    if(file.bytes != null){
-      final last = file.name;
-      await File('$path$last').writeAsBytes(file.bytes!);
-    }
-  }
   Future<void> crerateThumbnial(three.Object3D model, [three.BoundingBox? box]) async{
     thumbnail.captureThumbnail('$dirPath/assets/thumbnails/', model: model, box: box);
   }
@@ -981,8 +910,8 @@ class ThreeViewer {
   void viewSky(){
     sky.visible = !sky.visible;
   }
-  void addVoxelPainter(){
-    scene.add(
+  void createVoxelPainter(){
+    add(
       VoxelPainter(
         listenableKey: listenableKey, 
         camera: threeJs.camera, 
@@ -1003,16 +932,18 @@ class ThreeViewer {
   }
   void setSelector(SelectorType type){
     _selectorType = type;
-     if(type != SelectorType.paint) resetVoxelPainter();
+     if(type != SelectorType.paint && type != SelectorType.erase) resetVoxelPainter();
     if(
       type == SelectorType.select || 
-      type == SelectorType.paint
+      type == SelectorType.paint ||
+      type == SelectorType.erase
     ){
       control.enabled = false;
       control.detach();
 
-      if(type == SelectorType.paint && isVoxelPainter){
+      if((type == SelectorType.paint || type == SelectorType.erase) && isVoxelPainter){
         (intersected.first as VoxelPainter).activate();
+        (intersected.first as VoxelPainter).selectorType = type;
       }
     }
     else{
@@ -1027,11 +958,19 @@ class ThreeViewer {
     sceneSelected = true;
   }
 
-  void selectPart(three.Object3D child){
+  void selectPart(three.Object3D? child){
+    if(child == null) return;
     boxSelect(false);
     intersected.clear();
     intersected.add(child);
     boxSelect(true);
+    sceneSelected = false;
+  }
+
+  void deselect(){
+    boxSelect(false);
+    control.detach();
+    intersected.clear();
     sceneSelected = false;
   }
 
@@ -1055,12 +994,12 @@ class ThreeViewer {
     scene.clear();
     skeleton.clear();
 
-    threeJs.scene.background = three.Color.fromHex32(theme.canvasColor.value);
-    threeJs.scene.fog?.color = three.Color.fromHex32(theme.canvasColor.value);
+    threeJs.scene.background = three.Color.fromHex32(theme.canvasColor.toARGB32());
+    threeJs.scene.fog?.color = three.Color.fromHex32(theme.canvasColor.toARGB32());
     threeJs.scene.fog?.near = 10;
     threeJs.scene.fog?.far = 500;
 
-    fog.color = three.Color.fromHex32(theme.canvasColor.value);
+    fog.color = three.Color.fromHex32(theme.canvasColor.toARGB32());
     fog.near = 2;
     fog.far = 10;
     
@@ -1096,6 +1035,7 @@ class ThreeViewer {
     control.setSpace('world');
 
     gridInfo.reset();
+    history.clear();
     setState((){});
   }
 }

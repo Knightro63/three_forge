@@ -1,15 +1,12 @@
-import 'package:three_forge/src/history/commands.dart';
+import "commands.dart";
 import 'package:three_js/three_js.dart';
 
 class SetRotationCommand extends Command {
-  Object3D? object;
   Euler? newRotation;
   Euler? oldRotation;
   Euler? optionalOldRotation;
 
-	SetRotationCommand(super.editor, [this.object, this.newRotation, this.optionalOldRotation]) {
-		this.type = 'SetRotationCommand';
-		this.name = editor.strings.getKey( 'command/SetRotation' );
+	SetRotationCommand(super.editor, [super.object, this.newRotation, this.optionalOldRotation]) {
 		this.updatable = true;
 
 		if ( object != null && newRotation != null ) {
@@ -25,13 +22,15 @@ class SetRotationCommand extends Command {
 	void execute() {
 		this.object?.rotation.copy( this.newRotation! );
 		this.object?.updateMatrixWorld( true );
-		this.editor.signals.objectChanged.dispatch( this.object );
+		this.editor.dispatch();
 	}
 
+  @override
 	void undo() {
+    super.undo();
 		this.object?.rotation.copy( this.oldRotation !);
 		this.object?.updateMatrixWorld( true );
-		this.editor.signals.objectChanged.dispatch( this.object );
+		this.editor.dispatch();
 	}
 
   @override

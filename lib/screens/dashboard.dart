@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:css/css.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:process_run/shell.dart';
 import 'package:three_forge/screens/thumbnail_creator.dart';
 import 'package:three_forge/src/navigation/navigation.dart';
 import 'package:three_forge/src/styles/config.dart';
@@ -108,9 +107,15 @@ class _CodePage extends State<Dashboard>{
   }
   
   Future<void> createNewProject() async{
-    Shell shell = Shell();
     final fileLocation = newProjectLocationController.text;
-    await shell.cd(fileLocation).run('flutter create $projectName');
+    Process process = await Process.start(
+      'flutter',
+      ['create', projectName!],
+      workingDirectory: fileLocation,
+      runInShell: true,  
+      mode: ProcessStartMode.normal,
+    );
+    await process.exitCode;
 
     await File('$fileLocation/$projectName/gameInfo.json').writeAsString(json.encode({
         'title': newProjectController.text,

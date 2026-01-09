@@ -65,32 +65,34 @@ class _AnimationGuiState extends State<AnimationGui> {
     List<Widget> widgets = [];
 
     for(final action in actionMap.keys){
-      widgets.add(
-        InkWell(
-          onTap: (){
-            if(currentAction != ''){
-              threeV.intersected[0].userData['actionMap'][currentAction]!.setEffectiveWeight( 0.0 );
-            }
-            threeV.intersected[0].userData['currentAction'] = action;
-            threeV.intersected[0].userData['actionMap'][action]!.setEffectiveWeight( 1.0 );
-            setState(() {});
-          },
-          child: Container(
-            margin: EdgeInsets.all(5),
-            height: 25,
-            width: double.infinity,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(5),
-              color: currentAction == action?Theme.of(context).secondaryHeaderColor:Theme.of(context).canvasColor
+      if(threeV.intersected[0].userData['actionMap'][currentAction] != null){
+        widgets.add(
+          InkWell(
+            onTap: (){
+              if(currentAction != ''){
+                threeV.intersected[0].userData['actionMap'][currentAction]?.setEffectiveWeight( 0.0 );
+              }
+              threeV.intersected[0].userData['currentAction'] = action;
+              threeV.intersected[0].userData['actionMap'][action]?.setEffectiveWeight( 1.0 );
+              setState(() {});
+            },
+            child: Container(
+              margin: EdgeInsets.all(5),
+              height: 25,
+              width: double.infinity,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(5),
+                color: currentAction == action?Theme.of(context).secondaryHeaderColor:Theme.of(context).canvasColor
+              ),
+              child: Text(
+                action,
+                style: Theme.of(context).primaryTextTheme.bodySmall,
+              )
             ),
-            child: Text(
-              action,
-              style: Theme.of(context).primaryTextTheme.bodySmall,
-            )
-          ),
-        )
-      );
+          )
+        );
+      }
     }
 
     return Column(
@@ -114,10 +116,10 @@ class _AnimationGuiState extends State<AnimationGui> {
         InkWell(
           onTap: (){
             if(!paused){
-              (actionMap[currentAction] as three.AnimationAction).play();
+              (actionMap[currentAction] as three.AnimationAction?)?.play();
             }
             else{
-              (actionMap[currentAction] as three.AnimationAction).stop();
+              (actionMap[currentAction] as three.AnimationAction?)?.stop();
             }
             setState(() {});
           },
@@ -154,7 +156,7 @@ class _AnimationGuiState extends State<AnimationGui> {
             );
           },
           onAcceptWithDetails: (details) async{
-            if((details.data as String).split('.').last == 'fbx'){
+            if((details.data as String).split('.').last.toLowerCase() == 'fbx'){
               CreateModels.addFBXAnimation(threeV.intersected[0],details.data! as String,threeV);
             }else{
               //addBVH(threeV.intersected[0],details.data! as String);

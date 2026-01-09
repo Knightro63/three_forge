@@ -1,28 +1,23 @@
 import 'dart:convert';
-
 import 'package:flutter/services.dart';
-import 'package:three_js/three_js.dart';
 import 'package:three_js_tjs_loader/object_loader.dart';
 import 'commands.dart';
 
 class AddObjectCommand extends Command {
-  Object3D? object;
 
-	AddObjectCommand(Editor editor, [this.object]):super(editor) {
-		this.type = 'AddObjectCommand';
-
-		if ( object != null ) {
-			this.name = editor.strings.getKey( 'command/AddObject' ) + ': ' + object!.name;
-		}
+	AddObjectCommand(super.editor, [super.object]){
+		this.type = CommandType.addObject;
 	}
 
 	void execute() {
-		if(object != null) this.editor.addObject( object! );
-		this.editor.select( this.object );
+		if(object != null) this.editor.add( object!, usingUndo: true );
+		this.editor.selectPart( this.object );
 	}
 
+  @override
 	void undo() {
-		if(object != null) this.editor.removeObject( this.object! );
+    super.undo();
+		if(object != null) this.editor.remove( this.object!,true );
 		this.editor.deselect();
 	}
 

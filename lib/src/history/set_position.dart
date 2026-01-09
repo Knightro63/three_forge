@@ -1,15 +1,12 @@
-import 'package:three_forge/src/history/commands.dart';
+import "commands.dart";
 import 'package:three_js/three_js.dart';
 
 class SetPositionCommand extends Command {
-  Object3D? object;
   Vector3? newPosition;
   Vector3? optionalOldPosition;
   Vector3? oldPosition;
 
-	SetPositionCommand(super.editor, [this.object,this.newPosition,this.optionalOldPosition]) {
-		this.type = 'SetPositionCommand';
-		this.name = editor.strings.getKey( 'command/SetPosition' );
+	SetPositionCommand(super.editor, [super.object,this.newPosition,this.optionalOldPosition]) {
 		this.updatable = true;
 
 		if ( object != null && newPosition != null ) {
@@ -25,13 +22,15 @@ class SetPositionCommand extends Command {
 	void execute() {
 		this.object?.position.setFrom( this.newPosition! );
 		this.object?.updateMatrixWorld( true );
-		this.editor.signals.objectChanged.dispatch( this.object );
+		this.editor.dispatch();
 	}
 
+  @override
 	void undo() {
+    super.undo();
 		this.object?.position.setFrom( this.oldPosition! );
 		this.object?.updateMatrixWorld( true );
-		this.editor.signals.objectChanged.dispatch( this.object );
+		this.editor.dispatch();
 	}
 
   @override

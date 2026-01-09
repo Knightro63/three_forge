@@ -1,38 +1,32 @@
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
-import 'package:three_forge/src/history/commands.dart';
+import "commands.dart";
 import 'package:three_js/three_js.dart';
 import 'package:three_js_tjs_loader/object_loader.dart';
 
 class RemoveObjectCommand extends Command {
-  Object3D? object;
   Object3D? parent;
 	int? index;
 
-	RemoveObjectCommand(super.editor, [this.object]) {
-		this.type = 'RemoveObjectCommand';
-
+	RemoveObjectCommand(super.editor, [super.object]) {
 		this.parent = ( object != null ) ? object?.parent : null;
 
 		if ( this.parent != null ) {
 			this.index = this.parent?.children.indexOf( this.object! );
 		}
-
-		if ( object != null ) {
-			this.name = editor.strings.getKey( 'command/RemoveObject' ) + ': ' + object!.name;
-
-		}
 	}
 
 	void execute() {
-		this.editor.removeObject( this.object! );
+		this.editor.remove( this.object!, true);
 		this.editor.deselect();
 	}
 
+  @override
 	void undo() {
-		this.editor.addObject( this.object!, this.parent, this.index );
-		this.editor.select( this.object );
+    super.undo();
+		this.editor.add( this.object!, parent: this.parent, index: this.index, usingUndo: true );
+		this.editor.selectPart( this.object );
 	}
 
   @override

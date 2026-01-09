@@ -22,8 +22,6 @@ class ScreenNavigator{
   late final InsertMesh insertMesh;
   late final import = ThreeForgeImport(threeV);
 
-  String saveName = '';
-
   ScreenNavigator(this.threeV,this.setState,this.callBacks){
     insert = InsertModels(threeV);
     insertMesh = InsertMesh(threeV);
@@ -48,6 +46,7 @@ class ScreenNavigator{
             GetFilePicker.pickFiles(['json']).then((value)async{
               if(value != null){
                 final json = jsonDecode(String.fromCharCodes(value.files.first.bytes!));
+                threeV.fileSort.sceneName = value.files.first.name.replaceAll('.json', '');
                 threeV.reset();
                 import.import(json);
               }
@@ -59,13 +58,13 @@ class ScreenNavigator{
         NavItems(
           name: 'Save',
           icon: Icons.save,
-          input: saveName,
+          input: threeV.fileSort.sceneName,
           onTap: (data){
             callBacks(call: LSICallbacks.updatedNav);
-            threeV.export(saveName);
+            threeV.fileSort.export(threeV.fileSort.sceneName, threeV);
           },
           onChange: (data){
-            saveName = data;
+            threeV.fileSort.sceneName = data;
           }
         ),
         // NavItems(
@@ -100,7 +99,7 @@ class ScreenNavigator{
                     for(int i = 0; i < value.files.length;i++){
                       await insert.image(value.files[i].path!, value.files[i].name);
                     }
-                    await threeV.moveObjects(value.files);
+                    await threeV.fileSort.moveObjects(value.files);
                   }
                   setState(() {});
                 });
@@ -139,10 +138,10 @@ class ScreenNavigator{
                     await insert.obj('$path/$name', name, true, materials);
 
                     if(materials != null){
-                      threeV.moveFiles(name, paths);
+                      threeV.fileSort.moveFiles(name, paths);
                     }
                     else{
-                      threeV.moveObject(objs.files[i]);
+                      threeV.fileSort.moveObject(objs.files[i]);
                     }
                   }
                   
@@ -160,7 +159,7 @@ class ScreenNavigator{
                     for(int i = 0; i < value.files.length;i++){
                       await insert.stl(value.files[i].path!, value.files[i].name);
                     }
-                    await threeV.moveObjects(value.files);
+                    await threeV.fileSort.moveObjects(value.files);
                   }
                   setState(() {});
                 });
@@ -176,7 +175,7 @@ class ScreenNavigator{
                     for(int i = 0; i < value.files.length;i++){
                       await insert.ply(value.files[i].path!, value.files[i].name);
                     }
-                    await threeV.moveObjects(value.files);
+                    await threeV.fileSort.moveObjects(value.files);
                   }
                   setState(() {});
                 });
@@ -191,7 +190,7 @@ class ScreenNavigator{
                   if(value != null){
                     for(int i = 0; i < value.files.length;i++){
                       await insert.gltf(value.files[i].path!, value.files[i].name);
-                      await threeV.moveObject(value.files[i]);
+                      await threeV.fileSort.moveObject(value.files[i]);
                     }
                   }
                   setState(() {});
@@ -207,7 +206,7 @@ class ScreenNavigator{
                   if(value != null){
                     for(int i = 0; i < value.files.length;i++){
                       bool didMove = await insert.gltf(value.files[i].path!, value.files[i].name,true,true);
-                      if(!didMove) await threeV.moveObject(value.files[i]);
+                      if(!didMove) await threeV.fileSort.moveObject(value.files[i]);
                     }
                   }
                   setState(() {});
@@ -223,7 +222,7 @@ class ScreenNavigator{
                   if(value != null){
                     for(int i = 0; i < value.files.length;i++){
                       await insert.fbx(value.files[i].path!, value.files[i].name, true, true);
-                      await threeV.moveObject(value.files[i]);
+                      await threeV.fileSort.moveObject(value.files[i]);
                     }
                   }
                   setState(() {});
@@ -243,7 +242,7 @@ class ScreenNavigator{
                     for(int i = 0; i < value.files.length;i++){
                       await insert.usdz(value.files[i].path!, value.files[i].name);
                     }
-                    await threeV.moveObjects(value.files);
+                    await threeV.fileSort.moveObjects(value.files);
                   }
                 });
               },
@@ -279,7 +278,7 @@ class ScreenNavigator{
                     for(int i = 0; i < value.files.length;i++){
                       insert.xyz(value.files[i].path!, value.files[i].name);
                     }
-                    await threeV.moveObjects(value.files);
+                    await threeV.fileSort.moveObjects(value.files);
                   }
                 });
               },
@@ -297,7 +296,7 @@ class ScreenNavigator{
                     for(int i = 0; i < value.files.length;i++){
                       insert.vox(value.files[i].path!, value.files[i].name);
                     }
-                    await threeV.moveObjects(value.files);
+                    await threeV.fileSort.moveObjects(value.files);
                   }
                 });
               },
@@ -846,7 +845,7 @@ class ScreenNavigator{
           icon: Icons.view_in_ar_rounded,
           onTap: (_){
             callBacks(call: LSICallbacks.updatedNav);
-            threeV.addVoxelPainter();
+            threeV.createVoxelPainter();
           }
         )
       ]

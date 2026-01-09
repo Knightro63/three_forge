@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:three_forge/src/three_viewer/src/grid_info.dart';
+import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js/three_js.dart';
 
 class VoxelPainter extends Object3D{
@@ -16,7 +17,8 @@ class VoxelPainter extends Object3D{
   Size screenSize = Size(0,0);
   final mouse = Vector2();
   final raycaster = Raycaster();
-  List<Object3D> objects = []; 
+  List<Object3D> objects = [];
+  SelectorType selectorType = SelectorType.paint;
 
   VoxelPainter({
     required this.listenableKey, 
@@ -51,7 +53,6 @@ class VoxelPainter extends Object3D{
   }
 
   void onKeyDown(LogicalKeyboardKey event){
-    print(event.keyLabel);
     if(!allowPaint)return;
     switch (event.keyLabel.toLowerCase()) {
       case 'control right':
@@ -82,8 +83,9 @@ class VoxelPainter extends Object3D{
     raycaster.setFromCamera( mouse, camera );
     final intersects = raycaster.intersectObjects(<Object3D>[gridInfo.intersectPlane]+objects, false );
     if ( intersects.isNotEmpty ) {
-      final intersect = intersects[ 0 ];
+      Intersection intersect = intersects[ 0 ];
       if (_holdingShift) {
+        if(intersect.object == gridInfo.intersectPlane) intersect = intersects.length > 1 ? intersects[1] : intersect;
         if ( intersect.object != gridInfo.intersectPlane ) {
           remove(intersect.object!);
           objects.remove(intersect.object!);
@@ -109,9 +111,16 @@ class VoxelPainter extends Object3D{
 
     if ( intersects.isNotEmpty ) {
       final intersect = intersects[ 0 ];
-
-      helper?.position.setFrom( intersect.point! ).add( intersect.face!.normal );
-      helper?.position.divideScalar(gridInfo.snapDistance).floor().scale(gridInfo.snapDistance).addScalar(gridInfo.snapDistance/2);
+      if(selectorType == SelectorType.paint){
+        helper?.position.setFrom( intersect.point! ).add( intersect.face!.normal );
+        helper?.position.divideScalar(gridInfo.snapDistance).floor().scale(gridInfo.snapDistance).addScalar(gridInfo.snapDistance/2);
+      }
+      else if(selectorType == SelectorType.erase){
+        if ( intersect.object != gridInfo.intersectPlane ) {
+          remove(intersect.object!);
+          objects.remove(intersect.object!);
+        }
+      }
     }
   }
 

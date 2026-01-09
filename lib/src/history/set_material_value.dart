@@ -1,16 +1,12 @@
-import 'package:three_forge/src/history/commands.dart';
-import 'package:three_js/three_js.dart';
+import "commands.dart";
 
 class SetMaterialValueCommand extends Command {
-  Object3D? object;
   dynamic newValue;
   dynamic oldValue;
   int materialSlot;
 
-	SetMaterialValueCommand(super.editor, [this.object = null, String attributeName = '', this.newValue ,this.materialSlot = - 1 ]) {
+	SetMaterialValueCommand(super.editor, [super.object = null, String attributeName = '', this.newValue , this.materialSlot = - 1 ]) {
 		this.attributeName = attributeName;
-    this.type = 'SetMaterialValueCommand';
-		this.name = editor.strings.getKey( 'command/SetMaterialValue' ) + ': ' + attributeName;
 		this.updatable = true;
 
 		final material = ( object != null ) ? editor.getObjectMaterial( object!, materialSlot ) : null;
@@ -23,18 +19,18 @@ class SetMaterialValueCommand extends Command {
 		material?[ this.attributeName! ] = this.newValue;
 		material?.needsUpdate = true;
 
-		this.editor.signals.objectChanged.dispatch( this.object );
-		this.editor.signals.materialChanged.dispatch( [this.object, this.materialSlot] );
+		if(allowDispatch)this.editor.dispatch();
 	}
 
+  @override
 	void undo() {
+    super.undo();
 		final material = this.editor.getObjectMaterial( this.object!, this.materialSlot );
 
 		material?[ this.attributeName! ] = this.oldValue;
 		material?.needsUpdate = true;
 
-		this.editor.signals.objectChanged.dispatch( this.object );
-		this.editor.signals.materialChanged.dispatch( [this.object, this.materialSlot] );
+		this.editor.dispatch();
 	}
 
   @override

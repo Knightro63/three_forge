@@ -6,6 +6,7 @@ import 'package:three_forge/src/three_viewer/src/grid_info.dart';
 import 'package:three_forge/src/three_viewer/src/terrain.dart';
 import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js/three_js.dart';
+import 'package:three_js_tjs_loader/material_loader.dart';
 
 class ThreeForgeImport{
   final ThreeViewer threeV;
@@ -31,12 +32,14 @@ class ThreeForgeImport{
     object.uuid = map['uuid'];
     object.name = map['name'];
     object.userData['audio'] = map['audio'];
-    for(final key in map['importedActions'].keys){
-      final path = map['importedActions'][key];
-      CreateModels.addFBXAnimation(object, path, threeV);
+    if(map['importedActions'] != null){
+      for(final key in map['importedActions'].keys){
+        final path = map['importedActions'][key];
+        CreateModels.addFBXAnimation(object, path, threeV);
+      }
     }
     object.userData['importedActions'] = map['importedActions'];
-    object.userData['scriptPath'] = map['scriptPath'];
+    object.userData['scripts'] = map['scripts'];
     object.userData['physics'] = map['physics'];
     await _setAttachedObject(object, map);
   }
@@ -52,7 +55,7 @@ class ThreeForgeImport{
       CreateModels.addFBXAnimation(object, path, threeV);
     }
     object.userData['importedActions'] = map['importedActions'];
-    object.userData['scriptPath'] = map['scriptPath'];
+    object.userData['scripts'] = map['scripts'];
     object.userData['physics'] = map['physics'];
     await _setAttachedObject(object, map);
 
@@ -94,7 +97,7 @@ class ThreeForgeImport{
   }
 
   Future<void> _createVoxel(Map<String,dynamic> map) async{
-    threeV.addVoxelPainter();
+    threeV.createVoxelPainter();
     final voxel = threeV.scene.children.last;
     voxel.uuid = map['uuid'];
     voxel.name = map['name'];
@@ -106,10 +109,6 @@ class ThreeForgeImport{
       voxel.children.add(child);
       _setTransform(child,map['children'][key]);
     }
-  }
-
-  Map<String,dynamic> _createMaterial(Mesh mesh){
-    return mesh.material!.toJson();
   }
 
   void _setMainCameras(Map<String,dynamic> map){
@@ -187,7 +186,7 @@ class ThreeForgeImport{
 
     _setTransform(light, map['transform']);
     light.castShadow = map['castShadow'];
-    light.userData['scriptPath'] = map['script'];
+    light.userData['scripts'] = map['scripts'];
     if(map['camera'] != null && light.shadow?.camera != null) _setCamera(light.shadow!.camera!,map['camera']);
     if(map['map'] != null && light.shadow?.camera != null){
       light.shadow?.map?.width = map['map']['width'];
@@ -202,29 +201,18 @@ class ThreeForgeImport{
   Future<void> _insertMesh(Map<String,dynamic> map) async{
     await insertMesh.insert(map['type']);
     final mesh = threeV.scene.children.last;
-    mesh.uuid = map['uuid'];
-    mesh.name = map['name'];
-    mesh.userData['audio'] = map['audio'];
-    mesh.userData['scriptPath'] = map['script'];
-    mesh.userData['subdivisions'] = map['subdivisions'];
-    mesh.userData['decimate'] = map['decimate'];
-    mesh.userData['subdivisionType'] = map['subdivisionType'];
-    if(map['physics'] != null) CreateMesh.addPhysics(mesh);
-    _setTransform(mesh, map['transform']);
-
-    if(map['subdivisions'] != null){
-      CreateMesh.subdivision(mesh, map['subdivisionType'] == 'simple');
-    }
-    else if(map['decimate'] != null){
-      CreateMesh.decimate(mesh);
-    }
+    modifyMesh(mesh, map);
   }
   Future<Mesh?> _createrMesh(Map<String,dynamic> map) async{
     final mesh = CreateMesh.create(map['type'])!;
+    modifyMesh(mesh, map);
+    return mesh;
+  }
+  void modifyMesh(Object3D mesh, Map<String,dynamic> map){
     mesh.uuid = map['uuid'];
     mesh.name = map['name'];
     mesh.userData['audio'] = map['audio'];
-    mesh.userData['scriptPath'] = map['script'];
+    mesh.userData['scripts'] = map['scripts'];
     mesh.userData['subdivisions'] = map['subdivisions'];
     mesh.userData['decimate'] = map['decimate'];
     mesh.userData['subdivisionType'] = map['subdivisionType'];
@@ -232,20 +220,23 @@ class ThreeForgeImport{
     _setTransform(mesh, map['transform']);
 
     if(map['subdivisions'] != null){
+      mesh.userData['origionalGeometry'] ??= mesh.geometry?.clone();
       CreateMesh.subdivision(mesh, map['subdivisionType'] == 'simple');
     }
     else if(map['decimate'] != null){
+      mesh.userData['origionalGeometry'] ??= mesh.geometry?.clone();
       CreateMesh.decimate(mesh);
     }
 
-    return mesh;
+    mesh.userData['mainMaterial'] = MaterialLoader().parseJson(map['material']);
   }
+
   void _insertCollider(Map<String,dynamic> map){
     insertMesh.insert(map['type']);
     final mesh = threeV.scene.children.last;
     mesh.uuid = map['uuid'];
     mesh.name = map['name'];
-    mesh.userData['scriptPath'] = map['script'];
+    mesh.userData['scripts'] = map['scripts'];
     mesh.userData['audio'] = map['audio'];
     CreateMesh.addPhysics(mesh);
     _setTransform(mesh, map['transform']);
@@ -254,7 +245,7 @@ class ThreeForgeImport{
     final mesh = CreateMesh.create(map['type'])!;
     mesh.uuid = map['uuid'];
     mesh.name = map['name'];
-    mesh.userData['scriptPath'] = map['script'];
+    mesh.userData['scripts'] = map['scripts'];
     mesh.userData['audio'] = map['audio'];
     CreateMesh.addPhysics(mesh);
     _setTransform(mesh, map['transform']);
@@ -294,7 +285,9 @@ class ThreeForgeImport{
     Terrain terrain = Terrain(threeV,threeV.setState,threeV.terrains.length);
     threeV.terrains.add(terrain);
     terrain.guiSettings = map['settings'];
-    terrain.terrainScene?.userData['scriptPath'] = map['scriptPath'];
+    final imagePath = terrain.guiSettings['imagePath'];
+    terrain.getHeightMapFromImage(imagePath);
+    terrain.terrainScene?.userData['scripts'] = map['scripts'];
     await threeV.terrains.last.setup();
   }
 
@@ -326,11 +319,13 @@ class ThreeForgeImport{
       else if(key.contains('mesh')){
         await _insertMesh(map);
       }
-      else if(key.contains('camera') && map['camera']?['mainCamera'] == true){
-        _setMainCameras(map);
-      }
       else if(key.contains('camera')){
-        _createCamera(map, true);
+        if(map['mainCamera'] == true){
+          _setMainCameras(map);
+        }
+        else{
+          _createCamera(map, true);
+        }
       }
       else if(key.contains('light')){
         _createLight(map);
