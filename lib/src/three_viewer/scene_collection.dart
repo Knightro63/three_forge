@@ -26,31 +26,39 @@ class SceneCollection extends StatelessWidget{
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              if(isMulti)InkWell(
-                onTap: (){
-                  child.userData['opened'] = !(child.userData['opened'] ?? false);
-                  setState((){});
-                },
-                child: Icon(Icons.arrow_drop_down_rounded, size: 15),
-              ),
-              SizedBox(
-                width: 137-(isSub?20:0),
-                child: Text(
-                  child.name,
-                  overflow: TextOverflow.ellipsis,
-                )
-              ),
+              Row(children: [
+                if(isMulti)InkWell(
+                  onTap: (){
+                    child.userData['opened'] = !(child.userData['opened'] ?? false);
+                    setState((){});
+                  },
+                  child: Icon(Icons.arrow_drop_down_rounded, size: 15),
+                ),
+                SizedBox(
+                  width: 137-(isSub?20:0),
+                  child: Text(
+                    child.name,
+                    overflow: TextOverflow.ellipsis,
+                  )
+                ),
+              ],),
               InkWell(
                 onTap: (){
                   setState(() {
                     threeV.execute(
                       SetValueCommand(threeV, child, 'visible', !child.visible)
                         ..onRedoDone = (){
-                          if(child.userData['helper'] != null)child.userData['helper'].visible = !child.visible;
+                          child.userData['helper']?.visible = !child.visible;
+                          child.userData['skeleton']?.visible = !child.visible;
+                        }
+                        ..onUndoDone = (){
+                          child.userData['helper']?.visible = !child.visible;
+                          child.userData['skeleton']?.visible = !child.visible;
                         }
                     );
                     child.visible = !child.visible;
-                    if(child.userData['helper'] != null)child.userData['helper'].visible = child.visible;
+                    child.userData['helper']?.visible = child.visible;
+                    child.userData['skeleton']?.visible = child.visible;
                     threeV.control.detach();
                   });
                 },
@@ -91,16 +99,14 @@ class SceneCollection extends StatelessWidget{
 
     for(final obj in threeV.scene.children){
       final child = obj;
-      if((child.userData['mainCamera'] == true && child.runtimeType.toString() == threeV.cameraType) || child.userData['mainCamera'] == null){
-        final int? len = (child.userData['attachedObjects'] as Map?)?.length;
-        widgets.add(subModel(context, child, false, len != null));
+      final int? len = (child.userData['attachedObjects'] as Map?)?.length;
+      widgets.add(subModel(context, child, false, len != null && len != 0));
 
-        if(child.userData['opened'] == true) (child.userData['attachedObjects'] as Map?)?.forEach((key,list){
-          for(int i = 0; i < list.length; i++){
-            widgets.add(subModel(context, list[i], true, false));
-          }
-        });
-      }
+      if(child.userData['opened'] == true) (child.userData['attachedObjects'] as Map?)?.forEach((key,list){
+        for(int i = 0; i < list.length; i++){
+          widgets.add(subModel(context, list[i], true, false));
+        }
+      });
     }
 
     return ListView(

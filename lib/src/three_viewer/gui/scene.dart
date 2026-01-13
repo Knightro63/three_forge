@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:three_forge/src/history/commands.dart';
-import 'package:three_forge/src/objects/insert_models.dart';
+import 'package:three_forge/src/modifers/insert_models.dart';
 import 'package:three_forge/src/styles/savedWidgets.dart';
 import 'package:three_forge/src/three_viewer/decimal_index_formatter.dart';
 import 'package:three_forge/src/three_viewer/viewer.dart';

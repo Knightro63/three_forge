@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:three_forge/src/objects/create_models.dart';
+import 'package:three_forge/src/modifers/create_models.dart';
 import 'package:three_forge/src/styles/savedWidgets.dart';
 import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js/three_js.dart' as three;

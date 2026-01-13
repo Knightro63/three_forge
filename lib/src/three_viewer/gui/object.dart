@@ -44,8 +44,10 @@ class _ObjectGuiState extends State<ObjectGui> {
   @override
   Widget build(BuildContext context) {
     three.Object3D object = threeV.intersected[0];
+    bool isEmpty = object.userData['empty'] ?? false;
     transformControllersReset();
     double d2 = 76;
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -70,9 +72,9 @@ class _ObjectGuiState extends State<ObjectGui> {
           ],
         ),
         SizedBox(height: 10,),
-        Text('Shadow:\t\t\t'),
-        Container(margin: EdgeInsets.only(bottom: 7), height: 2,color: Theme.of(context).primaryTextTheme.bodySmall!.color,),
-        InkWell(
+        if(!isEmpty) Text('Shadow:\t\t\t'),
+        if(!isEmpty) Container(margin: EdgeInsets.only(bottom: 7), height: 2,color: Theme.of(context).primaryTextTheme.bodySmall!.color,),
+        if(!isEmpty) InkWell(
           onTap: (){
             threeV.execute(SetValueCommand(threeV, threeV.intersected[0], 'castShadow', !object.castShadow)..allowDispatch=false);
             object.castShadow = !object.castShadow;
@@ -86,7 +88,7 @@ class _ObjectGuiState extends State<ObjectGui> {
             ]
           )
         ),
-        InkWell(
+        if(!isEmpty) InkWell(
           onTap: (){
             threeV.execute(SetValueCommand(threeV, threeV.intersected[0], 'receiveShadow', !object.receiveShadow)..allowDispatch=false);
             object.receiveShadow = !object.receiveShadow;
@@ -100,11 +102,21 @@ class _ObjectGuiState extends State<ObjectGui> {
             ]
           )
         ),
-        SizedBox(height: 20,),
+        if(!isEmpty)SizedBox(height: 20,),
         InkWell(
           onTap: (){
-            threeV.execute(SetValueCommand(threeV, threeV.intersected[0], 'visible', !object.visible)..allowDispatch=false);
+            threeV.execute(SetValueCommand(threeV, threeV.intersected[0], 'visible', !object.visible)
+              ..onRedoDone = (){
+                object.userData['helper']?.visible = !object.visible;
+                object.userData['skeleton']?.visible = !object.visible;
+              }
+              ..onUndoDone = (){
+                object.userData['helper']?.visible = !object.visible;
+                object.userData['skeleton']?.visible = !object.visible;
+              });
             object.visible = !object.visible;
+            object.userData['helper']?.visible = object.visible;
+            object.userData['skeleton']?.visible = object.visible;
             setState(() {});
           },
           child: Row(
@@ -115,7 +127,8 @@ class _ObjectGuiState extends State<ObjectGui> {
             ]
           )
         ),
-        InkWell(
+        if(isEmpty)SizedBox(height: 10,),
+        if(!isEmpty) InkWell(
           onTap: (){
             threeV.execute(SetValueCommand(threeV, threeV.intersected[0], 'frustumCulled', !object.frustumCulled)..allowDispatch=false);
             object.frustumCulled = !object.frustumCulled;
@@ -129,7 +142,7 @@ class _ObjectGuiState extends State<ObjectGui> {
             ]
           )
         ),
-        Row(
+        if(!isEmpty) Row(
           children: [
             SizedBox(child: const Text('Order:')),
             EnterTextFormField(

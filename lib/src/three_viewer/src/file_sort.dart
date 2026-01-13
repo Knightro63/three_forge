@@ -10,6 +10,9 @@ import 'package:three_js/three_js.dart' as three;
 class FileSort{
   String dirPath;
   String sceneName = 'untitled';
+  String description = 'A new Three Forge project.';
+  String versionName = '0.0.1';
+  int versionNumber = 0;
 
   FileSort(this.dirPath);
 

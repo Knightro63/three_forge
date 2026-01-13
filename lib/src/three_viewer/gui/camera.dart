@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:three_forge/src/history/commands.dart';
-import 'package:three_forge/src/styles/lsi_functions.dart';
 import 'package:three_forge/src/styles/savedWidgets.dart';
 import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js/three_js.dart' as three;
-import 'package:three_js_helpers/three_js_helpers.dart';
 
 class CameraGui extends StatefulWidget {
   const CameraGui({Key? key, required this.camera, this.threeV}):super(key: key);
@@ -19,14 +17,15 @@ class CameraGui extends StatefulWidget {
 class _LightGuiState extends State<CameraGui> {
   ThreeViewer? get threeV => widget.threeV;
   late three.Camera camera;
-  List<DropdownMenuItem<String>> cameraSelector = LSIFunctions.setDropDownItems(['Orthographic', 'Perspective']);
-  late String cameraValue;
+  bool get isMain => camera.userData['mainCamera'] ?? false;
+  //List<DropdownMenuItem<String>> cameraSelector = LSIFunctions.setDropDownItems(['Orthographic', 'Perspective']);
+  String get cameraValue => widget.camera.runtimeType.toString() == 'PerspectiveCamera'?'Perspective':'Orthographic';
 
   @override
   void initState() {
     super.initState();
     camera = widget.camera;
-    cameraValue = widget.camera.runtimeType.toString() == 'PerspectiveCamera'?'Perspective':'Orthographic';
+    //cameraValue = widget.camera.runtimeType.toString() == 'PerspectiveCamera'?'Perspective':'Orthographic';
   }
   @override
   void dispose(){
@@ -53,54 +52,68 @@ class _LightGuiState extends State<CameraGui> {
     TextEditingController(),
   ];
 
-  void updateMainCamera(String cameraValue){
-    if(camera.userData['mainCamera'] == true){
-      widget.threeV!.changeCamera(cameraValue);
-    }
-    else{}
+  void updateMainCamera(three.Camera? camera){
+    widget.threeV!.changeCamera(camera);
     setState(() {});
   }
 
   void updateCameraHelper(three.Camera camera){
-    (camera.userData['helper'] as CameraHelper?)?.copy(CameraHelper(camera));
+    threeV?.updateCameraHelper(camera);
   }
   
   @override
   Widget build(BuildContext context) {
+    if(camera != widget.camera){
+      camera = widget.camera;
+    }
     controllersReset();
     const double d = 60;
     double d2 = 60;
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if(camera.userData['mainCamera'] == true)Container(
-          margin: const EdgeInsets.fromLTRB(0, 5, 0, 5),
-          alignment: Alignment.center,
-          height:20,
-          padding: const EdgeInsets.only(left:10),
-          decoration: BoxDecoration(
-            color: Theme.of(context).canvasColor,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton <dynamic>(
-              dropdownColor: Theme.of(context).canvasColor,
-              isExpanded: true,
-              items: cameraSelector,
-              value: cameraValue,
-              isDense: true,
-              focusColor: Theme.of(context).secondaryHeaderColor,
-              style: Theme.of(context).primaryTextTheme.bodySmall,
-              onChanged:(value){
-                cameraValue = value;
-                updateMainCamera(cameraValue == 'Perspective'?'PerspectiveCamera':'OrthographicCamera');
-                updateCameraHelper(camera);
-                setState(() {});
-              },
-            ),
-          ),
+        InkWell(
+          onTap: (){
+            updateMainCamera(isMain?null:camera);
+            setState(() {});
+          },
+          child: Row(
+            //mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Main Camera\t\t\t'),
+              SavedWidgets.checkBox(isMain)
+            ]
+          )
         ),
+        // if(camera.userData['mainCamera'] == true)Container(
+        //   margin: const EdgeInsets.fromLTRB(0, 5, 0, 5),
+        //   alignment: Alignment.center,
+        //   height:20,
+        //   padding: const EdgeInsets.only(left:10),
+        //   decoration: BoxDecoration(
+        //     color: Theme.of(context).canvasColor,
+        //     borderRadius: BorderRadius.circular(10),
+        //   ),
+        //   child: DropdownButtonHideUnderline(
+        //     child: DropdownButton <dynamic>(
+        //       dropdownColor: Theme.of(context).canvasColor,
+        //       isExpanded: true,
+        //       items: cameraSelector,
+        //       value: cameraValue,
+        //       isDense: true,
+        //       focusColor: Theme.of(context).secondaryHeaderColor,
+        //       style: Theme.of(context).primaryTextTheme.bodySmall,
+        //       onChanged:(value){
+        //         cameraValue = value;
+        //         //updateMainCamera(camera);
+        //         updateCameraHelper(camera);
+        //         setState(() {});
+        //       },
+        //     ),
+        //   ),
+        // ),
         Row(
           children: [
             SizedBox(width:d, child: const Text('Near')),

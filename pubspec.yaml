@@ -23,6 +23,7 @@ dependencies:
   three_js_modifers: ^0.2.1
   three_js_advanced_exporters: ^0.0.1
   three_js_tjs_loader: ^0.2.1
+  dart_eval: ^0.8.3
   css:
     git:
       url: https://github.com/Knightro63/css.git

@@ -75,7 +75,7 @@ class _UIPageState extends State<UIScreen> {
         threeV.copyAll(threeV.intersected);
         break;
       case RightClickOptions.reset_camera:
-        threeV.resetCamera();
+        threeV.resetCameraView();
         break;
       case RightClickOptions.game_view:
         threeV.setToMainCamera();

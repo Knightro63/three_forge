@@ -124,6 +124,13 @@ class CreateMesh{
     addPhysics(object);
     return object;
   }
+  static three.Mesh colliderCapsule(){
+    final object = three.Mesh(three.CapsuleGeometry(length:2),three.MeshBasicMaterial.fromMap({'wireframe': true, 'color': 0x00ff00}));
+    object.name = 'Collider-Capsule';
+    object.userData['meshType'] = 'collider_capsule';
+    addPhysics(object);
+    return object;
+  }
 
   static three.Mesh plane(){
     final object = three.Mesh(three.PlaneGeometry(),three.MeshPhongMaterial.fromMap({'side': three.DoubleSide, 'flatShading': true}));
@@ -192,6 +199,16 @@ class CreateMesh{
     BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
     object.name = 'Cone';
     object.userData['meshType'] = 'cone';
+    object.add(h);
+    return object;
+  }
+  static three.Mesh capsule(){
+    final object = three.Mesh(three.CapsuleGeometry(length:2),three.MeshPhongMaterial.fromMap({'flatShading': true}));
+    final three.BoundingBox box = three.BoundingBox();
+    box.setFromObject(object);     
+    BoundingBoxHelper h = BoundingBoxHelper(box)..visible = false;
+    object.name = 'Capsule';
+    object.userData['meshType'] = 'capsule';
     object.add(h);
     return object;
   }

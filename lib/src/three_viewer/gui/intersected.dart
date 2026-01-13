@@ -15,6 +15,7 @@ import 'package:three_forge/src/three_viewer/gui/transform.dart';
 import 'package:three_forge/src/three_viewer/src/voxel_painter.dart';
 import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js/three_js.dart' as three;
+import 'package:three_js_helpers/three_js_helpers.dart';
 
 class IntersectedGui extends StatefulWidget {
   const IntersectedGui({Key? key, required this.threeV}):super(key: key);
@@ -238,7 +239,7 @@ class _IntersectedGuiState extends State<IntersectedGui> {
           ]
         )
       ),
-      if(threeV.intersected.isNotEmpty && threeV.intersected[0] is! three.Camera && threeV.intersected[0] is! three.Light && threeV.intersected[0] is! VoxelPainter)Container(
+      if(threeV.intersected.isNotEmpty && threeV.intersected[0] is! three.Camera && threeV.intersected[0] is! three.Light && threeV.intersected[0] is! VoxelPainter&& threeV.intersected[0].userData['empty'] == false)Container(
         margin: const EdgeInsets.fromLTRB(5,5,5,5),
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
@@ -278,7 +279,7 @@ class _IntersectedGuiState extends State<IntersectedGui> {
           ]
         )
       ),
-      if(threeV.intersected.isNotEmpty && threeV.intersected[0].userData['skeleton'] != null) Container(
+      if(threeV.intersected.isNotEmpty && threeV.intersected[0].userData['skeleton'] != null && threeV.intersected[0].userData['skeleton'] is SkeletonHelper) Container(
         margin: const EdgeInsets.fromLTRB(5,5,5,5),
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
@@ -306,7 +307,7 @@ class _IntersectedGuiState extends State<IntersectedGui> {
           ]
         )
       ),
-      if(threeV.intersected.isNotEmpty && threeV.intersected[0].userData['skeleton'] != null) Container(
+      if(threeV.intersected.isNotEmpty && threeV.intersected[0].userData['skeleton'] != null && threeV.intersected[0] is SkeletonHelper) Container(
         margin: const EdgeInsets.fromLTRB(5,5,5,5),
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
