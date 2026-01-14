@@ -260,7 +260,6 @@ class ThreeViewer {
     threeJs.domElement.addEventListener(three.PeripheralType.pointerdown, onPointerDown);
     threeJs.domElement.addEventListener(three.PeripheralType.pointermove, onPointerMove);
     threeJs.domElement.addEventListener(three.PeripheralType.pointerup, onPointerUp);
-
     threeJs.addAnimationEvent((dt){
       orbit.update();
       if (viewHelper != null && viewHelper!.animating ) {
@@ -485,7 +484,7 @@ class ThreeViewer {
       selectionHelperEnabled = false;
     }
     
-    if(control.dragging){}
+    //if(control.dragging){}
   }
   void onPointerUp(event){
     if(event.pointerType == 'mouse'){

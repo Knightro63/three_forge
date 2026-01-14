@@ -19,6 +19,8 @@ class VoxelPainter extends Object3D{
   final raycaster = Raycaster();
   List<Object3D> objects = [];
   SelectorType selectorType = SelectorType.paint;
+  bool brushSelected = false;
+  double brushSize = 0;
 
   VoxelPainter({
     required this.listenableKey, 
@@ -103,7 +105,12 @@ class VoxelPainter extends Object3D{
     }
   }
   void onPointerMove(WebPointerEvent event){
-    if(!allowPaint)return;
+    if(!allowPaint) return;
+    else if(brushSelected){
+      //listenableKey.currentState.
+      return;
+    }
+    
     mouse.x = (event.clientX / screenSize.width) * 2 - 1;
     mouse.y = -(event.clientY / screenSize.height) * 2 + 1;
     raycaster.setFromCamera( mouse, camera );
@@ -122,6 +129,23 @@ class VoxelPainter extends Object3D{
         }
       }
     }
+  }
+  void onScroll(event){
+    if(!brushSelected) return;
+    //setState(() {
+      if (event.deltaY < 0) {
+        brushSize -= 10;
+        if(brushSize < 0){
+          brushSize = 0;
+        }
+      } 
+      else if (event.deltaY > 0) {
+        brushSize += 10;
+        if(brushSize > 250){
+          brushSize = 250;
+        }
+      }
+    //});
   }
 
   void activate(){
@@ -149,6 +173,7 @@ class VoxelPainter extends Object3D{
     if(disposed) return;
     _domElement.addEventListener(PeripheralType.pointerdown, onPointerDown);
     _domElement.addEventListener(PeripheralType.pointerHover, onPointerMove);
+    _domElement.addEventListener(PeripheralType.wheel, onScroll);
     _domElement.addEventListener(PeripheralType.keydown, onKeyDown);
     _domElement.addEventListener(PeripheralType.keyup, onKeyUp);
   }
@@ -158,6 +183,7 @@ class VoxelPainter extends Object3D{
     if(disposed) return;
     _domElement.removeEventListener(PeripheralType.pointerdown, onPointerDown);
     _domElement.removeEventListener(PeripheralType.pointerHover, onPointerMove);
+    _domElement.removeEventListener(PeripheralType.wheel, onScroll);
     _domElement.removeEventListener(PeripheralType.keydown, onKeyDown);
     _domElement.removeEventListener(PeripheralType.keyup, onKeyUp);
   }

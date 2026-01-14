@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:three_forge/src/objects/insert_models.dart';
 import 'package:three_forge/src/navigation/navigation.dart';
+import 'package:three_forge/src/three_viewer/gui/paint_helper.dart';
 import 'package:three_forge/src/three_viewer/gui/selection_helper.dart';
 import 'package:three_forge/src/three_viewer/src/grid_info.dart';
 import 'package:three_forge/src/three_viewer/src/voxel_painter.dart';
@@ -36,6 +37,7 @@ class Hud extends StatelessWidget{
           ),
         ),
         SelectionHelper(threeV: threeV),
+        PaintHelper(threeV: threeV),
         Positioned(
           left: 10,
           top: 10,
