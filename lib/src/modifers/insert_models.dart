@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 import 'package:three_forge/src/history/commands.dart';
-import 'package:three_forge/src/objects/create_models.dart';
+import 'package:three_forge/src/modifers/create_models.dart';
 import 'package:three_forge/src/three_viewer/import.dart';
 import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js/three_js.dart' as three;
@@ -41,7 +41,7 @@ class InsertModels {
     if(fileType == 'json'){
       File file = File(path);
       final json = jsonDecode(await file.readAsString());
-      threeV.reset();
+      threeV.reset(true);
       import.import(json);
     }
     if(fileType == 'obj'){
@@ -192,7 +192,6 @@ class InsertModels {
     if(crerateThumbnial) await threeV.crerateThumbnial(object);
     object.userData['skeleton'] = skeleton;
     threeV.add(object);
-    threeV.skeleton.add(skeleton);
     object.userData['path'] = path;
 
    if(moveFiles && paths.isNotEmpty){
@@ -270,7 +269,6 @@ class InsertModels {
     if(crerateThumbnial) await threeV.crerateThumbnial(gltf, box);
     gltf.userData['skeleton'] = skeleton;
     threeV.add(gltf);
-    threeV.skeleton.add(skeleton);
     gltf.userData['path'] = path;
 
     if(moveFiles && paths.length > 1){

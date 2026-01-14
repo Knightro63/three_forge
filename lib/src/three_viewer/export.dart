@@ -53,9 +53,12 @@ class ThreeForgeExport{
         attachedObjects[key] = list;
       }
     }
+
+    String name = object.userData['empty'] == true?'empty_${object.uuid}':'object_${object.uuid}';
     return {
-      'object_${object.uuid}': {
+      name: {
         'path': object.userData['path'],
+        'type': object.userData['type'],
         'transform': _getTransform(object),
         'uuid': object.uuid,
         'name': object.name,
@@ -209,9 +212,9 @@ class ThreeForgeExport{
         }
       },
       'settings':{
-        'cameraPerspective': _getTransform(viewer.cameraPersp),
-        'cameraOrtographic': _getTransform(viewer.cameraOrtho),
-        'cameraType': viewer.cameraType,
+        // 'cameraPerspective': _getTransform(viewer.cameraPersp),
+        // 'cameraOrtographic': _getTransform(viewer.cameraOrtho),
+        // 'cameraType': viewer.mainCamera?.runtimeType.toString(),
         'grid': viewer.gridInfo.toJson(),
         'shading': viewer.shading.index,
         'controlSpace': viewer.controlSpace.index,
@@ -242,7 +245,11 @@ class ThreeForgeExport{
     }
 
     for(final o in viewer.scene.children){
-      if(o is Camera){
+      if(o.userData['empty'] == true){
+        //scene.addAll(_createCamera(o));
+        _createObject(o);
+      }
+      else if(o is Camera){
         scene.addAll(_createCamera(o));
       }
       else if(o is Light){

@@ -10,7 +10,6 @@ class SetUserDataValueCommand extends Command {
 		this.updatable = true;
 
 		this.oldValue = subAttributeName ==null?object?.userData[ attributeName ]:object?.userData[ attributeName ]?[subAttributeName];
-    print(oldValue);
 	}
 
 	void execute() {

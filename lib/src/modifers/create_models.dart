@@ -91,12 +91,10 @@ class CreateModels {
     threeV.execute(MultiCmdsCommand(threeV,[
       SetUserDataValueCommand(threeV,target,'importedActions',bvh.uuid,path),
       SetUserDataValueCommand(threeV,target,'actionMap', name, ba)..onUndoDone = (){//<String,dynamic>{name: ba}..addAll(target.userData['actionMap']??{}))..onUndoDone = (){
-        print(target.userData['actionMap']);
         target.userData['actionMap'][name]?.enabled = false;
         target.userData['actionMap'][name]?.setEffectiveWeight( 0.0 );
         target.userData['actionMap'][name]?.stop();
         LSIFunctions.removeNull(target.userData['actionMap']);
-        print(target.userData['actionMap']);
         //(target.userData['mixer'] as three.AnimationMixer).uncacheAction(bvh.animations[0]);
       }
     ]));

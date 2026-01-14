@@ -1,11 +1,11 @@
-import 'package:three_forge/src/objects/create_mesh.dart';
+import 'package:three_forge/src/modifers/create_mesh.dart';
 import 'package:three_forge/src/three_viewer/viewer.dart';
 
 class InsertMesh{
   ThreeViewer threeV;
   InsertMesh(this.threeV);
 
-  Future<void> insert(String type)async{
+  void insert(String type){
     if(type == 'collider_cube'){
       colliderCube();
     }
@@ -14,6 +14,9 @@ class InsertMesh{
     }
     else if(type == 'collider_cylinder'){
       colliderCylinder();
+    }
+    else if(type == 'collider_capsule'){
+      colliderCapsule();
     }
     else if(type == 'plane'){
       plane();
@@ -35,6 +38,9 @@ class InsertMesh{
     }
     else if(type == 'cone'){
       cone();
+    }
+    else if(type == 'capsule'){
+      capsule();
     }
     else if(type == 'torus'){
       torus();
@@ -65,6 +71,9 @@ class InsertMesh{
   void colliderCylinder(){
     threeV.add(CreateMesh.colliderCylinder());
   }
+  void colliderCapsule(){
+    threeV.add(CreateMesh.colliderCapsule());
+  }
 
   void plane(){
     threeV.add(CreateMesh.plane());
@@ -89,6 +98,9 @@ class InsertMesh{
   }
   void torus(){
     threeV.add(CreateMesh.torus());
+  }
+  void capsule(){
+    threeV.add(CreateMesh.capsule());
   }
 
   void parametricPlane(){

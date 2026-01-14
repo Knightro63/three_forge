@@ -1,7 +1,10 @@
-import 'package:three_forge/src/objects/create_mesh.dart';
-import 'package:three_forge/src/objects/create_models.dart';
-import 'package:three_forge/src/objects/insert_mesh.dart';
-import 'package:three_forge/src/objects/insert_models.dart';
+import 'package:three_forge/src/modifers/create_mesh.dart';
+import 'package:three_forge/src/modifers/create_models.dart';
+import 'package:three_forge/src/modifers/insert_camera.dart';
+import 'package:three_forge/src/modifers/insert_empty.dart';
+import 'package:three_forge/src/modifers/insert_light.dart';
+import 'package:three_forge/src/modifers/insert_mesh.dart';
+import 'package:three_forge/src/modifers/insert_models.dart';
 import 'package:three_forge/src/three_viewer/src/grid_info.dart';
 import 'package:three_forge/src/three_viewer/src/terrain.dart';
 import 'package:three_forge/src/three_viewer/viewer.dart';
@@ -12,6 +15,9 @@ class ThreeForgeImport{
   final ThreeViewer threeV;
   late final InsertMesh insertMesh = InsertMesh(threeV);
   late final InsertModels insertModel = InsertModels(threeV);
+  late final InsertLight insertLight = InsertLight(threeV);
+  late final InsertEmpty insertEmpty = InsertEmpty(threeV);
+  late final InsertCamera insertCamera = InsertCamera(threeV);
 
   ThreeForgeImport(this.threeV);
 
@@ -111,40 +117,14 @@ class ThreeForgeImport{
     }
   }
 
-  void _setMainCameras(Map<String,dynamic> map){
-    if('PerspectiveCamera' == map['type']){
-      _setCamera(threeV.cameraPersp, map);
-    }
-    else{
-      _setCamera(threeV.cameraOrtho, map);
-    }
-  }
-
-  void _createCamera(Map<String,dynamic> map, bool add){
-    late final Camera camera;
-    if('PerspectiveCamera' == map['type']){
-      camera = PerspectiveCamera(
-        map['fov'],
-        map['aspect'],
-        map['near'],
-        map['far'],
-      );
-    }
-    else{
-      camera = OrthographicCamera(
-        map['left'],
-        map['right'],
-        map['top'],
-        map['bottom'],
-        map['near'],
-        map['far'],
-      );
-    }
-    camera.uuid = map['uuid'];
-    camera.name = map['name'];
-    camera.zoom = map['zoom'];
+  void _createCamera(Map<String,dynamic> map){
+    insertCamera.insert(map['type'], threeV.aspectRatio());
+    final camera = threeV.scene.children.last as Camera;
     _setTransform(camera, map['transform']);
-    if(add) threeV.add(camera);
+    _setCamera(camera, map);
+    if(map['mainCamera'] == true){
+      threeV.changeCamera(camera);
+    }
   }
   void _setCamera(Camera camera, Map<String,dynamic> map){
     camera.fov = map['fov'];
@@ -161,27 +141,22 @@ class ThreeForgeImport{
     camera.name = map['name'];
     camera.zoom = map['zoom'];
     _setTransform(camera, map['transform']);
+    threeV.updateCameraHelper(camera);
   }
-  void _createLight(Map<String,dynamic> map){
-    late final Light light;
 
-    if(map['type'] == 'AmbientLight'){
-      light = AmbientLight(map['color'],map['intensity']);
-    }
-    else if(map['type'] == 'SpotLight'){
-      light = SpotLight(map['color'],map['intensity'],map['distance'],map['angle'],map['penumbra'],map['decay']);
-    }
-    else if(map['type'] == 'DirectionalLight'){
-      light = DirectionalLight(map['color'],map['intensity']);
-    }
-    else if(map['type'] == 'PointLight'){
-      light = PointLight(map['color'],map['intensity'],map['distance'],map['decay']);
-    }
-    else if(map['type'] == 'RectAreaLight'){
-      light = RectAreaLight(map['color'],map['intensity'],map['width'],map['height']);
-    }
-    else if(map['type'] == 'HemisphereLight'){
-      light = HemisphereLight(map['color'],map['groundColor'],map['intensity']);
+  void _createEmpty(Map<String,dynamic> map){
+    insertEmpty.insert(map['type'] ?? 'empty');
+    final empty = threeV.scene.children.last;
+    _setTransform(empty, map['transform']);
+  }
+
+  void _createLight(Map<String,dynamic> map){
+    insertLight.insert(map['type']);
+
+    final light = threeV.scene.children.last as Light;
+
+    for(final key in map.keys){
+      if(key != 'type' && map[key] != null) light[key] = map[key];
     }
 
     _setTransform(light, map['transform']);
@@ -199,7 +174,7 @@ class ThreeForgeImport{
   }
 
   Future<void> _insertMesh(Map<String,dynamic> map) async{
-    await insertMesh.insert(map['type']);
+    insertMesh.insert(map['type']);
     final mesh = threeV.scene.children.last;
     modifyMesh(mesh, map);
   }
@@ -310,8 +285,16 @@ class ThreeForgeImport{
       else if(key.contains('grid')){
         _setGrid(map);
       }
+      else if(key.contains('empty')){
+        _createEmpty(map);
+      }
       else if(key.contains('object')){
-        await _insertObject(map);
+        if(map['path'] == null){
+           _createEmpty(map);
+        }
+        else{
+          await _insertObject(map);
+        }
       }
       else if(key.contains('collider')){
         _insertCollider(map);
@@ -320,12 +303,7 @@ class ThreeForgeImport{
         await _insertMesh(map);
       }
       else if(key.contains('camera')){
-        if(map['mainCamera'] == true){
-          _setMainCameras(map);
-        }
-        else{
-          _createCamera(map, true);
-        }
+        _createCamera(map);
       }
       else if(key.contains('light')){
         _createLight(map);
@@ -337,5 +315,7 @@ class ThreeForgeImport{
         await  _createTerrain(map);
       }
     }
+
+    threeV.history.clear();
   }
 }

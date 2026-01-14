@@ -1,10 +1,12 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:three_forge/src/objects/create_models.dart';
-import 'package:three_forge/src/objects/insert_mesh.dart';
-import 'package:three_forge/src/objects/insert_models.dart';
+import 'package:three_forge/src/modifers/create_models.dart';
+import 'package:three_forge/src/modifers/insert_camera.dart';
+import 'package:three_forge/src/modifers/insert_empty.dart';
+import 'package:three_forge/src/modifers/insert_light.dart';
+import 'package:three_forge/src/modifers/insert_mesh.dart';
+import 'package:three_forge/src/modifers/insert_models.dart';
 import 'package:three_forge/src/navigation/navData.dart';
 import 'package:three_forge/src/styles/globals.dart';
 import 'package:three_forge/src/three_viewer/import.dart';
@@ -12,7 +14,6 @@ import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js_advanced_exporters/usdz_exporter.dart';
 import 'package:three_js_exporters/three_js_exporters.dart';
 import 'package:three_js/three_js.dart' as three;
-import 'package:three_js_helpers/three_js_helpers.dart';
 
 class ScreenNavigator{
   void Function(void Function()) setState;
@@ -20,11 +21,17 @@ class ScreenNavigator{
   final ThreeViewer threeV;
   late final InsertModels insert;
   late final InsertMesh insertMesh;
+  late final InsertLight insertLight;
+  late final InsertEmpty insertEmpty;
+  late final InsertCamera insertCamera;
   late final import = ThreeForgeImport(threeV);
 
   ScreenNavigator(this.threeV,this.setState,this.callBacks){
     insert = InsertModels(threeV);
     insertMesh = InsertMesh(threeV);
+    insertLight = InsertLight(threeV);
+    insertEmpty = InsertEmpty(threeV);
+    insertCamera = InsertCamera(threeV);
   }
 
   late List<NavItems> navigator = [
@@ -35,7 +42,7 @@ class ScreenNavigator{
           name: 'New',
           icon: Icons.new_label_outlined,
           onTap: (data){
-            threeV.reset();
+            threeV.reset(false);
             callBacks(call: LSICallbacks.updatedNav);
           }
         ),
@@ -47,7 +54,7 @@ class ScreenNavigator{
               if(value != null){
                 final json = jsonDecode(String.fromCharCodes(value.files.first.bytes!));
                 threeV.fileSort.sceneName = value.files.first.name.replaceAll('.json', '');
-                threeV.reset();
+                threeV.reset(true);
                 import.import(json);
               }
               setState(() {});
@@ -420,7 +427,7 @@ class ScreenNavigator{
           icon: Icons.camera_indoor_outlined,
           onTap: (e){
             callBacks(call: LSICallbacks.updatedNav);
-            threeV.resetCamera();
+            threeV.resetCameraView();
           }
         ),
         NavItems(
@@ -494,6 +501,14 @@ class ScreenNavigator{
               onTap: (data){
                 callBacks(call: LSICallbacks.updatedNav);
                 insertMesh.cone();
+              },
+            ),
+            NavItems(
+              name: 'Capsule',
+              icon: Icons.view_in_ar_rounded,
+              onTap: (data){
+                callBacks(call: LSICallbacks.updatedNav);
+                insertMesh.capsule();
               },
             ),
             NavItems(
@@ -594,7 +609,7 @@ class ScreenNavigator{
               icon: Icons.view_in_ar_rounded,
               onTap: (data){
                 callBacks(call: LSICallbacks.updatedNav);
-                insertMesh.cylinder();
+                insertMesh.colliderCapsule();
               },
             ),
           ]
@@ -608,11 +623,7 @@ class ScreenNavigator{
               icon: Icons.video_camera_back,
               onTap: (data) async{
                 callBacks(call: LSICallbacks.updatedNav);
-                final aspect = threeV.aspectRatio();
-                final camera = three.PerspectiveCamera(40, aspect, 0.1, 10);
-                camera.name = 'Perspective Camera';
-                final helper = CameraHelper(camera);
-                threeV.add(camera..add(helper));
+                insertCamera.perspective(threeV.aspectRatio());
               },
             ),
             NavItems(
@@ -620,12 +631,7 @@ class ScreenNavigator{
               icon: Icons.video_camera_back,
               onTap: (data) async{
                 callBacks(call: LSICallbacks.updatedNav);
-                final aspect = threeV.aspectRatio();
-                final frustumSize = 5.0;
-                final camera = three.OrthographicCamera(- frustumSize * aspect, frustumSize * aspect, frustumSize, - frustumSize, 0.1, 10);
-                camera.name = 'Ortographic Camera';
-                final helper = CameraHelper(camera);
-                threeV.add(camera..add(helper));
+                insertCamera.ortographic(threeV.aspectRatio());
               },
             ),
           ]
@@ -643,9 +649,7 @@ class ScreenNavigator{
               icon: Icons.light_mode,
               onTap: (data) async{
                 callBacks(call: LSICallbacks.updatedNav);
-                final object = three.AmbientLight(0xffffff);
-                object.name = 'Ambient Light';
-                threeV.add(object);
+                insertLight.ambientLight();
               },
             ),
             NavItems(
@@ -653,11 +657,7 @@ class ScreenNavigator{
               icon: Icons.light,
               onTap: (data) async{
                 callBacks(call: LSICallbacks.updatedNav);
-                final light = three.SpotLight(0xffffff,100,2,math.pi / 6, 1, 2);
-                light.name = 'Spot Light';
-                final helper = SpotLightHelper(light,0xffff00);
-                threeV.add(light);
-                threeV.skeleton.add(helper);
+                insertLight.spotLight();
               },
             ),
             NavItems(
@@ -665,11 +665,7 @@ class ScreenNavigator{
               icon: Icons.light,
               onTap: (data) async{
                 callBacks(call: LSICallbacks.updatedNav);
-                final light = three.DirectionalLight(0xffffff);
-                light.name = 'Directional Light';
-                final helper = DirectionalLightHelper(light,1,three.Color.fromHex32(0xffff00));
-                threeV.add(light);
-                threeV.skeleton.add(helper);
+                insertLight.directionalLight();
               },
             ),
             NavItems(
@@ -677,11 +673,7 @@ class ScreenNavigator{
               icon: Icons.view_in_ar_rounded,
               onTap: (data) async{
                 callBacks(call: LSICallbacks.updatedNav);
-                final light = three.PointLight(0xffffff,10);
-                final helper = PointLightHelper(light,1,0xffff00);
-                light.name = 'Point Light';
-                threeV.add(light);
-                threeV.skeleton.add(helper);
+                insertLight.pointLight();
               },
             ),
             NavItems(
@@ -689,11 +681,7 @@ class ScreenNavigator{
               icon: Icons.panorama_photosphere,
               onTap: (data) async{
                 callBacks(call: LSICallbacks.updatedNav);
-                final light = three.HemisphereLight(0xffffff,0x444444);
-                final helper = HemisphereLightHelper(light,1,three.Color.fromHex32(0xffff00));
-                light.name = 'Hemisphere Light';
-                threeV.add(light);
-                threeV.skeleton.add(helper);
+                insertLight.hemisphereLight();
               },
             ),
             NavItems(
@@ -701,11 +689,29 @@ class ScreenNavigator{
               icon: Icons.rectangle_outlined,
               onTap: (data) async{
                 callBacks(call: LSICallbacks.updatedNav);
-                final light = three.RectAreaLight(0xffffff,0x444444);
-                final helper = RectAreaLightHelper(light,three.Color.fromHex32(0xffff00));
-                light.name = 'Rect Area Light';
-                threeV.add(light);
-                threeV.skeleton.add(helper);
+                insertLight.rectAreaLight();
+              },
+            ),
+          ]
+        ),
+        NavItems(
+          name: 'Empty',
+          icon: Icons.group_work_outlined,
+          subItems: [
+            NavItems(
+              name: 'Empty',
+              icon: Icons.workspaces_outlined,
+              onTap: (data) async{
+                callBacks(call: LSICallbacks.updatedNav);
+                insertEmpty.empty();
+              },
+            ),
+            NavItems(
+              name: 'Empty Parent',
+              icon: Icons.workspaces_filled,
+              onTap: (data) async{
+                callBacks(call: LSICallbacks.updatedNav);
+                insertEmpty.emptyParent();
               },
             ),
           ]
