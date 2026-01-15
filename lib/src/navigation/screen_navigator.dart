@@ -42,7 +42,7 @@ class ScreenNavigator{
           name: 'New',
           icon: Icons.new_label_outlined,
           onTap: (data){
-            threeV.reset(false);
+            threeV.reset();
             callBacks(call: LSICallbacks.updatedNav);
           }
         ),
@@ -53,8 +53,8 @@ class ScreenNavigator{
             GetFilePicker.pickFiles(['json']).then((value)async{
               if(value != null){
                 final json = jsonDecode(String.fromCharCodes(value.files.first.bytes!));
-                threeV.fileSort.sceneName = value.files.first.name.replaceAll('.json', '');
-                threeV.reset(true);
+                final sceneName = value.files.first.name.replaceAll('.json', '');
+                threeV.reset(sceneName);
                 import.import(json);
               }
               setState(() {});
@@ -65,33 +65,22 @@ class ScreenNavigator{
         NavItems(
           name: 'Save',
           icon: Icons.save,
-          input: threeV.fileSort.sceneName,
           onTap: (data){
-            callBacks(call: LSICallbacks.updatedNav);
-            threeV.fileSort.export(threeV.fileSort.sceneName, threeV);
+            callBacks(call: LSICallbacks.save);
           },
-          onChange: (data){
-            threeV.fileSort.sceneName = data;
+          // onChange: (data){
+          //   threeV.fileSort.sceneName = data;
+          // }
+        ),
+        NavItems(
+          name: 'Save As',
+          icon: Icons.save_outlined,
+          onTap: (data){
+            setState(() {
+              callBacks(call: LSICallbacks.saveAs);
+            });
           }
         ),
-        // NavItems(
-        //   name: 'Save As',
-        //   icon: Icons.save_outlined,
-        //   onTap: (data){
-        //     setState(() {
-        //       callBacks(call: LSICallbacks.updatedNav);
-        //       if(!kIsWeb){
-        //         GetFilePicker.saveFile('untilted', 'jle').then((path){
-        //           setState(() {
-
-        //           });
-        //         });
-        //       }
-        //       else if(kIsWeb){
-        //       }
-        //     });
-        //   }
-        // ),
         NavItems(
           name: 'Import',
           icon: Icons.file_download_outlined,

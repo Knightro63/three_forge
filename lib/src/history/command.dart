@@ -23,6 +23,8 @@ enum CommandType {
   setScriptValue,
   setShadowValue,
   setUuid,
+  setScale,
+  setRotation,
   setFogValue,
   setUserDataValue,
   setValue;
@@ -72,10 +74,14 @@ enum CommandType {
         return CommandType.setShadowValue;
       case 'SetUuidCommand':
         return CommandType.setUuid;
+      case 'SetScaleCommand':
+        return CommandType.setScale;
       case 'SetFogValueCommand':
         return CommandType.setFogValue;
       case 'SetUserDataValueCommand':
         return CommandType.setUserDataValue;
+      case 'SetRotationCommand':
+        return CommandType.setRotation;
       case 'SetValueCommand':
         return CommandType.setValue;
       default:

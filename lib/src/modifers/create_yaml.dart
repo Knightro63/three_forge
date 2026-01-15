@@ -8,7 +8,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: `app_version`
 
 environment:
-  sdk: `app_sdk_environment
+  sdk: ^3.8.1
 
 dependencies:
   flutter:
@@ -29,44 +29,40 @@ flutter:
 ''';
 
 class CreateYaml {
-  ThreeViewer threeV;
-
-  CreateYaml(this.threeV);
-
-  Future<String> create() async{
-    String mod = startingYaml;
-    mod.replaceAll('`app_name`', threeV.fileSort.sceneName);
-    mod.replaceAll('`app_description`', threeV.fileSort.description);
-    mod.replaceAll('`app_version`', threeV.fileSort.versionName);
-
+  static Future<String> create(ThreeViewer threeV) async{
     final FileLoader loader = FileLoader();
 
-    final tjsVersion = await loader.fromNetwork(Uri.parse('https://img.shields.io/pub/v/three_js'));
-    print(tjsVersion);
-    mod.replaceAll('`three_js_version`', '^');
+    Future<String> getVersion(String uri) async{
+      final tjsVersion = await loader.fromNetwork(Uri.parse(uri));
+      final version = String.fromCharCodes(tjsVersion!.data).split('"><title>').first.split('pub: v').last;
+      return version;
+    }
+
+    String mod = startingYaml;
+    mod = mod.replaceAll('`app_name`', threeV.fileSort.appName);
+    mod = mod.replaceAll('`app_description`', threeV.fileSort.description);
+    mod = mod.replaceAll('`app_version`', threeV.fileSort.versionName);
+    mod = mod.replaceAll('`three_js_version`', '^${await getVersion('https://img.shields.io/pub/v/three_js')}');
 
     String addDep = '';
     String? addAudio;
     String? addVideo;
-    String? addAssets;
+    List<String> addAssets = [];
 
     for(final o in threeV.scene.children){
-      if(o.userData['terrain_id'] == null){
-        final dep = await loader.fromNetwork(Uri.parse('https://img.shields.io/pub/v/three_js_terrain'));
-        addDep += 'three_js_terrain: ^\n';
+      if(o.userData['terrain_id'] != null){
+        addDep += 'three_js_terrain: ^${await getVersion('https://img.shields.io/pub/v/three_js_terrain')}\n';
       }
       else if(o.userData['audio'] != null && addAudio == null){
-        final dep = await loader.fromNetwork(Uri.parse('https://img.shields.io/pub/v/three_js_audio_latency'));
-        addAudio = 'three_js_audio_latency: ^\n';
+        addAudio = 'three_js_audio_latency: ^${await getVersion('https://img.shields.io/pub/v/three_js_audio_latency')}\n';
       }
       else if(o.userData['video'] != null && addVideo == null){
-        final dep = await loader.fromNetwork(Uri.parse('https://img.shields.io/pub/v/three_js_video_texture'));
-        addVideo = 'three_js_video_texture: ^\n';
+        addVideo = 'three_js_video_texture: ^${await getVersion('https://img.shields.io/pub/v/three_js_video_texture')}\n';
       }
       else if(o.userData['path'] != null){
-        //"/Documents/Temp/example_project/assets/animations/Dribble.fbx"
-        List<String> split = (o.userData['path'] as String).split(threeV.dirPath);
-        addAssets = '- \n';
+        String path = (o.userData['path'] as String).split(threeV.dirPath).last;
+        String toRemove = path.split('/').last;
+        addAssets.add(path.replaceAll(toRemove, ''));
       }
     }
 
@@ -78,14 +74,18 @@ class CreateYaml {
     }
 
     if(addDep != ''){
-      mod = mod.replaceAll('`other_dependencies`', 'addDep');
+      mod = mod.replaceAll('`other_dependencies`', addDep);
     }
     else{
       mod = mod.replaceAll('`other_dependencies`', '');
     }
 
-    if(addAssets != null){
-
+    if(addAssets.isNotEmpty){
+      String setAssets = '';
+      for(final a in addAssets){
+        setAssets += '- $a';
+      }
+      mod = mod.replaceAll('`your_assets`', setAssets);
     }
     else{
       mod = mod.replaceAll('`your_assets`', '');

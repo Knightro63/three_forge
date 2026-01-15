@@ -2,19 +2,34 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/services.dart';
 import 'package:three_forge/src/three_viewer/export.dart';
 import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:path/path.dart' as p;
 import 'package:three_js/three_js.dart' as three;
 
 class FileSort{
-  String dirPath;
+  bool isImport = false;
+  Map<String,dynamic> currentProject;
+  String get dirPath => currentProject['location'];
   String sceneName = 'untitled';
+  String get appName => currentProject['name'];
   String description = 'A new Three Forge project.';
   String versionName = '0.0.1';
   int versionNumber = 0;
 
-  FileSort(this.dirPath);
+  FileSort(this.currentProject);
+
+  void setImport([String? sceneName]){
+    if(sceneName != null){
+      isImport = true;
+      this.sceneName = sceneName;
+    }
+    else{
+      isImport = false;
+      this.sceneName = 'untitled';
+    }
+  }
 
   Future<void> _copyDirectory(Directory source, Directory destination) async {
     if (!destination.existsSync()) {
@@ -115,6 +130,35 @@ class FileSort{
       three.console.info('Source folder does not exist.');
     }
   }
+  Future<void> save(ThreeViewer three) async{
+    if(isImport){
+      export(sceneName,three);
+    }
+    else{
+      saveAs(three);
+    }
+  }
+  Future<void> saveAs(ThreeViewer three) async{
+    String? path = '';
+    try {
+      path = await FilePicker.platform.saveFile(
+        fileName: 'untitled.json',
+        type: FileType.custom,
+        allowedExtensions: ['json'],
+        initialDirectory: '$dirPath/assets/scenes/'
+      );
+    } 
+    on PlatformException catch (e) {
+      throw('Unsupported operation Select: $e');
+    } 
+    catch (e) {
+      print('Select: $e');
+    }
+
+    if(path != null){
+      exportPath(path, three);
+    }
+  }
   Future<void> export(String name, ThreeViewer three) async{
     String path ='$dirPath/assets/scenes/';
     bool exists = await Directory(path).exists();
@@ -123,6 +167,10 @@ class FileSort{
     final last = name != ''?name:three.scene.name != ''?three.scene.name:three.scene.uuid;
     final tfe = ThreeForgeExport().export(three);
     await File('$path$last.json').writeAsString(json.encode(await tfe));
+  }
+  Future<void> exportPath(String path, ThreeViewer three) async{
+    final tfe = ThreeForgeExport().export(three);
+    await File(path).writeAsString(json.encode(await tfe));
   }
   Future<void> moveObjects(List<PlatformFile> files) async{
     String path ='$dirPath/assets/models/' ;
@@ -137,7 +185,13 @@ class FileSort{
     }
   }
   Future<void> moveObject(PlatformFile file) async{
-    String path ='$dirPath/assets/models/' ;
+    move(file, '$dirPath/assets/models/');
+  }
+  Future<void> moveAudio(PlatformFile file) async{
+    move(file, '$dirPath/assets/audio/');
+  }
+
+  Future<void> move(PlatformFile file, String path) async{
     bool exists = await Directory(path).exists();
     if(!exists) await Directory(path).create(recursive: true);
 

@@ -31,7 +31,7 @@ class _ThumbnailCreatorState extends State<ThumbnailCreator> {
         setState(() {});
         thumbnail = Thumbnail(threeJs.renderer!, threeJs.scene, threeJs.camera);
         if(auto){
-          thumbnail.captureThumbnail(widget.path!, model: widget.object);
+          thumbnail.captureThumbnailSave(widget.path!, model: widget.object);
         }
       },
       setup: setup,
@@ -196,7 +196,7 @@ class _ThumbnailCreatorState extends State<ThumbnailCreator> {
                 if(objectLocationController.text != ''){
                   setState(() {creating = true;});
                   for(final f in file){
-                    await thumbnail.captureThumbnail(thumbnailLocationController.text, modelPath: f.path);
+                    await thumbnail.captureThumbnailSave(thumbnailLocationController.text, modelPath: f.path);
                   }
                   setState(() {
                     creating = false;

@@ -32,7 +32,7 @@ class Thumbnail{
     rt.dispose();
   }
 
-  Future<void> captureThumbnail(String dirPath, {String? modelPath, three.Object3D? model, three.BoundingBox? box}) async{
+  Future<Uint8List?> captureThumbnail({String? modelPath, three.Object3D? model, three.BoundingBox? box}) async{
     try {
       if(model == null){
         model = await loadObject(modelPath!);
@@ -40,7 +40,7 @@ class Thumbnail{
       else{
         positionCamera(model, box);
       }
-      if(model == null) return;
+      if(model == null) return null;
       renderer.setClearColor(three.Color.fromHex32(0x000000), 0);
       renderer.setRenderTarget( rt );
       renderer.clear();
@@ -57,18 +57,30 @@ class Thumbnail{
       image = img.copyFlip(image, direction: img.FlipDirection.vertical);
       Uint8List pngBytes = img.encodePng(image);
 
-      bool exists = await Directory(dirPath).exists();
-      if(!exists) await Directory(dirPath).create(recursive: true);
 
-      await File('$dirPath/${model.name}.png').writeAsBytes(pngBytes);
       renderer.clear();
       renderer.setClearColor(three.Color.fromHex32(0x000000), 0); 
       renderer.setRenderTarget(null);
       
       scene.children.remove(model);
+
+      return pngBytes;
     }catch (e) {
       print(e);
     }
+
+    return null;
+  }
+
+  Future<void> captureThumbnailSave(String dirPath, {String? modelPath, three.Object3D? model, three.BoundingBox? box}) async{
+    final pngBytes = await captureThumbnail(modelPath: modelPath, model: model,box: box);
+    
+    if(pngBytes == null) return;
+
+    bool exists = await Directory(dirPath).exists();
+    if(!exists) await Directory(dirPath).create(recursive: true);
+
+    await File('$dirPath/${model?.name ?? 'untitled'}.png').writeAsBytes(pngBytes);
   }
 
   Future<three.Object3D?> loadFileType(String path) async{

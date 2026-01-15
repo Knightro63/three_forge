@@ -39,16 +39,21 @@ class EditInfo{
 }
 
 class ThreeViewer {
-  late final FileSort fileSort = FileSort(dirPath);
+  bool get holdingCtrl => holdingKeys.length == 1 && holdingKeys[0] == 'ctrl';
+  bool get holdingShift => holdingKeys.length == 1 && holdingKeys[0] == 'shift';
+  bool get holdingCtrlShift => holdingKeys.length == 2 && ((holdingKeys[0] == 'shift' && holdingKeys[1] == 'ctrl') || (holdingKeys[1] == 'shift' && holdingKeys[0] == 'ctrl'));
+
+  late final FileSort fileSort = FileSort(currentProject);
   void Function(void Function()) setState;
   RightClick rightClick;
 
-  ThreeViewer(this.setState,this.rightClick,this.dirPath){
+  ThreeViewer(this.setState,this.rightClick,this.currentProject){
     init();
   }
 
   late final History history = History(this);
-  String dirPath;
+  Map<String,dynamic> currentProject;
+  String get dirPath => currentProject['location'];
   late three.ThreeJS threeJs;
 
   Widget build() => threeJs.build();
@@ -81,7 +86,7 @@ class ThreeViewer {
   final three.Vector3 sun = three.Vector3();
 
   bool didClick = false;
-  String? holdingKey;
+  final List<String> holdingKeys = [];
   bool sceneSelected = false;
   bool showCameraView = false;
   bool tempSnap = false;
@@ -142,7 +147,7 @@ class ThreeViewer {
 
     mainCamera = CreateCamera.perspective(aspect);
 
-    add(mainCamera);
+    add(mainCamera, usingUndo: true);
     mainCamera?.position.setValues(5,5,-5);
     mainCamera?.lookAt(three.Vector3());
     mainCamera?..name = 'Main Camera'..userData['mainCamera'] = true;
@@ -283,14 +288,14 @@ class ThreeViewer {
   void onKeyDown(LogicalKeyboardKey event){
     switch (event.keyLabel.toLowerCase()) {
       case 'meta left':
-        holdingKey = 'ctrl';
+        holdingKeys.add('ctrl');
       case 'q':
         control.setSpace( control.space == 'local' ? 'world' : 'local' );
         break;
       case 'shift right':
       case 'shift left':
         if(SelectorType.paint == _selectorType || SelectorType.erase == _selectorType) return;
-        holdingKey = 'shift';
+        holdingKeys.add('shift');
         tempSnap = gridInfo.isSnapOn;
         gridInfo.setSnap(true);
         break;
@@ -304,12 +309,12 @@ class ThreeViewer {
         control.setMode(GizmoType.scale);
         break;
       case 'c':
-        if(holdingKey == 'ctrl'){
+        if(holdingCtrl){
           copy = intersected;
         }
         break;
       case 'v':
-        if(holdingKey == 'ctrl'){
+        if(holdingCtrl){
           if(copy != null){
             copyAll(copy);
           }
@@ -352,21 +357,25 @@ class ThreeViewer {
     }
   }
   void onKeyUp(LogicalKeyboardKey event){
-    holdingKey = null;
     switch ( event.keyLabel.toLowerCase() ) {
-      case 'y':
-        redo();
+      case 's':
+        holdingCtrlShift?fileSort.saveAs(this):fileSort.save(this);
         setState((){});
+      case 'y':
         break;
       case 'z':
-        undo();
+        holdingCtrlShift?redo():undo();
         setState((){});
         break;
       case 'shift right':
       case 'shift left':
         if(SelectorType.paint == _selectorType || SelectorType.erase == _selectorType) return;
         gridInfo.setSnap(tempSnap);
+        holdingKeys.remove('shift');
         break;
+      case 'meta left':
+      case 'meta right':
+        holdingKeys.remove('ctrl');
     }
   }
   void onPointerDown(details){
@@ -862,8 +871,12 @@ class ThreeViewer {
     return scene.children.contains(object) || threeJs.scene.children.contains(object);
   }
 
-  Future<void> crerateThumbnial(three.Object3D model, [three.BoundingBox? box]) async{
-    thumbnail.captureThumbnail('$dirPath/assets/thumbnails/', model: model, box: box);
+  Future<void> crerateThumbnialSave(three.Object3D model, [three.BoundingBox? box]) async{
+    thumbnail.captureThumbnailSave('$dirPath/assets/thumbnails/', model: model, box: box);
+  }
+
+  Future<Uint8List?> crerateThumbnial(three.Object3D model, [three.BoundingBox? box]) async{
+    return await thumbnail.captureThumbnail(model: model, box: box);
   }
 
   void viewSky(){
@@ -933,13 +946,13 @@ class ThreeViewer {
     sceneSelected = false;
   }
 
-  void reset(bool isImport){
+  void reset([String? sceneName]){
     copy = null;
     _controlSpace = ControlSpaceType.global;
     shading = ShadingType.solid;
     _selectorType = SelectorType.translate;
     mousePosition.setValues(0, 0);
-    holdingKey = null;
+    holdingKeys.clear();
     selectionHelperEnabled = false;
     control.detach();
 
@@ -963,7 +976,7 @@ class ThreeViewer {
     fog.far = 10;
 
     _setSky();
-    if(!isImport){
+    if(sceneName == null){
       _addCamera();
       resetCameraView();
     }
@@ -977,6 +990,7 @@ class ThreeViewer {
 
     gridInfo.reset();
     history.clear();
+    fileSort.setImport(sceneName);
     setState((){});
   }
 }

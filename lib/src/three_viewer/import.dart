@@ -77,6 +77,7 @@ class ThreeForgeImport{
       for(final l in attachedObjects[key]!){
         
         final name = l.keys.toList()[0];
+        String uuid = object.getObjectByName(l['parent'])?.uuid ?? '';
         Object3D? o;
         final m = l[name];
 
@@ -91,10 +92,10 @@ class ThreeForgeImport{
         }
 
         if(o != null){
-          if(object.userData['attachedObjects']?[name] == null){
-            object.userData['attachedObjects']?[name] = <Object3D>[];
+          if(object.userData['attachedObjects']?[uuid] == null){
+            object.userData['attachedObjects']?[uuid] = <Object3D>[];
           }
-          object.userData['attachedObjects'][name].add(o);
+          object.userData['attachedObjects'][uuid].add(o);
           final selectedBone = threeV.scene.getObjectByName(l['parent']);
           selectedBone?.add(o);
         }
@@ -290,7 +291,7 @@ class ThreeForgeImport{
       }
       else if(key.contains('object')){
         if(map['path'] == null){
-           _createEmpty(map);
+          _createEmpty(map);
         }
         else{
           await _insertObject(map);

@@ -41,7 +41,8 @@ class InsertModels {
     if(fileType == 'json'){
       File file = File(path);
       final json = jsonDecode(await file.readAsString());
-      threeV.reset(true);
+      final sceneName = file.path.split('/').last.replaceAll('.json', '');//value.files.first.name.replaceAll('.json', '');
+      threeV.reset(sceneName);
       import.import(json);
     }
     if(fileType == 'obj'){
@@ -79,28 +80,28 @@ class InsertModels {
 
   Future<void> vox(String path, String name, [bool crerateThumbnial = true]) async{
     final object = await CreateModels.vox(path, name);
-    if(crerateThumbnial) await threeV.crerateThumbnial(object);
+    if(crerateThumbnial) await threeV.crerateThumbnialSave(object);
     object.userData['path'] = path;
     threeV.add(object);
   }
   
   Future<void> xyz(String path, String name, [bool crerateThumbnial = true]) async{
     final object = await CreateModels.xyz(path, name);
-    if(crerateThumbnial) await threeV.crerateThumbnial(object);
+    if(crerateThumbnial) await threeV.crerateThumbnialSave(object);
     object.userData['path'] = path;
     threeV.add(object);
   }
 
   Future<void> collada(String path, String name, [bool crerateThumbnial = true]) async{
     final object = await CreateModels.collada(path, name);
-    if(crerateThumbnial) await threeV.crerateThumbnial(object);
+    if(crerateThumbnial) await threeV.crerateThumbnialSave(object);
     object.userData['path'] = path;
     threeV.add(object);
   }
 
   Future<void> usdz(String path, String name, [bool crerateThumbnial = true]) async{
     final object = await CreateModels.usdz(path, name);
-    if(crerateThumbnial) await threeV.crerateThumbnial(object);
+    if(crerateThumbnial) await threeV.crerateThumbnialSave(object);
     object.userData['path'] = path;
     threeV.add(object);
   }
@@ -189,7 +190,7 @@ class InsertModels {
       }
     }
 
-    if(crerateThumbnial) await threeV.crerateThumbnial(object);
+    if(crerateThumbnial) await threeV.crerateThumbnialSave(object);
     object.userData['skeleton'] = skeleton;
     threeV.add(object);
     object.userData['path'] = path;
@@ -266,7 +267,7 @@ class InsertModels {
       }
     }
 
-    if(crerateThumbnial) await threeV.crerateThumbnial(gltf, box);
+    if(crerateThumbnial) await threeV.crerateThumbnialSave(gltf, box);
     gltf.userData['skeleton'] = skeleton;
     threeV.add(gltf);
     gltf.userData['path'] = path;
@@ -281,21 +282,21 @@ class InsertModels {
 
   Future<void> ply(String path, String name, [bool crerateThumbnial = true]) async{
     final object = await CreateModels.ply(path, name);
-    if(crerateThumbnial) await threeV.crerateThumbnial(object);
+    if(crerateThumbnial) await threeV.crerateThumbnialSave(object);
     object.userData['path'] = path;
     threeV.add(object);
   }
 
   Future<void> stl(String path, String name, [bool crerateThumbnial = true]) async{
     final object = await CreateModels.stl(path, name);
-    if(crerateThumbnial) await threeV.crerateThumbnial(object);
+    if(crerateThumbnial) await threeV.crerateThumbnialSave(object);
     object.userData['path'] = path;
     threeV.add(object);
   }
 
   Future<void> obj(String path, String name, [bool crerateThumbnial = true, three.MaterialCreator? materials]) async{
     final object = await CreateModels.obj(path, name, materials);
-    if(crerateThumbnial) await threeV.crerateThumbnial(object);
+    if(crerateThumbnial) await threeV.crerateThumbnialSave(object);
     object.userData['path'] = path;
     threeV.add(object);
   }

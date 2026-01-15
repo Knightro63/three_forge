@@ -162,30 +162,30 @@ class _ObjectGuiState extends State<ObjectGui> {
             )
           ],
         ),
-        DragTarget(
-          builder: (context, candidateItems, rejectedItems) {
-            return Wrap(
-              children: [
-                const Text('Script:'),
-                EnterTextFormField(
-                  readOnly: true,
-                  //width: 76,
-                  height: 20,
-                  maxLines: 1,
-                  textStyle: Theme.of(context).primaryTextTheme.bodySmall,
-                  color: Theme.of(context).canvasColor,
-                  controller: transfromControllers[2],
-                )
-              ],
-            );
-          },
-          onAcceptWithDetails: (details) async{
-            if(object.userData['scripts'] == null){
-              object.userData['scripts'] = <String>[];
-            }
-            object.userData['scripts'].add(details);
-          },
-        ),
+        // DragTarget(
+        //   builder: (context, candidateItems, rejectedItems) {
+        //     return Wrap(
+        //       children: [
+        //         const Text('Script:'),
+        //         EnterTextFormField(
+        //           readOnly: true,
+        //           //width: 76,
+        //           height: 20,
+        //           maxLines: 1,
+        //           textStyle: Theme.of(context).primaryTextTheme.bodySmall,
+        //           color: Theme.of(context).canvasColor,
+        //           controller: transfromControllers[2],
+        //         )
+        //       ],
+        //     );
+        //   },
+        //   onAcceptWithDetails: (details) async{
+        //     if(object.userData['scripts'] == null){
+        //       object.userData['scripts'] = <String>[];
+        //     }
+        //     object.userData['scripts'].add(details);
+        //   },
+        // ),
 
         if(object is VoxelPainter) SizedBox(height: 10,),
         if(object is VoxelPainter) Text('Voxel Painter'),

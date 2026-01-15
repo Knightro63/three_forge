@@ -184,11 +184,11 @@ class OverlayClassState extends State<OverlayClass> {
         width: widget.width,
         decoration: BoxDecoration(
           color: widget.theme.cardColor,
-          borderRadius: BorderRadius.circular(2),
+          borderRadius: BorderRadius.circular(5),
           boxShadow: [BoxShadow(
             color: widget.theme.shadowColor,
             blurRadius: 5,
-            offset: const Offset(2,3),
+            //offset: const Offset(2,3),
           ),]
         ),
         child: Column(

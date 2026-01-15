@@ -515,30 +515,30 @@ class _SceneGuiState extends State<SceneGui> {
           ],
         ),
         const SizedBox(height: 10,),
-        const Text('Add'),
-        const SizedBox(height: 5,),
-        DragTarget(
-          builder: (context, candidateItems, rejectedItems) {
-            return Row(
-              children: [
-                const Text('Audio'),
-                EnterTextFormField(
-                  readOnly: true,
-                  label: threeV.scene.userData['audio'] ?? 'Audio',
-                  width: 80,
-                  height: 20,
-                  maxLines: 1,
-                  textStyle: Theme.of(context).primaryTextTheme.bodySmall,
-                  color: Theme.of(context).canvasColor,
-                  controller: sceneControllers[13],
-                )
-              ],
-            );
-          },
-          onAcceptWithDetails: (details) async{
-            threeV.scene.userData['audio'] = details.data;
-          },
-        ),
+        // const Text('Add'),
+        // const SizedBox(height: 5,),
+        // DragTarget(
+        //   builder: (context, candidateItems, rejectedItems) {
+        //     return Row(
+        //       children: [
+        //         const Text('Audio'),
+        //         EnterTextFormField(
+        //           readOnly: true,
+        //           label: threeV.scene.userData['audio'] ?? 'Audio',
+        //           width: 80,
+        //           height: 20,
+        //           maxLines: 1,
+        //           textStyle: Theme.of(context).primaryTextTheme.bodySmall,
+        //           color: Theme.of(context).canvasColor,
+        //           controller: sceneControllers[13],
+        //         )
+        //       ],
+        //     );
+        //   },
+        //   onAcceptWithDetails: (details) async{
+        //     threeV.scene.userData['audio'] = details.data;
+        //   },
+        // ),
       ],
     );
   }

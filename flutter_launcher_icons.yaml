@@ -1,0 +1,24 @@
+# For information on the generic Dart part of this file, see the
+# following page: https://dart.dev/tools/pub/pubspec
+flutter_icons:
+  android: true
+  min_sdk_android: 21 # android min sdk min:16, default 21
+  adaptive_icon_background: "#212121"
+  adaptive_icon_foreground: "assets/icons/three_forge_icon_square.png"
+  #adaptive_icon_monochrome: "assets/ALI/android/comp_app_icon_monochrome.png"
+  image_path_android: "assets/icons/three_forge_icon_square.png"
+  ios: true
+  remove_alpha_ios: true
+  image_path: "assets/icons/three_forge_icon_square.png"
+  web:
+    generate: true
+    image_path: "assets/icons/three_forge_icon_square.png"
+    background_color: "#hexcode"
+    theme_color: "#hexcode"
+  windows:
+    generate: true
+    image_path: "assets/icons/three_forge_icon_square.png"
+    icon_size: 48 # min:48, max:256, default: 48
+  macos:
+    generate: true
+    image_path: "assets/icons/three_forge_icon_square.png"

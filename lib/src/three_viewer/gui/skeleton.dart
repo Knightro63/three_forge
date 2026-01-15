@@ -219,6 +219,7 @@ class _SkeletonGuiState extends State<SkeletonGui> {
               onChanged:(value){
                 selectedObject = value;
                 if(selectedObject != !selectedBone.children.contains(selectedObject)){
+                  threeV.scene.remove(selectedObject!);
                   selectedBone.add(selectedObject);
                   selectedObject?.userData['scale'] = selectedObject?.scale.clone();
                   selectedObject?.scale.scale(1/threeV.intersected[0].scale.x);

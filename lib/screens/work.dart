@@ -1,11 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:three_forge/src/modifers/create_yaml.dart';
 import 'package:three_forge/src/navigation/screen_navigator.dart';
 import 'package:three_forge/src/three_viewer/file_navigation.dart';
 import 'package:three_forge/src/three_viewer/hud.dart';
 import 'package:three_forge/src/three_viewer/gui/intersected.dart';
-import 'package:three_forge/src/three_viewer/scene_collection.dart';
+import 'package:three_forge/src/three_viewer/gui/scene_collection.dart';
 import 'package:three_forge/src/three_viewer/viewer.dart';
 import '../src/navigation/right_click.dart';
 import 'package:three_js/three_js.dart' as three;
@@ -48,7 +49,7 @@ class _UIPageState extends State<UIScreen> {
       style: null,
       onTap: rightClickActions,
     );
-    threeV = ThreeViewer(setState,rightClick,widget.currentProject['location']);
+    threeV = ThreeViewer(setState,rightClick,widget.currentProject);
     getDevices();
     super.initState();
   }
@@ -91,6 +92,18 @@ class _UIPageState extends State<UIScreen> {
       case LSICallbacks.updatedNav:
         setState(() {
           resetNav = !resetNav;
+        });
+        break;
+      case LSICallbacks.save:
+        setState(() {
+          resetNav = !resetNav;
+          threeV.fileSort.save(threeV);
+        });
+        break;
+      case LSICallbacks.saveAs:
+        setState(() {
+          resetNav = !resetNav;
+          threeV.fileSort.saveAs(threeV);
         });
         break;
       case LSICallbacks.clear:
@@ -360,6 +373,9 @@ class _UIPageState extends State<UIScreen> {
                 loading: loading,
                 name: 'Play',
                 onTap: (_){
+                 CreateYaml.create(threeV).then((onValue){
+                    print(onValue);
+                  });
                   if(selectedDevice != null){
                     setupProcess(devices[selectedDevice]!);
                   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:three_forge/src/styles/savedWidgets.dart';
 import 'package:three_forge/src/three_viewer/gui/animation.dart';
+import 'package:three_forge/src/three_viewer/gui/audio.dart';
 import 'package:three_forge/src/three_viewer/gui/camera.dart';
 import 'package:three_forge/src/three_viewer/gui/light.dart';
 import 'package:three_forge/src/three_viewer/gui/material.dart';
@@ -15,7 +16,9 @@ import 'package:three_forge/src/three_viewer/gui/transform.dart';
 import 'package:three_forge/src/three_viewer/src/voxel_painter.dart';
 import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js/three_js.dart' as three;
+import 'package:three_js_exporters/saveFile/filePicker.dart';
 import 'package:three_js_helpers/three_js_helpers.dart';
+import 'package:three_js_video_texture/three_js_video_texture.dart';
 
 class IntersectedGui extends StatefulWidget {
   const IntersectedGui({Key? key, required this.threeV}):super(key: key);
@@ -39,7 +42,7 @@ class _IntersectedGuiState extends State<IntersectedGui> {
     expands.clear();
   }
 
-  final List<bool> expands = [false,false,false,false,false,false,false,false,false,false];
+  final List<bool> expands = [false,false,false,false,false,false,false,false,false,false,false,false];
 
   List<Widget> objectGui(){
     int? id = threeV.intersected[0].userData['terrain_id'] == null?null:threeV.intersected[0].userData['terrain_id'];
@@ -279,7 +282,7 @@ class _IntersectedGuiState extends State<IntersectedGui> {
           ]
         )
       ),
-      if(threeV.intersected.isNotEmpty && threeV.intersected[0].userData['skeleton'] != null && threeV.intersected[0].userData['skeleton'] is SkeletonHelper) Container(
+      if(threeV.intersected.isNotEmpty && threeV.intersected[0].userData['skeleton'] is SkeletonHelper) Container(
         margin: const EdgeInsets.fromLTRB(5,5,5,5),
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
@@ -307,7 +310,7 @@ class _IntersectedGuiState extends State<IntersectedGui> {
           ]
         )
       ),
-      if(threeV.intersected.isNotEmpty && threeV.intersected[0].userData['skeleton'] != null && threeV.intersected[0] is SkeletonHelper) Container(
+      if(threeV.intersected.isNotEmpty && threeV.intersected[0].userData['skeleton'] is SkeletonHelper ) Container(
         margin: const EdgeInsets.fromLTRB(5,5,5,5),
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
@@ -335,6 +338,8 @@ class _IntersectedGuiState extends State<IntersectedGui> {
           ]
         )
       ),
+      if(threeV.intersected[0].userData['audio'] == null) addButton('audio'),
+      addButton('script')
     ];
   }
 
@@ -395,8 +400,98 @@ class _IntersectedGuiState extends State<IntersectedGui> {
             ),
           ]
         )
-      )
+      ),
+      (threeV.scene.userData['audio'] == null)?addButton('audio'):Container(
+        margin: const EdgeInsets.fromLTRB(5,5,5,5),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(5)
+        ),
+        child: Column(
+          children: [
+            InkWell(
+              onTap: (){
+                setState(() {
+                  expands[10] = !expands[10];
+                });
+              },
+              child: Row(
+                children: [
+                  Icon(!expands[10]?Icons.expand_more:Icons.expand_less, size: 15,),
+                  const Text('\t Audio'),
+                ],
+              )
+            ),
+            if(expands[10]) Padding(
+              padding: const EdgeInsets.fromLTRB(25,10,5,5),
+              child: AudioGui(threeV: threeV)
+            )
+          ]
+        )
+      ),
+      addButton('script')
     ];
+  }
+
+  Widget addButton(String text){
+    return InkWell(
+      onTap: (){
+        if(text == 'audio' && threeV.sceneSelected){
+          GetFilePicker.pickFiles(['mp3']).then((value)async{
+            if(value != null){
+              threeV.scene.userData['audio'] = VideoAudio(path: value.files[0].path!);
+              await threeV.fileSort.moveAudio(value.files[0]);
+            }
+          });
+        }
+        else if(text == 'audio'){
+          GetFilePicker.pickFiles(['mp3']).then((value)async{
+            if(value != null && threeV.mainCamera != null){
+              threeV.scene.userData['audio'] = three.PositionalAudio(audioSource: VideoAudio(path: value.files[0].path!), listner: threeV.mainCamera!);
+              await threeV.fileSort.moveAudio(value.files[0]);
+            }
+          });
+        }
+        setState(() {});
+      },
+      child: DragTarget(
+        builder: (context, candidateItems, rejectedItems) {
+          return Container(
+            margin: EdgeInsets.all(5),
+            //width: ,
+            height: 20,
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(5),
+            ),
+            child: 
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                SizedBox(),
+                Row(
+                  children: [
+                    Icon(Icons.add, size: 20,),
+                    Text(text.toUpperCase())
+                  ]
+                ),
+                Icon(Icons.description_outlined, size: 20,),
+              ]
+            ),
+          );
+        },
+        onAcceptWithDetails: (details) async{
+          if((details.data as String).split('.').last.toLowerCase() == 'mp3'){
+            if(threeV.sceneSelected){
+              threeV.scene.userData['audio'] = VideoAudio(path: (details.data as String));
+            }
+            else if(threeV.intersected.isNotEmpty){
+              threeV.scene.userData['audio'] = three.PositionalAudio(audioSource: VideoAudio(path: (details.data as String)), listner: threeV.mainCamera!);
+            }
+          }
+        },
+      )
+    );
   }
 
   @override

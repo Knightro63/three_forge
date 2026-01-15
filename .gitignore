@@ -23,6 +23,7 @@
 .settings/
 .vscode/*
 
+temp/
 history_old/
 macos/
 web/

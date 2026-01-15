@@ -23,6 +23,7 @@ dependencies:
   three_js_modifers: ^0.2.1
   three_js_advanced_exporters: ^0.0.1
   three_js_tjs_loader: ^0.2.1
+  three_js_video_texture: ^0.0.2
   dart_eval: ^0.8.3
   css:
     git:
@@ -32,6 +33,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.4
 
 dependency_overrides:
   permission_handler_apple:

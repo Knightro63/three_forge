@@ -64,16 +64,16 @@ class CreateLight{
     final light = SpotLight(0xffffff,100,2,math.pi / 6, 1, 2);
     light.name = 'Spot Light';
     final helper = SpotLightHelper(light,0xffff00);
-    light.userData['helper'] = helper;
+    light.userData['skeleton'] = helper;
     return light;
   }
 
   static DirectionalLight directionalLight(){
-    final light = DirectionalLight(0xffffff);
+    final light = DirectionalLight(0xffffff,1.0);
     light.name = 'Directional Light';
     final helper = DirectionalLightHelper(light,1,Color.fromHex32(0xffff00));
     light.userData['skeleton'] = helper;
-    return directionalLight();
+    return light;
   }
 
   static PointLight pointLight(){
