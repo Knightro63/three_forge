@@ -22,7 +22,8 @@ class EnterTextFormField extends StatelessWidget{
     this.readOnly = false,
     this.keyboardType = TextInputType.multiline,
     this.padding = const EdgeInsets.fromLTRB(10.0, 10.0, 10.0, 0.0),
-    this.inputFormatters
+    this.inputFormatters,
+    this.radius = 10.0
   }):super(key: key);
   
   final int? minLines;
@@ -43,6 +44,7 @@ class EnterTextFormField extends StatelessWidget{
   final TextStyle? textStyle;
   final EdgeInsets? padding;
   final List<TextInputFormatter>? inputFormatters;
+  final double radius;
 
   @override
   Widget build(BuildContext context){
@@ -73,9 +75,9 @@ class EnterTextFormField extends StatelessWidget{
           filled: true,
           fillColor: (color == null)?Theme.of(context).splashColor:color,
           contentPadding: padding,
-          border: const OutlineInputBorder(
+          border: OutlineInputBorder(
             borderRadius: BorderRadius.all(
-              Radius.circular(10.0),
+              Radius.circular(radius),
             ),
             borderSide: BorderSide(
                 width: 0,
@@ -90,6 +92,7 @@ class EnterTextFormField extends StatelessWidget{
 }
 
 class SavedWidgets{
+
   static Widget checkBox(bool enable){
     return Container(
       margin: const EdgeInsets.only(right:10),

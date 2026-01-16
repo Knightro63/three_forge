@@ -17,6 +17,7 @@ import 'package:three_js/three_js.dart' as three;
 import 'package:three_js_helpers/three_js_helpers.dart';
 import 'package:three_js_transform_controls/three_js_transform_controls.dart';
 import 'package:three_js_objects/three_js_objects.dart';
+import 'package:three_js_video_texture/three_js_video_texture.dart';
 
 class IntersectsInfo{
   IntersectsInfo(this.intersects,this.oInt);
@@ -521,13 +522,15 @@ class ThreeViewer {
 	}
   void add(three.Object3D? object,{three.Object3D? parent, int? index, bool usingUndo = false}){
     if(object == null) return;
-		if ( parent == null ) {
-			this.scene.add( object );
-		} 
-    else {
-			parent.children.insert(index ?? 0, object);
-			object.parent = parent;
-		}
+    if(object is! three.PositionalAudio && object is! VideoAudio){
+      if ( parent == null ) {
+        this.scene.add( object );
+      } 
+      else {
+        parent.children.insert(index ?? 0, object);
+        object.parent = parent;
+      }
+    }
     object.position.setFrom(orbit.target);
     object.userData['mainMaterial'] = object.material;
   

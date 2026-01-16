@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:three_forge/src/modifers/create_audio.dart';
+import 'package:three_forge/src/modifers/insert_audio.dart';
 import 'package:three_forge/src/styles/savedWidgets.dart';
 import 'package:three_forge/src/three_viewer/gui/animation.dart';
 import 'package:three_forge/src/three_viewer/gui/audio.dart';
@@ -8,6 +10,7 @@ import 'package:three_forge/src/three_viewer/gui/material.dart';
 import 'package:three_forge/src/three_viewer/gui/modifers.dart';
 import 'package:three_forge/src/three_viewer/gui/object.dart';
 import 'package:three_forge/src/three_viewer/gui/physics.dart';
+import 'package:three_forge/src/three_viewer/gui/positional_audio.dart';
 import 'package:three_forge/src/three_viewer/gui/scene.dart';
 import 'package:three_forge/src/three_viewer/gui/skeleton.dart';
 import 'package:three_forge/src/three_viewer/gui/sky.dart';
@@ -30,6 +33,9 @@ class IntersectedGui extends StatefulWidget {
 
 class _IntersectedGuiState extends State<IntersectedGui> {
   late final ThreeViewer threeV;
+  late final InsertAudio insertAudio = InsertAudio(threeV);
+  TextEditingController audioController = TextEditingController();
+  TextEditingController scriptController = TextEditingController();
 
   @override
   void initState() {
@@ -338,8 +344,10 @@ class _IntersectedGuiState extends State<IntersectedGui> {
           ]
         )
       ),
-      if(threeV.intersected[0].userData['audio'] == null) addButton('audio'),
-      addButton('script')
+      if(threeV.intersected[0].userData['audio'] != null) addAudio(threeV.intersected[0].userData['audio']),
+      addButton('Audio'),
+      addButton('Positional Audio'),
+      addButton('Script')
     ];
   }
 
@@ -401,7 +409,17 @@ class _IntersectedGuiState extends State<IntersectedGui> {
           ]
         )
       ),
-      (threeV.scene.userData['audio'] == null)?addButton('audio'):Container(
+      if(threeV.scene.userData['audio'] != null) addAudio(threeV.scene.userData['audio']),
+      addButton('Audio'),
+      addButton('Script')
+    ];
+  }
+
+  Widget addAudio(List<three.Object3D> audios){
+    final widgets = <Widget>[];
+    for(final audio in audios){
+      String name = (audio as dynamic).path.split('/').last.split('.').first;
+      widgets.add(Container(
         margin: const EdgeInsets.fromLTRB(5,5,5,5),
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
@@ -409,88 +427,167 @@ class _IntersectedGuiState extends State<IntersectedGui> {
         ),
         child: Column(
           children: [
-            InkWell(
-              onTap: (){
-                setState(() {
-                  expands[10] = !expands[10];
-                });
-              },
-              child: Row(
-                children: [
-                  Icon(!expands[10]?Icons.expand_more:Icons.expand_less, size: 15,),
-                  const Text('\t Audio'),
-                ],
-              )
+            Row(
+              children: [
+                Row(
+                  children: [
+                    InkWell(
+                      onTap: (){
+                        setState(() {
+                          expands[10] = !expands[10];
+                        });
+                      },
+                      child: Row(
+                        children: [
+                          Icon(!expands[10]?Icons.expand_more:Icons.expand_less, size: 15,),
+                          SizedBox(
+                            width: MediaQuery.of(context).size.width*.2-56,
+                            child: Text(
+                              '\t ${audio is VideoAudio?'Audio':'Positional'} $name',
+                              overflow: TextOverflow.ellipsis,
+                            )
+                          ),
+                        ],
+                      )
+                    ),
+                  ],
+                ),
+                InkWell(
+                  onTap: (){
+                    setState(() {
+                      if(threeV.sceneSelected){
+                        threeV.scene.userData['audio'].remove(audio);
+                      }
+                      else{
+                        threeV.intersected[0].userData['audio'].remove(audio);
+                      }
+                    });
+                  },
+                  child: Icon(Icons.delete, size: 15,),
+                )
+              ],
             ),
             if(expands[10]) Padding(
-              padding: const EdgeInsets.fromLTRB(25,10,5,5),
-              child: AudioGui(threeV: threeV)
+              padding: const EdgeInsets.fromLTRB(10,10,5,5),
+              child: audio is VideoAudio?AudioGui(threeV: threeV, audio: audio as three.Audio,):PositionalAudioGui(audio: (audio as three.PositionalAudio), threeV: threeV)
             )
           ]
         )
-      ),
-      addButton('script')
-    ];
-  }
+      ));
+    }
+
+    return Column(
+      children: widgets,
+    );
+  } 
 
   Widget addButton(String text){
-    return InkWell(
-      onTap: (){
-        if(text == 'audio' && threeV.sceneSelected){
-          GetFilePicker.pickFiles(['mp3']).then((value)async{
-            if(value != null){
-              threeV.scene.userData['audio'] = VideoAudio(path: value.files[0].path!);
-              await threeV.fileSort.moveAudio(value.files[0]);
+    return DragTarget(
+      builder: (context, candidateItems, rejectedItems) {
+        return Container(
+          margin: EdgeInsets.all(5),
+          //width: ,
+          height: 20,
+          decoration: BoxDecoration(
+            color: Theme.of(context).cardColor,
+            borderRadius: BorderRadius.circular(5),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.add, size: 15,),
+                  EnterTextFormField(
+                    controller: audioController,
+                    width: MediaQuery.of(context).size.width*.2-65,
+                    height: 20,
+                    label: '${text}',
+                    readOnly: true,
+                    padding: EdgeInsets.only(left: 5),
+                    margin: EdgeInsets.only(left: 0,top: 1,bottom: 2),
+                    radius: 5,
+                    textStyle: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+              InkWell(
+                onTap: (){
+                  if(text == 'Audio'){
+                    GetFilePicker.pickFiles(['mp3']).then((value)async{
+                      if(value != null){
+                        if(threeV.sceneSelected){ 
+                          if(threeV.scene.userData['audio'] == null){
+                            threeV.scene.userData['audio'] = <three.Object3D>[];
+                          }
+                          threeV.scene.userData['audio'].add(VideoAudio(path: value.files[0].path!));
+                        }
+                        else{
+                          if(threeV.intersected[0].userData['audio'] == null){
+                            threeV.intersected[0].userData['audio'] = <three.Object3D>[];
+                          }
+                          threeV.intersected[0].userData['audio'].add(VideoAudio(path: value.files[0].path!));
+                        }
+                        await threeV.fileSort.moveAudio(value.files[0]);
+                      }
+                    });
+                  }
+                  else if(text == 'Positional Audio'){
+                    GetFilePicker.pickFiles(['mp3']).then((value)async{
+                      if(value != null && threeV.mainCamera != null){
+                        if(threeV.intersected[0].userData['audio'] == null){
+                          threeV.intersected[0].userData['audio'] = <three.Object3D>[];
+                        }
+                        final pa = CreateAudio.positional(value.files[0].path!, threeV.mainCamera!);
+                        threeV.intersected[0].userData['audio'].add(pa);
+                        threeV.skeleton.add(pa.userData['skeleton']);
+                        await threeV.fileSort.moveAudio(value.files[0]);
+                      }
+                    });
+                  }
+                  setState(() {});
+                },
+                child: Row(
+                  children: [
+                    Container(
+                      height: 20,
+                      width: 2,
+                      margin: EdgeInsets.only(right: 5),
+                      color: Theme.of(context).canvasColor,
+                    ),
+                    Icon(Icons.folder, size: 20,),
+                  ],
+                )
+              )
+            ]
+          ),
+        );
+      },
+      onAcceptWithDetails: (details) async{
+        if((details.data as String).split('.').last.toLowerCase() == 'mp3'){
+          if(threeV.sceneSelected){
+            if(threeV.scene.userData['audio'] == null){
+              threeV.scene.userData['audio'] = <three.Object3D>[];
             }
-          });
-        }
-        else if(text == 'audio'){
-          GetFilePicker.pickFiles(['mp3']).then((value)async{
-            if(value != null && threeV.mainCamera != null){
-              threeV.scene.userData['audio'] = three.PositionalAudio(audioSource: VideoAudio(path: value.files[0].path!), listner: threeV.mainCamera!);
-              await threeV.fileSort.moveAudio(value.files[0]);
+            threeV.scene.userData['audio'].add(VideoAudio(path: (details.data as String)));
+          }
+          else if(threeV.intersected.isNotEmpty){
+            if(threeV.intersected[0].userData['audio'] == null){
+              threeV.intersected[0].userData['audio'] = <three.Object3D>[];
             }
-          });
+
+            if(text == 'Audio'){
+              threeV.intersected[0].userData['audio'].add(VideoAudio(path: (details.data as String)));
+            }
+            else{
+              final pa = CreateAudio.positional((details.data as String), threeV.mainCamera!);
+              threeV.intersected[0].userData['audio'].add(pa);//three.PositionalAudio(audioSource: VideoAudio(path: (details.data as String)), listner: threeV.mainCamera!));
+              threeV.skeleton.add(pa.userData['skeleton']);
+            }
+          }
         }
         setState(() {});
       },
-      child: DragTarget(
-        builder: (context, candidateItems, rejectedItems) {
-          return Container(
-            margin: EdgeInsets.all(5),
-            //width: ,
-            height: 20,
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(5),
-            ),
-            child: 
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                SizedBox(),
-                Row(
-                  children: [
-                    Icon(Icons.add, size: 20,),
-                    Text(text.toUpperCase())
-                  ]
-                ),
-                Icon(Icons.description_outlined, size: 20,),
-              ]
-            ),
-          );
-        },
-        onAcceptWithDetails: (details) async{
-          if((details.data as String).split('.').last.toLowerCase() == 'mp3'){
-            if(threeV.sceneSelected){
-              threeV.scene.userData['audio'] = VideoAudio(path: (details.data as String));
-            }
-            else if(threeV.intersected.isNotEmpty){
-              threeV.scene.userData['audio'] = three.PositionalAudio(audioSource: VideoAudio(path: (details.data as String)), listner: threeV.mainCamera!);
-            }
-          }
-        },
-      )
     );
   }
 

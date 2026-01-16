@@ -158,29 +158,28 @@ class _SceneGuiState extends State<SceneGui> {
             )
           ],
         ),
+        const SizedBox(height: 10,),
+        const Text('Texture:'),
         DragTarget(
           builder: (context, candidateItems, rejectedItems) {
-            return Row(
-              children: [
-                const Text('Text  '),
-                EnterTextFormField(
-                  readOnly: true,
-                  inputFormatters: [DecimalTextInputFormatter()],
-                  label: threeV.scene.background is three.Texture?'Texture':'',
-                  width: 80,
-                  height: 20,
-                  maxLines: 1,
-                  textStyle: Theme.of(context).primaryTextTheme.bodySmall,
-                  color: Theme.of(context).canvasColor,
-                  controller: sceneControllers[1],
-                )
-              ],
+            return EnterTextFormField(
+              readOnly: true,
+              inputFormatters: [DecimalTextInputFormatter()],
+              label: threeV.scene.background is three.Texture?'Texture':'',
+              width: MediaQuery.of(context).size.width*.2-5,
+              height: 20,
+              maxLines: 1,
+              radius: 5,
+              textStyle: Theme.of(context).primaryTextTheme.bodySmall,
+              color: Theme.of(context).canvasColor,
+              controller: sceneControllers[1],
             );
           },
           onAcceptWithDetails: (details) async{
             insertModel.insertTexture(details.data! as String, mappingValue,sameastext);
           },
         ),
+        const SizedBox(height: 10,),
         InkWell(
           onTap: (){
             sameastext = !sameastext;

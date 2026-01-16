@@ -4,23 +4,24 @@ import 'package:three_forge/src/history/commands.dart';
 import 'package:three_forge/src/styles/savedWidgets.dart';
 import 'package:three_forge/src/three_viewer/decimal_index_formatter.dart';
 import 'package:three_forge/src/three_viewer/viewer.dart';
-import 'package:three_js_video_texture/video_audio.dart';
+import 'package:three_js/three_js.dart' as three;
 
 class AudioGui extends StatefulWidget {
-  const AudioGui({Key? key, required this.threeV}):super(key: key);
+  const AudioGui({Key? key, required this.audio, required this.threeV}):super(key: key);
   final ThreeViewer threeV;
+  final three.Audio audio;
 
   @override
   _ObjectGuiState createState() => _ObjectGuiState();
 }
 
 class _ObjectGuiState extends State<AudioGui> {
-  late final ThreeViewer threeV;
+  late final ThreeViewer threeV = widget.threeV;
+  late final three.Audio audio = widget.audio;
 
   @override
   void initState() {
     super.initState();
-    threeV = widget.threeV;
   }
   @override
   void dispose(){
@@ -42,7 +43,6 @@ class _ObjectGuiState extends State<AudioGui> {
 
   @override
   Widget build(BuildContext context) {
-    VideoAudio object = (threeV.sceneSelected?threeV.scene:threeV.intersected[0]).userData['audio'];
     transformControllersReset();
     double d2 = 76;
 
@@ -52,14 +52,15 @@ class _ObjectGuiState extends State<AudioGui> {
       children: [
         InkWell(
           onTap: (){
-            object.autoplay = !object.autoplay;
+            audio.autoplay = !audio.autoplay;
+            threeV.execute(SetValueCommand(threeV, audio, 'autoplay', audio.autoplay));
             setState(() {});
           },
           child: Row(
             //mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Autoplay\t\t\t'),
-              SavedWidgets.checkBox(object.autoplay)
+              SavedWidgets.checkBox(audio.autoplay)
             ]
           )
         ),
@@ -68,14 +69,15 @@ class _ObjectGuiState extends State<AudioGui> {
         Container(margin: EdgeInsets.only(bottom: 7), height: 2,color: Theme.of(context).primaryTextTheme.bodySmall!.color,),
         InkWell(
           onTap: (){
-            object.hasPlaybackControl = !object.hasPlaybackControl;
+            audio.hasPlaybackControl = !audio.hasPlaybackControl;
+            threeV.execute(SetValueCommand(threeV, audio, 'hasPlaybackControl', audio.hasPlaybackControl));
             setState(() {});
           },
           child: Row(
             //mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Control\t\t\t'),
-              SavedWidgets.checkBox(object.hasPlaybackControl)
+              SavedWidgets.checkBox(audio.hasPlaybackControl)
             ]
           )
         ),
@@ -91,10 +93,10 @@ class _ObjectGuiState extends State<AudioGui> {
               color: Theme.of(context).canvasColor,
               onChanged: (val){
                 final double v = double.tryParse(val) ?? 0;
-                threeV.execute(SetValueCommand(threeV, threeV.intersected[0], 'renderOrder', v)..allowDispatch=false);
-                object.playbackRate = v;
+                threeV.execute(SetValueCommand(threeV, audio, 'playbackRate', v)..allowDispatch=false);
+                audio.playbackRate = v;
               },
-              controller: transfromControllers[1]..text = object.playbackRate.toString(),
+              controller: transfromControllers[0]..text = audio.playbackRate.toString(),
             )
           ],
         ),
@@ -103,14 +105,15 @@ class _ObjectGuiState extends State<AudioGui> {
         Container(margin: EdgeInsets.only(bottom: 7), height: 2,color: Theme.of(context).primaryTextTheme.bodySmall!.color,),
         InkWell(
           onTap: (){
-            object.loop = !object.loop;
+            audio.loop = !audio.loop;
+            threeV.execute(SetValueCommand(threeV, audio, 'loop', audio.loop));
             setState(() {});
           },
           child: Row(
             //mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text('Loop\t\t\t'),
-              SavedWidgets.checkBox(object.loop)
+              SavedWidgets.checkBox(audio.loop)
             ]
           )
         ),
@@ -129,10 +132,10 @@ class _ObjectGuiState extends State<AudioGui> {
               color: Theme.of(context).canvasColor,
               onChanged: (val){
                 final int v = int.tryParse(val) ?? 0;
-                threeV.execute(SetValueCommand(threeV, threeV.intersected[0], 'renderOrder', v)..allowDispatch=false);
-                object.loopStart = v;
+                threeV.execute(SetValueCommand(threeV, audio, 'loopStart', v)..allowDispatch=false);
+                audio.loopStart = v;
               },
-              controller: transfromControllers[0]..text = object.loopStart.toString(),
+              controller: transfromControllers[1]..text = audio.loopStart.toString(),
             )
           ],
         ),
@@ -151,10 +154,10 @@ class _ObjectGuiState extends State<AudioGui> {
               color: Theme.of(context).canvasColor,
               onChanged: (val){
                 final int v = int.tryParse(val) ?? 0;
-                threeV.execute(SetValueCommand(threeV, threeV.intersected[0], 'renderOrder', v)..allowDispatch=false);
-                object.loopEnd = v;
+                threeV.execute(SetValueCommand(threeV, audio, 'loopEnd', v)..allowDispatch=false);
+                audio.loopEnd = v;
               },
-              controller: transfromControllers[2]..text = object.loopEnd.toString(),
+              controller: transfromControllers[2]..text = audio.loopEnd.toString(),
             )
           ],
         ),
