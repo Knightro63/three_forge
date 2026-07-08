@@ -3,7 +3,7 @@ import 'package:three_forge/src/history/commands.dart';
 import 'package:three_forge/src/styles/savedWidgets.dart';
 import 'package:three_forge/src/three_viewer/decimal_index_formatter.dart';
 import 'package:three_forge/src/three_viewer/viewer.dart';
-import 'package:three_js/three_js.dart';
+import 'package:three_js/three_js.dart' as three;
 
 class TransformGui extends StatefulWidget {
   const TransformGui({Key? key, required this.threeV}):super(key: key);
@@ -67,7 +67,7 @@ class _TransformGuiState extends State<TransformGui> {
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                threeV.execute(SetPositionCommand(threeV, threeV.intersected[0], Vector3(double.parse(val)))..allowDispatch = false);
+                threeV.execute(SetPositionCommand(threeV, threeV.intersected[0], three.Vector3(double.parse(val)))..allowDispatch = false);
                 threeV.intersected[0].position.x = double.parse(val);
               },
               controller: transfromControllers[0]..text = threeV.intersected[0].position.x.toString(),
@@ -86,7 +86,7 @@ class _TransformGuiState extends State<TransformGui> {
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                threeV.execute(SetPositionCommand(threeV, threeV.intersected[0], Vector3(threeV.intersected[0].position.x, double.parse(val), threeV.intersected[0].position.z))..allowDispatch = false);
+                threeV.execute(SetPositionCommand(threeV, threeV.intersected[0], three.Vector3(threeV.intersected[0].position.x, double.parse(val), threeV.intersected[0].position.z))..allowDispatch = false);
                 threeV.intersected[0].position.y = double.parse(val);
               },
               controller: transfromControllers[1]..text = threeV.intersected[0].position.y.toString(),
@@ -105,7 +105,7 @@ class _TransformGuiState extends State<TransformGui> {
               textStyle: Theme.of(context).primaryTextTheme.bodySmall,
               color: Theme.of(context).canvasColor,
               onChanged: (val){
-                threeV.execute(SetPositionCommand(threeV, threeV.intersected[0], Vector3(threeV.intersected[0].position.x, threeV.intersected[0].position.y, double.parse(val)))..allowDispatch = false);
+                threeV.execute(SetPositionCommand(threeV, threeV.intersected[0], three.Vector3(threeV.intersected[0].position.x, threeV.intersected[0].position.y, double.parse(val)))..allowDispatch = false);
                 threeV.intersected[0].position.z = double.parse(val);
               },
               controller: transfromControllers[2]..text = threeV.intersected[0].position.z.toString(),
@@ -129,7 +129,7 @@ class _TransformGuiState extends State<TransformGui> {
               color: Theme.of(context).canvasColor,
               onChanged: (val){
                 final double rad = double.parse(val).toRad();
-                final Euler newRot = Euler(rad, threeV.intersected[0].rotation.y, threeV.intersected[0].rotation.z);
+                final three.Euler newRot = three.Euler(rad, threeV.intersected[0].rotation.y, threeV.intersected[0].rotation.z);
                 threeV.execute(SetRotationCommand(threeV, threeV.intersected[0], newRot)..allowDispatch = false);
                 threeV.intersected[0].rotation.x = rad;
               },
@@ -150,7 +150,7 @@ class _TransformGuiState extends State<TransformGui> {
               color: Theme.of(context).canvasColor,
               onChanged: (val){
                 final double rad = double.parse(val).toRad();
-                final Euler newRot = Euler(threeV.intersected[0].rotation.x, rad, threeV.intersected[0].rotation.z);
+                final three.Euler newRot = three.Euler(threeV.intersected[0].rotation.x, rad, threeV.intersected[0].rotation.z);
                 threeV.execute(SetRotationCommand(threeV, threeV.intersected[0], newRot)..allowDispatch = false);
                 threeV.intersected[0].rotation.y = rad;
               },
@@ -171,7 +171,7 @@ class _TransformGuiState extends State<TransformGui> {
               color: Theme.of(context).canvasColor,
               onChanged: (val){
                 final double rad = double.parse(val).toRad();
-                final Euler newRot = Euler(threeV.intersected[0].rotation.x, threeV.intersected[0].rotation.y, rad);
+                final three.Euler newRot = three.Euler(threeV.intersected[0].rotation.x, threeV.intersected[0].rotation.y, rad);
                 threeV.execute(SetRotationCommand(threeV, threeV.intersected[0], newRot)..allowDispatch = false);
                 threeV.intersected[0].rotation.z = rad;
               },
@@ -196,7 +196,7 @@ class _TransformGuiState extends State<TransformGui> {
               color: Theme.of(context).canvasColor,
               onChanged: (val){
                 final double scale = double.parse(val);
-                final Vector3 newScale = Vector3(scale, threeV.intersected[0].scale.y, threeV.intersected[0].scale.z);
+                final three.Vector3 newScale = three.Vector3(scale, threeV.intersected[0].scale.y, threeV.intersected[0].scale.z);
                 threeV.execute(SetScaleCommand(threeV, threeV.intersected[0], newScale)..allowDispatch = false);
                 threeV.intersected[0].scale.x = scale;
               },
@@ -217,7 +217,7 @@ class _TransformGuiState extends State<TransformGui> {
               color: Theme.of(context).canvasColor,
               onChanged: (val){
                 final double scale = double.parse(val);
-                final Vector3 newScale = Vector3(threeV.intersected[0].scale.x, scale, threeV.intersected[0].scale.z);
+                final three.Vector3 newScale = three.Vector3(threeV.intersected[0].scale.x, scale, threeV.intersected[0].scale.z);
                 threeV.execute(SetScaleCommand(threeV, threeV.intersected[0], newScale)..allowDispatch = false);
                 threeV.intersected[0].scale.y = scale;
               },
@@ -238,7 +238,7 @@ class _TransformGuiState extends State<TransformGui> {
               color: Theme.of(context).canvasColor,
               onChanged: (val){
                 final double scale = double.parse(val);
-                final Vector3 newScale = Vector3(threeV.intersected[0].scale.x, threeV.intersected[0].scale.y, scale);
+                final three.Vector3 newScale = three.Vector3(threeV.intersected[0].scale.x, threeV.intersected[0].scale.y, scale);
                 threeV.execute(SetScaleCommand(threeV, threeV.intersected[0], newScale)..allowDispatch = false);
                 threeV.intersected[0].scale.z = scale;
               },

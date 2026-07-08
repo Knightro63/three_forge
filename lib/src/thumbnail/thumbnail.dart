@@ -7,8 +7,8 @@ import 'package:image/image.dart' as img;
 
 class Thumbnail{
   Thumbnail(this.renderer,this.scene,this.camera,[this.fovAspect = 1]){
-    buffer = three.Uint8Array( desiredWidth * desiredHeight * 4 );
-    rt = three.WebGLRenderTarget( desiredWidth, desiredHeight, three.WebGLRenderTargetOptions({'colorSpace': three.SRGBColorSpace, 'samples': 4}) );
+    buffer = Uint8List( desiredWidth * desiredHeight * 4 );
+    rt = three.RenderTarget( desiredWidth, desiredHeight, three.RenderTargetOptions({'colorSpace': three.SRGBColorSpace, 'samples': 4}) );
   }
 
   double fovAspect;
@@ -18,12 +18,12 @@ class Thumbnail{
 
   List<FileSystemEntity> files = [];
 
-  final three.WebGLRenderer renderer;
+  final three.Renderer renderer;
   final three.Scene scene;
   final three.Camera camera;
 
-  late final three.Uint8Array buffer;
-  late final three.WebGLRenderTarget rt;
+  late final Uint8List buffer;
+  late final three.RenderTarget rt;
 
   bool auto = false;
 
@@ -50,7 +50,7 @@ class Thumbnail{
       img.Image image = img.Image.fromBytes(
         width: desiredWidth,
         height: desiredHeight,
-        bytes: buffer.toDartList().buffer,
+        bytes: buffer.buffer,
         numChannels: 4,
         order: img.ChannelOrder.rgb
       );

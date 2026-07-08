@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:three_forge/src/history/history.dart';
 import 'package:three_forge/src/styles/savedWidgets.dart';
+import 'package:three_forge/src/three_viewer/src/ide_launcher.dart';
 
 enum NavigationType{
   project,
@@ -112,6 +113,10 @@ class _FileNavigationState extends State<FileNavigation>{
                 setState(() {
                   folderSelected = file.path;
                   files[file.path] = Directory(file.path).listSync();
+
+                  if(file.path.contains('.dart')){
+                    ExternalIdeLauncher.openScriptInEditor(file.path);
+                  }
                 });
               },
               child: card(file)

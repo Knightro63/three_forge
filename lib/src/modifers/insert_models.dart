@@ -355,7 +355,7 @@ class InsertModels {
       setAsSame(sameastext);
     }
     else if(fileType == 'folder'){
-      final cubeRenderTarget = three.WebGLCubeRenderTarget( 256 );
+      final cubeRenderTarget = three.CubeRenderTarget( 256 );
       final cubeCamera = three.CubeCamera( 1, 1000, cubeRenderTarget );
 
       // envmap
