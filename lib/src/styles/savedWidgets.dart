@@ -127,7 +127,6 @@ class SavedWidgets{
     Color textColor = darkGrey,
     required String text,
     Function()? onTap,
-    String fontFamily = 'Klavika Bold',
     double fontSize = 18.0,
     MainAxisAlignment mainAxisAlignment = MainAxisAlignment.center,
     double height = 75,
@@ -170,7 +169,6 @@ class SavedWidgets{
               style:TextStyle(
                 color: textColor,//(light)?lsi.darkGrey:Colors.white,
                 fontSize: fontSize,
-                fontFamily: fontFamily,
                 decoration: TextDecoration.none
               )
             ),

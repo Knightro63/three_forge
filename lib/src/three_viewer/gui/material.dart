@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:three_forge/src/enums.dart';
 import 'package:three_forge/src/history/commands.dart';
 import 'package:three_forge/src/styles/lsi_functions.dart';
 import 'package:three_forge/src/styles/savedWidgets.dart';

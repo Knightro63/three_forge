@@ -19,7 +19,7 @@ class _LoadingScreenState extends State<LoadingScreen> with TickerProviderStateM
       duration: const Duration(seconds: 5),
     )
     ..addListener(() {
-      loaded += 0.3;
+      loaded += 3;
       if(loaded >= 100){
         widget.onDone();
       }

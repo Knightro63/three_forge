@@ -1,0 +1,4 @@
+enum ModelPreviewDisplay { 
+  textured, 
+  weightPainted 
+}

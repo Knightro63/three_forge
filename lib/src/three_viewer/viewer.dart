@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:three_forge/src/enums.dart';
 import 'package:three_forge/src/history/commands.dart';
 import 'package:three_forge/src/navigation/right_click.dart';
 import 'package:three_forge/src/modifers/create_camera.dart';
@@ -12,7 +13,8 @@ import 'package:three_forge/src/three_viewer/src/file_sort.dart';
 import 'package:three_forge/src/three_viewer/src/grid_info.dart';
 import 'package:three_forge/src/three_viewer/src/terrain.dart';
 import 'package:three_forge/src/three_viewer/src/voxel_painter.dart';
-import 'package:three_forge/src/thumbnail/thumbnail.dart';
+import 'package:three_forge/src/m2m_viewer/m2m.dart';
+import 'package:three_forge/src/preview/thumbnail.dart';
 import 'package:three_js/three_js.dart' as three;
 import 'package:three_js_helpers/three_js_helpers.dart';
 import 'package:three_js_transform_controls/three_js_transform_controls.dart';
@@ -24,14 +26,6 @@ class IntersectsInfo{
   List<three.Intersection> intersects = [];
   List<int> oInt = [];
 }
-enum ShadingType{wireframe,solid,material}
-enum ControlSpaceType{global,local}
-enum EditType{point,edge,face}
-enum SelectorType{
-  translate,rotate,scale,select,paint,erase;
-
-  bool get isGimble => index < 3;
-}
 
 class EditInfo{
   bool active = false;
@@ -40,6 +34,9 @@ class EditInfo{
 }
 
 class ThreeViewer {
+  bool get showHud => ForgeScene.main == forgeScene;
+  ForgeScene forgeScene = ForgeScene.main;
+
   bool get holdingCtrl => holdingKeys.length == 1 && holdingKeys[0] == 'ctrl';
   bool get holdingShift => holdingKeys.length == 1 && holdingKeys[0] == 'shift';
   bool get holdingCtrlShift => holdingKeys.length == 2 && ((holdingKeys[0] == 'shift' && holdingKeys[1] == 'ctrl') || (holdingKeys[1] == 'shift' && holdingKeys[0] == 'ctrl'));
@@ -49,7 +46,13 @@ class ThreeViewer {
   RightClick rightClick;
 
   ThreeViewer(this.setState,this.rightClick,this.currentProject){
-    init();
+    threeJs = three.ThreeJS(
+      onSetupComplete: (){
+        setState(() {});
+      },
+      setup: setup,
+    );
+    modelInsert = InsertModels(this);
   }
 
   late final History history = History(this);
@@ -61,6 +64,7 @@ class ThreeViewer {
   bool get mounted => threeJs.mounted;
 
   late final Thumbnail thumbnail;
+  late final Mesh2Motion m2m;
 
   ControlSpaceType _controlSpace = ControlSpaceType.global;
   ControlSpaceType get controlSpace => _controlSpace;
@@ -106,8 +110,6 @@ class ThreeViewer {
   //late three.Camera camera;
   three.Camera? mainCamera;
 
-  final three.Scene thumbnailScene = three.Scene();
-  late final three.Camera thumbnailCamera;
   late final Sky sky;
   final List<Terrain> terrains = [];
 
@@ -118,20 +120,12 @@ class ThreeViewer {
   bool selectionHelperEnabled = false;
   final three.Vector2 startPoint = three.Vector2();
   
-  void init(){
-    threeJs = three.ThreeJS(
-      onSetupComplete: (){
-        setState(() {});
-      },
-      setup: setup,
-    );
-    modelInsert = InsertModels(this);
-  }
   void dispose(){
     threeJs.dispose();
     control.dispose();
     orbit.dispose();
     thumbnail.dispose();
+    m2m.dispose();
     viewHelper?.dispose();
     editObject.dispose();
   }
@@ -188,14 +182,8 @@ class ThreeViewer {
     light.position = threeJs.camera.position;
     threeJs.scene.add( light );
 
-    thumbnailCamera = three.PerspectiveCamera(45, 1, 0.1, 1000)
-      ..position.setValues( - 0, 0, 2.7 )
-      ..lookAt(thumbnailScene.position);
-    thumbnailScene.add( three.AmbientLight( 0xffffff ) );
-    final light2 = three.DirectionalLight( 0xffffff, 0.5 );
-    light2.position = thumbnailCamera.position;
-    thumbnailScene.add( light2 );
-    thumbnail = Thumbnail(threeJs.renderer!, thumbnailScene, thumbnailCamera);
+    thumbnail = Thumbnail(threeJs.renderer!);
+    m2m = Mesh2Motion(threeJs.renderer!, threeJs.globalKey);
 
     orbit = three.OrbitControls(threeJs.camera, threeJs.globalKey);
     orbit.mouseButtons = {
@@ -225,30 +213,36 @@ class ThreeViewer {
     threeJs.domElement.addEventListener(three.PeripheralType.pointerdown, onPointerDown);
     threeJs.domElement.addEventListener(three.PeripheralType.pointermove, onPointerMove);
     threeJs.domElement.addEventListener(three.PeripheralType.pointerup, onPointerUp);
-    threeJs.addAnimationEvent((dt){
-      orbit.update();
-      if (viewHelper != null && viewHelper!.animating ) {
-        viewHelper!.update( dt );
-      }
-    });
+    threeJs.domElement.addEventListener(three.PeripheralType.pointerHover, onPointerHover);
     threeJs.renderer?.autoClear = false;
     
     threeJs.postProcessor = ([double? dt]){
-      //threeJs.renderer!.clear();
       threeJs.renderer!.setViewport(0,0,threeJs.width,threeJs.height);
-      threeJs.renderer!.render(threeJs.scene,threeJs.camera );
-      viewHelper?.render(threeJs.renderer!);
 
-      if(showCameraView){
-        threeJs.renderer?.setScissorTest( true );
-        threeJs.renderer?.setScissor( 20, 20, threeJs.width/4, threeJs.height/4 );
-        threeJs.renderer?.setViewport( 20, 20, threeJs.width/4, threeJs.height/4 );
+      if(showHud){
+        threeJs.renderer!.render(threeJs.scene,threeJs.camera );
 
-        if(mainCamera != null){
-          threeJs.renderer?.render(scene, mainCamera! );
+        if (viewHelper != null) {
+          viewHelper?.render(threeJs.renderer!);
+          if (viewHelper!.animating ) {
+            viewHelper!.update( dt );
+          }
         }
+        
+        if(showCameraView){
+          threeJs.renderer?.setScissorTest( true );
+          threeJs.renderer?.setScissor( 20, 20, threeJs.width/4, threeJs.height/4 );
+          threeJs.renderer?.setViewport( 20, 20, threeJs.width/4, threeJs.height/4 );
 
-        threeJs.renderer?.setScissorTest( false );
+          if(mainCamera != null){
+            threeJs.renderer?.render(scene, mainCamera! );
+          }
+
+          threeJs.renderer?.setScissorTest( false );
+        }
+      }
+      else{
+        m2m.render(dt!);
       }
     };
   }
@@ -380,6 +374,10 @@ class ThreeViewer {
     }
   }
   void onPointerDown(details){
+    if(ForgeScene.rig == forgeScene){
+      m2m.onPointerDown(convertPosition(mousePosition));
+      return;
+    }
     if(SelectorType.paint == _selectorType || SelectorType.erase == _selectorType) return;
     if(details.button == 2){
       if(rightClick.isMenuOpen){
@@ -451,6 +449,14 @@ class ThreeViewer {
     }
     
     //if(control.dragging){}
+  }
+  void onPointerHover(details){
+    if(ForgeScene.rig == forgeScene){
+      mousePosition = three.Vector2(details.clientX, details.clientY);
+      m2m.onPointerMove(convertPosition(mousePosition));
+      return;
+    }
+    
   }
   void onPointerUp(event){
     if(event.pointerType == 'mouse'){
@@ -880,6 +886,26 @@ class ThreeViewer {
 
   Future<Uint8List?> crerateThumbnial(three.Object3D model, [three.BoundingBox? box]) async{
     return await thumbnail.captureThumbnail(model: model, box: box);
+  }
+
+  three.Object3D? rigging;
+
+  void changeScene(ForgeScene newScene){
+    this.forgeScene = newScene;
+    if(newScene == ForgeScene.main){
+      orbit.enabled = true;
+      control.enabled = true;
+      m2m.stop();
+    }
+    else{
+      orbit.enabled = false;
+      control.enabled = false;
+      control.detach();
+      rigging = intersected.first;
+      intersected.clear();
+      m2m.start(newScene,rigging!);
+    }
+    setState((){});
   }
 
   void viewSky(){

@@ -7,6 +7,7 @@ import 'package:three_forge/src/styles/globals.dart';
 import 'screens/work.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(MyApp());
 }
 

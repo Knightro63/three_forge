@@ -2,7 +2,7 @@ import 'dart:io';
 import 'dart:async';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:three_forge/src/thumbnail/thumbnail.dart';
+import 'package:three_forge/src/preview/thumbnail.dart';
 import 'package:three_js/three_js.dart' as three;
 
 class ThumbnailCreator extends StatefulWidget {
@@ -29,7 +29,7 @@ class _ThumbnailCreatorState extends State<ThumbnailCreator> {
     threeJs = three.ThreeJS(
       onSetupComplete: (){
         setState(() {});
-        thumbnail = Thumbnail(threeJs.renderer!, threeJs.scene, threeJs.camera);
+        thumbnail = Thumbnail(threeJs.renderer!);
         if(auto){
           thumbnail.captureThumbnailSave(widget.path!, model: widget.object);
         }

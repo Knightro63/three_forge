@@ -1,0 +1,210 @@
+import 'dart:io';
+import 'dart:async';
+import 'dart:typed_data';
+import 'dart:math' as math;
+import 'package:three_js/three_js.dart' as three;
+import 'package:image/image.dart' as img;
+
+class Thumbnail{
+  Thumbnail(this.renderer,[this.fovAspect = 1]){
+    buffer = Uint8List( desiredWidth * desiredHeight * 4 );
+    rt = three.RenderTarget( desiredWidth, desiredHeight, three.RenderTargetOptions({'colorSpace': three.SRGBColorSpace, 'samples': 4}) );
+  
+    setup();
+  }
+
+  void setup(){
+    scene.add( three.AmbientLight( 0xffffff ) );
+    final light2 = three.DirectionalLight( 0xffffff, 0.5 );
+    light2.position = camera.position;
+    scene.add( light2 );
+  }
+
+  double fovAspect;
+
+  int desiredWidth = 1280;
+  int desiredHeight = 720;
+
+  List<FileSystemEntity> files = [];
+
+  final three.Renderer renderer;
+  final three.Scene scene = three.Scene();
+  late final three.Camera camera = three.PerspectiveCamera(45, 1, 0.1, 1000)
+      ..position.setValues( - 0, 0, 2.7 )
+      ..lookAt(scene.position);
+
+  late final Uint8List buffer;
+  late final three.RenderTarget rt;
+
+  bool auto = false;
+
+  void dispose(){
+    buffer.dispose();
+    rt.dispose();
+  }
+
+  Future<Uint8List?> captureThumbnail({String? modelPath, three.Object3D? model, three.BoundingBox? box}) async{
+    try {
+      if(model == null){
+        model = await loadObject(modelPath!);
+      }
+      else{
+        positionCamera(model, box);
+      }
+      if(model == null) return null;
+      renderer.setClearColor(three.Color.fromHex32(0x000000), 0);
+      renderer.setRenderTarget( rt );
+      renderer.clear();
+      renderer.render( scene, camera );
+      renderer.readRenderTargetPixels(rt, 0, 0, desiredWidth, desiredHeight, buffer);
+      
+      img.Image image = img.Image.fromBytes(
+        width: desiredWidth,
+        height: desiredHeight,
+        bytes: buffer.buffer,
+        numChannels: 4,
+        order: img.ChannelOrder.rgb
+      );
+      image = img.copyFlip(image, direction: img.FlipDirection.vertical);
+      Uint8List pngBytes = img.encodePng(image);
+
+
+      renderer.clear();
+      renderer.setClearColor(three.Color.fromHex32(0x000000), 0); 
+      renderer.setRenderTarget(null);
+      
+      scene.children.remove(model);
+
+      return pngBytes;
+    }catch (e) {
+      print(e);
+    }
+
+    return null;
+  }
+
+  Future<void> captureThumbnailSave(String dirPath, {String? modelPath, three.Object3D? model, three.BoundingBox? box}) async{
+    final pngBytes = await captureThumbnail(modelPath: modelPath, model: model,box: box);
+    
+    if(pngBytes == null) return;
+
+    bool exists = await Directory(dirPath).exists();
+    if(!exists) await Directory(dirPath).create(recursive: true);
+
+    await File('$dirPath/${model?.name ?? 'untitled'}.png').writeAsBytes(pngBytes);
+  }
+
+  Future<three.Object3D?> loadFileType(String path) async{
+    final type = path.split('.').last;
+    final sp = path.split('/');
+    final resPath = '${path.replaceAll(sp.last, '')}';
+
+    three.Object3D? object;
+
+    final manager = three.LoadingManager();
+    if(type == 'fbx'){
+      final texturesLoc = '${resPath}textures/';
+      manager.addHandler( RegExp('.tga'), three.TGALoader() );
+      // manager.addHandler( RegExp('.psd'), three.TGALoader() );
+      // manager.addHandler( RegExp('.dds'), three.DDSLoader() );
+
+      final loader = three.FBXLoader(manager:manager, width: 1,height: 1);
+      loader.setResourcePath(texturesLoc);
+      object = await loader.fromPath(path);
+    }
+    else if(type == 'glb' || type == 'gltf'){
+      final loader = three.GLTFLoader(manager:manager);
+      loader.setPath(resPath);
+      object = (await loader.fromPath(path))?.scene;
+    }
+    else if(type == 'obj'){
+      final mtlLoader = three.MTLLoader(manager);
+      mtlLoader.setPath(resPath);
+      final materials = await mtlLoader.fromPath(path.replaceAll('.obj', '.mtl'));
+      await materials?.preload();
+
+      final loader = three.OBJLoader();
+      loader.setMaterials(materials);
+      object = (await loader.fromPath(path));
+    }
+    else if(type == 'ply'){
+      final loader = three.PLYLoader();
+      await loader.fromPath(path).then(( geometry ) {
+        geometry?.computeVertexNormals();
+
+        final material = three.MeshStandardMaterial.fromMap( { 'color': 0x009cff, 'flatShading': true } );
+        object = three.Mesh( geometry, material );
+
+        object!.castShadow = true;
+        object!.receiveShadow = true;
+      } );
+    }
+    else if(type == 'xyz'){
+      final geometry = await three.XYZLoader().fromPath(path);
+      geometry?.center();
+      final vertexColors = ( geometry?.hasAttributeFromString( 'color' ) == true );
+      final material = three.PointsMaterial.fromMap( { 'size': 0.1, 'vertexColors': vertexColors } );
+      object = three.Points( geometry!, material );
+    }
+    else if(type == 'vox'){
+      final loader = three.VOXLoader();
+      await loader.fromPath(path).then(( chunks ) {
+        if(object == null){
+          object = three.Group();
+        }
+        for (int i = 0; i < chunks!.length; i ++ ) {
+          final chunk = chunks[ i ];
+
+          // displayPalette( chunk.palette );
+
+          final mesh = three.VOXMesh( chunk );
+          mesh.scale.setScalar( 0.0015 );
+          object?.add( mesh );
+        }
+      });
+    }
+    else if(type == 'usdz'){
+      object = (await three.USDZLoader().fromAsset(path));
+    }
+    else if(type == 'stl'){
+      final loader = three.STLLoader();
+      object = await loader.fromPath(path);
+    }
+    
+    object?.name = path.split('/').last.split('.').first;
+    return object;
+  }
+
+  void positionCamera(three.Object3D object, [three.BoundingBox? box]){
+    if(box == null){
+      box = three.BoundingBox();
+      box.setFromObject(object);
+    }
+
+    final size = box.getSize(three.Vector3());
+    final center = box.getCenter(three.Vector3());
+
+    // Position the camera to fit the model
+    final maxDim = math.max(size.x, math.max(size.y, size.z));
+    final fov = camera.fov * (math.pi / 180);
+    double cameraZ = (maxDim / 2 / math.tan(fov / 2)).abs();
+
+    if (size.x / size.y > fovAspect) {
+      cameraZ = (size.x / 2 / math.tan(fov / 2) / fovAspect).abs();
+    }
+
+    cameraZ *= 1.5; // Add some padding
+    camera.position.setValues(center.x, center.y, center.z + cameraZ);
+    camera.lookAt(center);
+
+    scene.add(object);
+  }
+
+  Future<three.Object3D?> loadObject(String path) async{
+    final object = await loadFileType(path);
+    if(object == null) return null;
+    object.name = path.split('/').last.split('.').first;
+    positionCamera(object);
+    return object;
+  }
+}

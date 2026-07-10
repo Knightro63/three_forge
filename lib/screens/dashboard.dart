@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:css/css.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:three_forge/screens/thumbnail_creator.dart';
 import 'package:three_forge/src/navigation/navigation.dart';
 import 'package:three_forge/src/styles/config.dart';
@@ -585,6 +586,29 @@ class _CodePage extends State<Dashboard>{
     );
   }
 
+  IconData getIcon(){
+    switch (themeType) {
+      case LsiThemes.dark:
+        return Icons.dark_mode;
+      case LsiThemes.limbitless:
+        return Icons.all_inclusive_rounded;
+      case LsiThemes.pink:
+        return FontAwesomeIcons.heart.data;
+      case LsiThemes.mint:
+        return FontAwesomeIcons.leaf.data;
+      case LsiThemes.halloween:
+        return FontAwesomeIcons.skull.data;
+      case LsiThemes.light:
+        return Icons.light_mode;
+      case LsiThemes.maya:
+        return Icons.temple_buddhist;
+      case LsiThemes.motionBlue:
+        return FontAwesomeIcons.water.data;
+      case LsiThemes.christmas:
+        return FontAwesomeIcons.tree.data;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -612,7 +636,7 @@ class _CodePage extends State<Dashboard>{
                       navData: [
                         NavItems(
                           name: themeType.name.toUpperCase(),
-                          icon: themeType == LsiThemes.dark?Icons.nightlight_round_sharp:Icons.light_mode,
+                          icon: getIcon(),
                           useName: false,
                           subItems: [
                             NavItems(
@@ -635,6 +659,90 @@ class _CodePage extends State<Dashboard>{
                                 setState(() {
                                   themeType = LsiThemes.light;
                                   theme = CSS.lightTheme;
+                                });
+                                widget.onDone();
+                              }
+                            ),
+                            NavItems(
+                              name: LsiThemes.limbitless.name.toUpperCase(),
+                              icon: Icons.all_inclusive_rounded,
+                              onTap: (_){
+                                config.setSettingsKey({'theme':'limbitless'});
+                                setState(() {
+                                  themeType = LsiThemes.limbitless;
+                                  theme = CSS.lsiTheme;
+                                });
+                                widget.onDone();
+                              }
+                            ),
+                            NavItems(
+                              name: LsiThemes.pink.name.toUpperCase(),
+                              icon: FontAwesomeIcons.heart.data,
+                              onTap: (_){
+                                config.setSettingsKey({'theme':'pink'});
+                                setState(() {
+                                  themeType = LsiThemes.pink;
+                                  theme = CSS.pinkTheme;
+                                });
+                                widget.onDone();
+                              }
+                            ),
+                            NavItems(
+                              name: LsiThemes.mint.name.toUpperCase(),
+                              icon: FontAwesomeIcons.leaf.data,
+                              onTap: (_){
+                                config.setSettingsKey({'theme':'mint'});
+                                setState(() {
+                                  themeType = LsiThemes.mint;
+                                  theme = CSS.mintTheme;
+                                });
+                                widget.onDone();
+                              }
+                            ),
+                            NavItems(
+                              name: LsiThemes.halloween.name.toUpperCase(),
+                              icon: FontAwesomeIcons.skull.data,
+                              onTap: (_){
+                                config.setSettingsKey({'theme':'halloween'});
+                                setState(() {
+                                  themeType = LsiThemes.halloween;
+                                  theme = CSS.hallowTheme;
+                                });
+                                widget.onDone();
+                              }
+                            ),
+                            NavItems(
+                              name: LsiThemes.motionBlue.name.toUpperCase(),
+                              icon: FontAwesomeIcons.water.data,
+                              onTap: (_){
+                                config.setSettingsKey({'theme':'motionBlue'});
+                                setState(() {
+                                  themeType = LsiThemes.motionBlue;
+                                  theme = CSS.motionBlueTheme;
+                                });
+                                widget.onDone();
+                              }
+                            ),
+                            NavItems(
+                              name: LsiThemes.maya.name.toUpperCase(),
+                              icon: Icons.temple_buddhist,
+                              onTap: (_){
+                                config.setSettingsKey({'theme':'maya'});
+                                setState(() {
+                                  themeType = LsiThemes.maya;
+                                  theme = CSS.mayaTheme;
+                                });
+                                widget.onDone();
+                              }
+                            ),
+                            NavItems(
+                              name: LsiThemes.christmas.name.toUpperCase(),
+                              icon: FontAwesomeIcons.tree.data,
+                              onTap: (_){
+                                config.setSettingsKey({'theme':'christmas'});
+                                setState(() {
+                                  themeType = LsiThemes.christmas;
+                                  theme = CSS.christmasTheme;
                                 });
                                 widget.onDone();
                               }

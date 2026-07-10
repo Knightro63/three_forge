@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:three_forge/src/enums.dart';
 import 'package:three_forge/src/modifers/insert_models.dart';
 import 'package:three_forge/src/navigation/navigation.dart';
 import 'package:three_forge/src/three_viewer/gui/paint_helper.dart';
@@ -17,25 +18,8 @@ class Hud extends StatelessWidget{
     insert = InsertModels(threeV);
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      alignment: Alignment.topCenter,
-      children: [
-        SizedBox(
-          width: MediaQuery.of(context).size.width*.8,
-          height: MediaQuery.of(context).size.height-285,
-          child: DragTarget(
-            builder: (context, candidateItems, rejectedItems) {
-              return threeV.build();
-            },
-            onAcceptWithDetails: (DragTargetDetails<Object> path){
-              insert.insert((path.data as String)).then((_){
-                setState((){});
-              });
-            },
-          ),
-        ),
+  List<Widget> forge(BuildContext context){
+    return [
         SelectionHelper(threeV: threeV),
         PaintHelper(threeV: threeV),
         Positioned(
@@ -396,6 +380,29 @@ class Hud extends StatelessWidget{
             ]
           )
         ),
+    ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.topCenter,
+      children: [
+        SizedBox(
+          width: MediaQuery.of(context).size.width*.8,
+          height: threeV.showHud?MediaQuery.of(context).size.height-285:MediaQuery.of(context).size.height-25,
+          child: DragTarget(
+            builder: (context, candidateItems, rejectedItems) {
+              return threeV.build();
+            },
+            onAcceptWithDetails: (DragTargetDetails<Object> path){
+              insert.insert((path.data as String)).then((_){
+                setState((){});
+              });
+            },
+          ),
+        ),
+        if(threeV.showHud) ...forge(context)
       ]
     );
   }

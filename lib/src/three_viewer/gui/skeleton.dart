@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:three_forge/src/enums.dart';
+import 'package:three_forge/src/styles/savedWidgets.dart';
 import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js_helpers/three_js_helpers.dart';
 import 'package:three_js/three_js.dart' as three;
@@ -14,19 +16,30 @@ class SkeletonGui extends StatefulWidget {
 class _SkeletonGuiState extends State<SkeletonGui> {
   late final ThreeViewer threeV;
   final TextEditingController controller = TextEditingController();
-  late final SkeletonHelper skeleton;
+  SkeletonHelper? skeleton;
   List<DropdownMenuItem<three.Bone>> boneSelector = [];
   List<DropdownMenuItem<three.Object3D?>> objectSelector = [];
-  late three.Bone selectedBone;
+  late three.Bone? selectedBone;
   three.Object3D? selectedObject;
 
   @override
   void initState() {
     super.initState();
     threeV = widget.threeV;
+    reset();
+  }
+  @override
+  void dispose(){
+    super.dispose();
+  }
+
+  void reset(){
+    if(threeV.intersected[0].userData['skeleton'] == skeleton) return;
+    boneSelector.clear();
+    objectSelector.clear();
     skeleton = threeV.intersected[0].userData['skeleton'];
     List<String> names = [];
-    for(final bone in skeleton.bones){
+    for(final bone in skeleton?.bones ?? []){
       if(!names.contains(bone.name)){
         names.add(bone.name);
         boneSelector.add(DropdownMenuItem(
@@ -38,7 +51,7 @@ class _SkeletonGuiState extends State<SkeletonGui> {
         ));
       }
     }
-    selectedBone = skeleton.bones.first;
+    selectedBone = skeleton?.bones.isNotEmpty == true?skeleton?.bones.first:null;
 
     List<String> objectNames = [];
     objectSelector.add(
@@ -63,10 +76,6 @@ class _SkeletonGuiState extends State<SkeletonGui> {
         ));
       }
     }
-  }
-  @override
-  void dispose(){
-    super.dispose();
   }
 
   Widget bones(SkeletonHelper skeleton){
@@ -161,14 +170,15 @@ class _SkeletonGuiState extends State<SkeletonGui> {
 
   @override
   Widget build(BuildContext context) {
+    reset();
     return Column(
       mainAxisAlignment: MainAxisAlignment.start,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Bones: '),
+        const Padding(padding: EdgeInsetsGeometry.only(left:10),child:Text('Bones: ')),
         SizedBox(height: 5,),
-        Container(
-          margin: const EdgeInsets.fromLTRB(0, 5, 0, 5),
+        if(boneSelector.isNotEmpty) Container(
+          margin: const EdgeInsets.fromLTRB(5, 5, 5, 5),
           alignment: Alignment.center,
           height:20,
           padding: const EdgeInsets.only(left:10),
@@ -194,12 +204,65 @@ class _SkeletonGuiState extends State<SkeletonGui> {
             ),
           ),
         ),
-        SizedBox(height: 20,),
-        const Text('Attached Object: '),
-        SizedBox(height: 5,),
-        childList(selectedBone),
-        Container(
-          margin: const EdgeInsets.fromLTRB(0, 5, 0, 5),
+        if(boneSelector.isEmpty)         Container(
+          color: Theme.of(context).canvasColor,
+          margin: EdgeInsetsGeometry.fromLTRB(5,0,5,5),
+          child: DragTarget(
+            builder: (context, candidateItems, rejectedItems) {
+              return Row(
+                children: [
+                  InkWell(
+                    onTap: (){
+                      threeV.changeScene(ForgeScene.rig);
+                      setState(() {
+                        
+                      });
+                    },
+                    child: Icon(Icons.add, size: 15,),
+                  ),
+                  EnterTextFormField(
+                    readOnly: true,
+                    //width: MediaQuery.of(context).size.width,
+                    height: 20,
+                    width: MediaQuery.of(context).size.width*.2-72,
+                    maxLines: 1,
+                    radius: 5,
+                    label: 'Rig',
+                    margin: EdgeInsets.only(left: 0,top: 1,bottom: 2),
+                    textStyle: Theme.of(context).primaryTextTheme.bodySmall,
+                    color: Theme.of(context).cardColor,
+                    controller: controller,
+                  ),
+                  InkWell(
+                    onTap: (){
+                      setState(() {});
+                    },
+                    child: Row(
+                      children: [
+                        Container(
+                          height: 20,
+                          width: 2,
+                          margin: EdgeInsets.only(right: 5),
+                          color: Theme.of(context).canvasColor,
+                        ),
+                        Icon(Icons.folder, size: 20,),
+                      ],
+                    )
+                  )
+                ],
+              );
+            },
+            onAcceptWithDetails: (details) async{
+
+            },
+          )
+        ),
+        if(boneSelector.isNotEmpty) SizedBox(height: 10,),
+        if(boneSelector.isNotEmpty) const Padding(padding: EdgeInsetsGeometry.only(left:10),child:Text('Attached Object: ')),
+        if(boneSelector.isNotEmpty) SizedBox(height: 5,),
+        if(boneSelector.isNotEmpty) childList(selectedBone),
+        if(boneSelector.isNotEmpty) Container(
+          margin: const EdgeInsets.fromLTRB(5, 5, 5, 5),
           alignment: Alignment.center,
           height:20,
           padding: const EdgeInsets.only(left:10),
@@ -218,17 +281,17 @@ class _SkeletonGuiState extends State<SkeletonGui> {
               style: Theme.of(context).primaryTextTheme.bodySmall,
               onChanged:(value){
                 selectedObject = value;
-                if(selectedObject != !selectedBone.children.contains(selectedObject)){
+                if(selectedBone?.children != null && selectedObject != !selectedBone!.children.contains(selectedObject)){
                   threeV.scene.remove(selectedObject!);
-                  selectedBone.add(selectedObject);
+                  selectedBone!.add(selectedObject);
                   selectedObject?.userData['scale'] = selectedObject?.scale.clone();
                   selectedObject?.scale.scale(1/threeV.intersected[0].scale.x);
 
-                  if(threeV.intersected[0].userData['attachedObjects']?[selectedBone.uuid] == null){
+                  if(threeV.intersected[0].userData['attachedObjects']?[selectedBone!.uuid] == null){
                     threeV.intersected[0].userData['attachedObjects'] = <String,List<three.Object3D?>>{};
-                    threeV.intersected[0].userData['attachedObjects'][selectedBone.uuid] = <three.Object3D?>[];
+                    threeV.intersected[0].userData['attachedObjects'][selectedBone!.uuid] = <three.Object3D?>[];
                   }
-                  threeV.intersected[0].userData['attachedObjects'][selectedBone.uuid].add(selectedObject);
+                  threeV.intersected[0].userData['attachedObjects'][selectedBone!.uuid].add(selectedObject);
                   setState(() {});
                 }
               },

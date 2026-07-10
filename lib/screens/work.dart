@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:three_forge/src/m2m_viewer/rig.dart';
 import 'package:three_forge/src/modifers/create_yaml.dart';
 import 'package:three_forge/src/navigation/screen_navigator.dart';
 import 'package:three_forge/src/three_viewer/file_navigation.dart';
@@ -259,7 +260,7 @@ class _UIPageState extends State<UIScreen> {
             callback: callBacks,
             reset: resetNav,
             navData: screenNav.navigator,
-            centerNavData: [
+            centerNavData: !threeV.showHud?[]:[
               NavItems(
                 name: 'Device${selectedDevice == null?'':'($selectedDevice)'}',
                 subItems: [
@@ -410,10 +411,10 @@ class _UIPageState extends State<UIScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Hud(threeV, setState),
-                FileNavigation(files: widget.currentProject,consoleLog: consoleLog, history: threeV.history,)
+                if(threeV.showHud) FileNavigation(files: widget.currentProject,consoleLog: consoleLog, history: threeV.history,)
              ],
             ),
-            Container(
+            if(threeV.showHud) Container(
               width: MediaQuery.of(context).size.width*.2,
               color: Theme.of(context).cardColor,
               child: Column(
@@ -439,6 +440,11 @@ class _UIPageState extends State<UIScreen> {
                 ],
               ),
             ),
+            if(!threeV.showHud)  Container(
+              width: MediaQuery.of(context).size.width*.2,
+              color: Theme.of(context).cardColor,
+              child: RigGui(threeV: threeV)
+            )
           ],
         )
       ),

@@ -1,0 +1,294 @@
+{
+    "human": {
+        "rig": "/rigs/human.glb",
+        "animations": [
+            "/animations/human-base.glb",
+            "/animations/human-addon.glb"
+        ],
+        "reference": "/reference/human.png",
+        "previews": [
+            "/previews/human/power_up.mp4",
+            "/previews/human/idle_rail_loop.mp4",
+            "/previews/human/swim_idle_loop.mp4",
+            "/previews/human/greeting.mp4",
+            "/previews/human/t_pose.mp4",
+            "/previews/human/walk_carry_loop.mp4",
+            "/previews/human/crouch_idle_loop.mp4",
+            "/previews/human/rest_pose.mp4",
+            "/previews/human/sitting_exit.mp4",
+            "/previews/human/sitting_enter.mp4",
+            "/previews/human/melee_hook_rec.mp4",
+            "/previews/human/pick_up_table.mp4",
+            "/previews/human/jumping_jacks.mp4",
+            "/previews/human/ninja_jump_idle_loop.mp4",
+            "/previews/human/farm_harvest.mp4",
+            "/previews/human/lay_to_idle.mp4",
+            "/previews/human/shield_one_shot.mp4",
+            "/previews/human/two_hand_blast.mp4",
+            "/previews/human/dance_loop.mp4",
+            "/previews/human/idle_shield_loop.mp4",
+            "/previews/human/walk_loop.mp4",
+            "/previews/human/consume.mp4",
+            "/previews/human/pistol_shoot.mp4",
+            "/previews/human/dance_body_roll.mp4",
+            "/previews/human/slide_loop.mp4",
+            "/previews/human/jump_loop.mp4",
+            "/previews/human/sword_idle.mp4",
+            "/previews/human/sword_regular_a.mp4",
+            "/previews/human/crawl_r_m.mp4",
+            "/previews/human/pistol_aim_down.mp4",
+            "/previews/human/idle_listening.mp4",
+            "/previews/human/punch_cross.mp4",
+            "/previews/human/meditate.mp4",
+            "/previews/human/punch_jab.mp4",
+            "/previews/human/interact.mp4",
+            "/previews/human/sword_regular_c.mp4",
+            "/previews/human/sword_regular_b.mp4",
+            "/previews/human/zombie_idle_loop.mp4",
+            "/previews/human/sitting_talking_loop.mp4",
+            "/previews/human/levitate_idle.mp4",
+            "/previews/human/idle_talking_loop.mp4",
+            "/previews/human/sleeping.mp4",
+            "/previews/human/idle_shield_break.mp4",
+            "/previews/human/slide_exit.mp4",
+            "/previews/human/idle_fold_arms_loop.mp4",
+            "/previews/human/pistol_aim_up.mp4",
+            "/previews/human/death01.mp4",
+            "/previews/human/pistol_idle_loop.mp4",
+            "/previews/human/shivering.mp4",
+            "/previews/human/consume_item.mp4",
+            "/previews/human/reject.mp4",
+            "/previews/human/fighting_right_jab.mp4",
+            "/previews/human/tree_chopping_loop.mp4",
+            "/previews/human/hit_head.mp4",
+            "/previews/human/victory_fist_pump.mp4",
+            "/previews/human/fighting_left_jab.mp4",
+            "/previews/human/angry.mp4",
+            "/previews/human/jump_start.mp4",
+            "/previews/human/idle_loop.mp4",
+            "/previews/human/dance_reach_hip.mp4",
+            "/previews/human/idle_rail_call.mp4",
+            "/previews/human/farm_plant_seed.mp4",
+            "/previews/human/idle_torch_loop.mp4",
+            "/previews/human/roll.mp4",
+            "/previews/human/fixing_kneeling.mp4",
+            "/previews/human/zombie_walk_fwd_loop.mp4",
+            "/previews/human/sword_block.mp4",
+            "/previews/human/push_loop.mp4",
+            "/previews/human/sword_regular_combo.mp4",
+            "/previews/human/flying_forward_super.mp4",
+            "/previews/human/climb_up_1m_r_m.mp4",
+            "/previews/human/farm_watering.mp4",
+            "/previews/human/tired_hunched.mp4",
+            "/previews/human/flying_forward.mp4",
+            "/previews/human/zombie_scratch.mp4",
+            "/previews/human/driving_loop.mp4",
+            "/previews/human/confused.mp4",
+            "/previews/human/dance_charleston.mp4",
+            "/previews/human/sword_attack_r_m.mp4",
+            "/previews/human/ninja_jump_start.mp4",
+            "/previews/human/victory.mp4",
+            "/previews/human/throw_object.mp4",
+            "/previews/human/sitting_idle_loop.mp4",
+            "/previews/human/spell_simple_exit.mp4",
+            "/previews/human/sword_dash_r_m.mp4",
+            "/previews/human/roll_r_m.mp4",
+            "/previews/human/sprint_loop.mp4",
+            "/previews/human/spell_simple_shoot.mp4",
+            "/previews/human/yes.mp4",
+            "/previews/human/jog_fwd_loop.mp4",
+            "/previews/human/hit_chest.mp4",
+            "/previews/human/backflip.mp4",
+            "/previews/human/kneeling_tired.mp4",
+            "/previews/human/hit_knockback.mp4",
+            "/previews/human/sword_regular_a_rec.mp4",
+            "/previews/human/crouch_fwd_loop.mp4",
+            "/previews/human/hit_knockback_r_m.mp4",
+            "/previews/human/fighting_idle.mp4",
+            "/previews/human/pistol_reload.mp4",
+            "/previews/human/shield_dash_r_m.mp4",
+            "/previews/human/crawl.mp4",
+            "/previews/human/overhand_throw.mp4",
+            "/previews/human/spell_simple_enter.mp4",
+            "/previews/human/dizzy.mp4",
+            "/previews/human/run_anime.mp4",
+            "/previews/human/idle_no_loop.mp4",
+            "/previews/human/defend.mp4",
+            "/previews/human/spell_simple_idle_loop.mp4",
+            "/previews/human/ninja_jump_land.mp4",
+            "/previews/human/head_nod.mp4",
+            "/previews/human/idle_lantern_loop.mp4",
+            "/previews/human/bow.mp4",
+            "/previews/human/melee_hook.mp4",
+            "/previews/human/walk_formal_loop.mp4",
+            "/previews/human/jump_land.mp4",
+            "/previews/human/idle_talking_phone_loop.mp4",
+            "/previews/human/slide_start.mp4",
+            "/previews/human/sword_attack.mp4",
+            "/previews/human/pistol_aim_neutral.mp4",
+            "/previews/human/sword_regular_b_rec.mp4",
+            "/previews/human/chest_open.mp4",
+            "/previews/human/swim_fwd_loop.mp4",
+            "/previews/human/pushup.mp4",
+            "/previews/human/levitate_entrance.mp4"
+        ],
+        "model": "/models/human.glb",
+        "variations": [
+            "/variations/human-female.glb",
+            "/variations/human-zombie.glb",
+            "/variations/human-base.glb",
+            "/variations/human-sophia.glb",
+            "/variations/human-jay.glb",
+            "/variations/human-bunny.glb",
+            "/variations/human-sintel.glb"
+        ]
+    },
+    "fox": {
+        "rig": "/rigs/fox.glb",
+        "animations": [
+            "/animations/fox.glb"
+        ],
+        "reference": "/reference/fox.png",
+        "previews": [
+            "/previews/fox/rest_pose.mp4",
+            "/previews/fox/death.mp4",
+            "/previews/fox/sit.mp4",
+            "/previews/fox/idle_alert.mp4",
+            "/previews/fox/walk.mp4",
+            "/previews/fox/run.mp4",
+            "/previews/fox/fetch.mp4",
+            "/previews/fox/howl.mp4",
+            "/previews/fox/fall.mp4",
+            "/previews/fox/idle.mp4",
+            "/previews/fox/bark.mp4",
+            "/previews/fox/sneak.mp4",
+            "/previews/fox/jump.mp4",
+            "/previews/fox/bite.mp4"
+        ],
+        "model": "/models/fox.glb",
+        "variations": [
+            "/variations/fox-base.glb",
+            "/variations/fox-cat.glb",
+            "/variations/fox-panda.glb",
+            "/variations/fox-horse.glb",
+            "/variations/fox-dog.glb"
+        ]
+    },
+    "snake": {
+        "rig": "/rigs/snake.glb",
+        "animations": [
+            "/animations/snake.glb"
+        ],
+        "reference": "/reference/snake.png",
+        "previews": [
+            "/previews/snake/rest_pose.mp4",
+            "/previews/snake/death.mp4",
+            "/previews/snake/hit.mp4",
+            "/previews/snake/idle.mp4",
+            "/previews/snake/side_winding.mp4",
+            "/previews/snake/coiled.mp4",
+            "/previews/snake/dance.mp4",
+            "/previews/snake/bite.mp4"
+        ],
+        "model": "/models/snake.glb",
+        "variations": []
+    },
+    "spider": {
+        "rig": "/rigs/spider.glb",
+        "animations": [
+            "/animations/spider.glb"
+        ],
+        "reference": "/reference/spider.png",
+        "previews": [
+            "/previews/spider/rest_pose.mp4",
+            "/previews/spider/death.mp4",
+            "/previews/spider/hit.mp4",
+            "/previews/spider/walk.mp4",
+            "/previews/spider/attack.mp4",
+            "/previews/spider/death_2.mp4",
+            "/previews/spider/idle.mp4",
+            "/previews/spider/eating.mp4",
+            "/previews/spider/jump.mp4",
+            "/previews/spider/bite.mp4"
+        ],
+        "model": "/models/spider.glb",
+        "variations": []
+    },
+    "shark": {
+        "rig": "/rigs/shark.glb",
+        "animations": [
+            "/animations/shark.glb"
+        ],
+        "reference": "/reference/shark.png",
+        "previews": [
+            "/previews/shark/rest_pose.mp4",
+            "/previews/shark/hit.mp4",
+            "/previews/shark/swim_vertical.mp4",
+            "/previews/shark/swim_horizontal.mp4",
+            "/previews/shark/idle.mp4",
+            "/previews/shark/dead_floating.mp4",
+            "/previews/shark/bite.mp4"
+        ],
+        "model": "/models/shark.glb",
+        "variations": []
+    },
+    "bird": {
+        "rig": "/rigs/bird.glb",
+        "animations": [
+            "/animations/bird.glb"
+        ],
+        "reference": "/reference/bird.png",
+        "previews": [
+            "/previews/bird/glide.mp4",
+            "/previews/bird/rest_pose.mp4",
+            "/previews/bird/walk.mp4",
+            "/previews/bird/idle.mp4",
+            "/previews/bird/flap.mp4"
+        ],
+        "model": "/models/bird.glb",
+        "variations": [
+            "/variations/bird-base.glb",
+            "/variations/bird-eagle.glb"
+        ]
+    },
+    "kaiju": {
+        "rig": "/rigs/kaiju.glb",
+        "animations": [
+            "/animations/kaiju.glb"
+        ],
+        "reference": "/reference/kaiju.png",
+        "previews": [
+            "/previews/kaiju/rest_pose.mp4",
+            "/previews/kaiju/swim.mp4",
+            "/previews/kaiju/death.mp4",
+            "/previews/kaiju/hit.mp4",
+            "/previews/kaiju/walk.mp4",
+            "/previews/kaiju/tail_attack.mp4",
+            "/previews/kaiju/attack.mp4",
+            "/previews/kaiju/idle.mp4",
+            "/previews/kaiju/roar.mp4",
+            "/previews/kaiju/walk_r_m.mp4"
+        ],
+        "model": "/models/kaiju.glb",
+        "variations": [
+            "/variations/kaiju-t-rex.glb",
+            "/variations/kaiju-base.glb"
+        ]
+    },
+    "dragon": {
+        "rig": "/rigs/dragon.glb",
+        "animations": [
+            "/animations/dragon.glb"
+        ],
+        "reference": "/reference/dragon.png",
+        "previews": [
+            "/previews/dragon/rest_pose.mp4",
+            "/previews/dragon/walk.mp4",
+            "/previews/dragon/fly_flap.mp4",
+            "/previews/dragon/idle.mp4",
+            "/previews/dragon/fly_glide.mp4"
+        ],
+        "model": "/models/dragon.glb",
+        "variations": []
+    }
+}

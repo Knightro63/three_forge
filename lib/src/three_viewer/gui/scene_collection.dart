@@ -1,4 +1,7 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:three_forge/src/history/commands.dart';
 import 'package:three_forge/src/styles/globals.dart';
 import 'package:three_forge/src/three_viewer/viewer.dart';
@@ -7,6 +10,8 @@ import 'package:three_js/three_js.dart' as three;
 class SceneCollection extends StatelessWidget{
   final void Function(void Function()) setState;
   final ThreeViewer threeV;
+  final ScrollController _horizontalController = ScrollController();
+  final ScrollController _verticalController = ScrollController();
 
   SceneCollection(this.threeV,this.setState);
 
@@ -35,8 +40,10 @@ class SceneCollection extends StatelessWidget{
       'color': Colors.green
     },
     'Bone': {
-      'icon': Icons.bakery_dining_outlined,
-      'color': Colors.blue
+      'icon': FontAwesomeIcons.bone.data,
+      'color': Colors.blue,
+      'size': 8.0,
+      'rotate': true
     },
 
     'AmbientLight': {
@@ -74,14 +81,21 @@ class SceneCollection extends StatelessWidget{
     },
   };
 
-  Icon getIcon(three.Object3D object){
+  Widget getIcon(three.Object3D object){
     final Map<String,dynamic>? c = icons[object.runtimeType.toString()];
 
     if(c == null){
       return Icon(Icons.error,size: 15,color: Colors.red);
     }
 
-    return  Icon(c['icon'] ,size: 15,color: c['color']);
+    if(c['rotate'] == true){
+      return  RotatedBox(
+        quarterTurns: 1,
+        child: Icon(c['icon'] ,size: c['size'] ?? 15.0,color: c['color'])
+      );
+    }
+
+    return  Icon(c['icon'] ,size: c['size'] ?? 15.0,color: c['color']);
   }
 
   Widget card(BuildContext context, three.Object3D child){
@@ -241,28 +255,65 @@ class SceneCollection extends StatelessWidget{
 
   @override
   Widget build(BuildContext context) {
+    double w = MediaQuery.of(context).size.width*.2-10;
     return DragTarget(
       builder: (context, candidateItems, rejectedItems) {
-        return ListView(
-          children: <Widget>[
-            InkWell(
-              onTap: (){
-                threeV.selectScene();
-                setState((){});
-              },
-              child: Container(
-                margin: const EdgeInsets.fromLTRB(5, 0, 5, 0),
-                height: 25,
-                color: threeV.sceneSelected?Theme.of(context).secondaryHeaderColor:null,
-                child: const Row(
-                  children: [
-                    Icon(Icons.inventory ,size: 15,),
-                    Text('\tScene Collection'),
-                  ],
+        return ScrollConfiguration(
+          behavior: ScrollConfiguration.of(context).copyWith(
+            dragDevices: {
+              PointerDeviceKind.touch,
+              PointerDeviceKind.mouse,
+            },
+          ),
+          child: Scrollbar(
+            controller: _horizontalController,
+            thumbVisibility: true,
+            trackVisibility: true,
+            
+            child: SingleChildScrollView(
+              controller: _horizontalController,
+              scrollDirection: Axis.horizontal,
+              
+              child: IntrinsicWidth(
+                child: SingleChildScrollView(
+                  controller: _verticalController,
+                  scrollDirection: Axis.vertical,
+                  
+                  // 1. Wrap the column in a ConstrainedBox
+                  child: ConstrainedBox(
+                    // 2. Set minWidth to 100.0 (maxWidth must be double.infinity to allow growth)
+                    constraints: BoxConstraints(
+                      minWidth: w,
+                      maxWidth: double.infinity, 
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch, // <-- Forces elements to fill the minWidth
+                      children: <Widget>[ 
+                        InkWell( 
+                          onTap: (){ 
+                            threeV.selectScene(); 
+                            setState((){}); 
+                          }, 
+                          child: Container( 
+                            margin: const EdgeInsets.fromLTRB(5, 0, 5, 0), 
+                            height: 25, 
+                            color: threeV.sceneSelected ? Theme.of(context).secondaryHeaderColor : null, 
+                            child: const Row( 
+                              mainAxisSize: MainAxisSize.min,
+                              children: [ 
+                                Icon(Icons.inventory, size: 15,), 
+                                Text('\tScene Collection'), 
+                              ], 
+                            ), 
+                          ) 
+                        ) 
+                      ] + folderStructure(context),
+                    ),
+                  ),
                 ),
-              )
-            )
-          ]+folderStructure(context),
+              ),
+            ),
+          ),
         );
       },
       onAcceptWithDetails: (details){

@@ -7,8 +7,6 @@ import '../styles/globals.dart';
 class NavDropDown{
   NavDropDown({
     this.style = const TextStyle(
-      //color: lsi.darkGrey,
-      fontFamily: 'Klavika',
       fontSize: 14
     ),
     required this.navData,
@@ -88,8 +86,6 @@ class Navigation extends StatefulWidget{
     this.spacer,
     this.radius,
     this.style = const TextStyle(
-      //color: lsi.darkGrey,
-      fontFamily: 'Klavika',
       fontSize: 14
     ),
     this.margin
@@ -298,7 +294,6 @@ class _NavState extends State<Navigation>{
 class NavTabs extends StatefulWidget{
   const NavTabs({
     Key? key,
-    this.hoverColor = Colors.blue,
     required this.itemName,
     required this.onHover, 
     required this.onTap,
@@ -308,7 +303,6 @@ class NavTabs extends StatefulWidget{
 
   final String itemName;
   final Function onHover;
-  final Color hoverColor;
   final TextStyle style;
   final Function onTap;
   final String selected;
@@ -354,7 +348,7 @@ class _NavTabsState extends State<NavTabs>{
           margin: const EdgeInsets.fromLTRB(2, 5, 0, 0),
           padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
           decoration: BoxDecoration(
-            color: (!hovering && widget.selected != widget.itemName)?Colors.white.withAlpha(50):widget.hoverColor,
+            color: (!hovering && widget.selected != widget.itemName)?Colors.white.withAlpha(50):Theme.of(context).secondaryHeaderColor,
             borderRadius: const BorderRadius.only(topLeft:Radius.circular(5),topRight:Radius.circular(5)),
             //border: border
           ),
@@ -372,7 +366,6 @@ class NavItem extends StatefulWidget{
   const NavItem({
     Key? key,
     required this.itemKey, 
-    this.hoverColor = Colors.blue,
     required this.itemName,
     required this.onHover, 
     required this.onTap,
@@ -385,7 +378,6 @@ class NavItem extends StatefulWidget{
 
   final String itemName;
   final Function onHover;
-  final Color hoverColor;
   final TextStyle style;
   final Function onTap;
   final String selected;
@@ -434,7 +426,7 @@ class _NavItemState extends State<NavItem>{
           margin: const EdgeInsets.fromLTRB(0, 0, 0, 0),
           padding: const EdgeInsets.fromLTRB(10, 0, 10, 0),
           decoration: BoxDecoration(
-            color: (!hovering && widget.selected != widget.itemName)?null:widget.hoverColor,
+            color: (!hovering && widget.selected != widget.itemName)?null:Theme.of(context).secondaryHeaderColor,
             borderRadius: const BorderRadius.all(Radius.circular(2)),
             //border: border
           ),
@@ -468,14 +460,12 @@ class _NavItemState extends State<NavItem>{
 class OverlayClass extends StatefulWidget {
   const OverlayClass({
     Key? key,
-    this.hoverColor = Colors.blue,
     this.subItems,
     required this.itemHeight,
     required this.style,
     required this.onTap,
   }):super(key: key);
 
-  final Color hoverColor;
   final List<NavItems>? subItems;
   final double itemHeight;
   final TextStyle style;
@@ -580,7 +570,7 @@ class _OverlayClassState extends State<OverlayClass> {
                 //onHover: widget.onHover,
                 child: Container(
                   decoration: BoxDecoration(
-                    color: (itemName == widget.subItems![i].name)?widget.hoverColor:null,
+                    color: (itemName == widget.subItems![i].name)?Theme.of(context).secondaryHeaderColor:null,
                     borderRadius: const BorderRadius.all(Radius.circular(2)),
                     //border: border
                   ),

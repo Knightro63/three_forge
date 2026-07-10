@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:three_forge/src/enums.dart';
 import 'package:three_forge/src/modifers/create_models.dart';
 import 'package:three_forge/src/styles/savedWidgets.dart';
 import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js/three_js.dart' as three;
+import 'package:three_js_exporters/three_js_exporters.dart';
 
 class AnimationGui extends StatefulWidget {
   const AnimationGui({Key? key, required this.threeV}):super(key: key);
@@ -113,7 +115,7 @@ class _AnimationGuiState extends State<AnimationGui> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         animations(actionMap,currentAction),
-        InkWell(
+        if(actionMap.isNotEmpty) InkWell(
           onTap: (){
             if(!paused){
               (actionMap[currentAction] as three.AnimationAction?)?.play();
@@ -135,33 +137,76 @@ class _AnimationGuiState extends State<AnimationGui> {
             child: Icon(!paused?Icons.play_arrow:Icons.stop)
           ),
         ),
+        // SizedBox(height: 10,),
+        // const Align(alignment: Alignment.center, child:Text('Add Animation',)),
+        // Divider(
+        //   height: 2,         // The total layout space the divider occupies
+        //   thickness: 3,      // The actual thickness of the visual line
+        //   color: Theme.of(context).canvasColor, // Uses your theme's custom divider color
+        // ),
         SizedBox(height: 10,),
-        const Text('Add Animation'),
-        SizedBox(height: 10,),
-        DragTarget(
-          builder: (context, candidateItems, rejectedItems) {
-            return Wrap(
-              children: [
-                const Text('Animation  '),
-                EnterTextFormField(
-                  readOnly: true,
-                  //width: MediaQuery.of(context).size.width,
-                  height: 20,
-                  maxLines: 1,
-                  textStyle: Theme.of(context).primaryTextTheme.bodySmall,
-                  color: Theme.of(context).canvasColor,
-                  controller: controller,
-                )
-              ],
-            );
-          },
-          onAcceptWithDetails: (details) async{
-            if((details.data as String).split('.').last.toLowerCase() == 'fbx'){
-              CreateModels.addFBXAnimation(threeV.intersected[0],details.data! as String,threeV);
-            }else{
-              //addBVH(threeV.intersected[0],details.data! as String);
-            }
-          },
+        Container(
+          color: Theme.of(context).canvasColor,
+          margin: EdgeInsetsGeometry.fromLTRB(5,0,5,5),
+          child: DragTarget(
+            builder: (context, candidateItems, rejectedItems) {
+              return Row(
+                children: [
+                  InkWell(
+                    onTap: (){
+                      threeV.changeScene(ForgeScene.animate);
+                      setState(() {});
+                    },
+                    child: Icon(Icons.add, size: 15,),
+                  ),
+                  EnterTextFormField(
+                    readOnly: true,
+                    //width: MediaQuery.of(context).size.width,
+                    height: 20,
+                    width: MediaQuery.of(context).size.width*.2-72,
+                    maxLines: 1,
+                    radius: 5,
+                    label: 'Animation',
+                    margin: EdgeInsets.only(left: 0,top: 1,bottom: 2),
+                    textStyle: Theme.of(context).primaryTextTheme.bodySmall,
+                    color: Theme.of(context).cardColor,
+                    controller: controller,
+                  ),
+                  InkWell(
+                    onTap: (){
+                      GetFilePicker.pickFiles(['fbx']).then((value)async{
+                        if(value != null){
+                          for(final path in value.paths){
+                            if(path != null) CreateModels.addFBXAnimation(threeV.intersected[0],path,threeV);
+                          }
+                        }
+                      });
+                    },
+                    child: Row(
+                      children: [
+                        Container(
+                          height: 20,
+                          width: 2,
+                          margin: EdgeInsets.only(right: 5),
+                          color: Theme.of(context).canvasColor,
+                        ),
+                        Icon(Icons.folder, size: 20,),
+                      ],
+                    )
+                  )
+                ],
+              );
+            },
+            onAcceptWithDetails: (details) async{
+              String ext = (details.data as String).split('.').last.toLowerCase();
+              if(ext == 'fbx'){
+                CreateModels.addFBXAnimation(threeV.intersected[0],details.data! as String,threeV);
+              }
+              else if(ext == 'bvh'){
+                //addBVH(threeV.intersected[0],details.data! as String);
+              }
+            },
+          )
         ),
       ],
     );

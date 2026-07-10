@@ -309,10 +309,7 @@ class _IntersectedGuiState extends State<IntersectedGui> {
                 ],
               )
             ),
-            if(expands[3]) Padding(
-              padding: const EdgeInsets.fromLTRB(25,10,5,5),
-              child: AnimationGui(threeV: threeV,)
-            )
+            if(expands[3]) AnimationGui(threeV: threeV,)
           ]
         )
       ),
@@ -337,10 +334,7 @@ class _IntersectedGuiState extends State<IntersectedGui> {
                 ],
               )
             ),
-            if(expands[9]) Padding(
-              padding: const EdgeInsets.fromLTRB(25,10,5,5),
-              child: SkeletonGui(threeV: threeV,)
-            )
+            if(expands[9]) SkeletonGui(threeV: threeV,)
           ]
         )
       ),

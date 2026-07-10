@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:three_forge/src/enums.dart';
 import 'package:three_forge/src/three_viewer/src/grid_info.dart';
-import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js/three_js.dart';
 
 class VoxelPainter extends Object3D{

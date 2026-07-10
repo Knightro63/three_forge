@@ -159,34 +159,4 @@ class LSIFunctions{
     }
     return string;
   }
-
-  static dynamic changeToString(dynamic userSchedules, String name){   
-    List<String> weekDays = ['monday','tuesday','wednesday','thursday','friday'];
-    dynamic tempData;
-    if(userSchedules != null){
-      if(userSchedules[name] != null){
-        //show = false;
-        for(int i = 0; i < 5;i++){
-          if(userSchedules[name][weekDays[i]] != null){
-            for(int j = 0; j < userSchedules[name][weekDays[i]].length;j++){
-              tempData = fillTime(weekDays[i], j.toString(), userSchedules[name][weekDays[i]][j],tempData);
-            }
-          }
-        }
-      }
-    }
-    return tempData;
-  }
-  static dynamic fillTime(String day, String position, String val, dynamic tempData){
-    if(tempData == null){
-      tempData = {day:{position:val}};
-    }
-    else if(tempData[day] == null){
-      tempData[day] = {position:val};
-    }
-    else{
-      tempData[day][position] = val;
-    }
-    return tempData;
-  }
 }
