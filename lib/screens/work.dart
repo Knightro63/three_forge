@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:three_forge/src/enums.dart';
+import 'package:three_forge/src/m2m_viewer/animate.dart';
 import 'package:three_forge/src/m2m_viewer/rig.dart';
 import 'package:three_forge/src/modifers/create_yaml.dart';
 import 'package:three_forge/src/navigation/screen_navigator.dart';
@@ -443,7 +445,7 @@ class _UIPageState extends State<UIScreen> {
             if(!threeV.showHud)  Container(
               width: MediaQuery.of(context).size.width*.2,
               color: Theme.of(context).cardColor,
-              child: RigGui(threeV: threeV)
+              child: threeV.forgeScene == ForgeScene.rig? RigGui(threeV: threeV):AnimateGui(threeV: threeV)
             )
           ],
         )

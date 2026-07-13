@@ -7,11 +7,12 @@ import 'package:three_forge/src/enums.dart';
 import 'package:three_forge/src/helpers/get_content.dart';
 import 'package:three_forge/src/m2m_viewer/src/model_preview_display.dart';
 import 'package:three_forge/src/m2m_viewer/src/skeleton_type.dart';
-import 'package:three_forge/src/m2m_viewer/steps/step_edit_skeleton.dart';
 import 'package:three_forge/src/m2m_viewer/steps/step_load_model.dart';
 import 'package:three_forge/src/m2m_viewer/steps/step_weight_skin.dart';
+import 'package:three_forge/src/navigation/navigation.dart';
 import 'package:three_forge/src/styles/globals.dart';
 import 'package:three_forge/src/styles/lsi_functions.dart';
+import 'package:three_forge/src/styles/savedWidgets.dart';
 import 'package:three_js/three_js.dart' as three;
 import 'package:three_js_helpers/three_js_helpers.dart';
 import 'package:three_js_transform_controls/three_js_transform_controls.dart';
@@ -27,8 +28,11 @@ class Mesh2Motion{
   late final three.Scene scene;
   late final three.Camera camera;
 
-  final three.Group rigs = three.Group();
-  final three.Group rigSkeletons = three.Group();
+  three.Object3D? armature;
+  SkeletonHelper? skeleton;
+  File? reference;
+  Directory get baseDir => Directory.current;
+
   late three.OrbitControls orbit;
   late TransformControls control;
   GlobalKey<three.PeripheralsState> globalKey;
@@ -37,26 +41,54 @@ class Mesh2Motion{
   three.GLTFLoader loader = three.GLTFLoader();
   Map<String,dynamic> contents = {};
 
-  Map<String,List<Widget>> _cachedVideos = {};
-  List<DropdownMenuItem<three.Object3D?>> rigSelector = [];
-  Map<String,List<three.Mesh>> skeletonHandles = {};
+  List<DropdownMenuItem<String>> rigSelector = [];
+  List<three.Mesh> skeletonHandles = [];
   three.Raycaster raycaster = three.Raycaster();
   three.Mesh? _hoveredClickMesh;
-  three.Object3D? selectedRig;
 
-  StepEditSkeleton editSkeletonStep = StepEditSkeleton();
+  bool get isTexture => meshPreviewDisplayType == ModelPreviewDisplay.textured;
+  bool mirror = false;
+
+  bool useHeadWeightCorrection = false;
+  double get previewPlaneHeight => _box.position.y;
+
+  List<String> exportAnimations = [];
+
+  three.Mesh _plane = three.Mesh(three.PlaneGeometry(),three.MeshBasicMaterial.fromMap({
+    'color': 0x00ff00,
+    'transparent': true,
+    'opacity': 0.7,
+    //'depthWrite': true,
+    'depthTest': true,
+    'side': three.DoubleSide
+  }));
+
+  late three.Mesh _box = three.Mesh(
+    three.BoxGeometry(1,1,0.01),
+    three.MeshBasicMaterial.fromMap({
+      'color': 0xff0000,
+      'transparent': true,
+      'opacity': 0.2,
+      'visible': false
+    })
+  )..add(_plane)
+  ..userData['visual_dot'] = _plane
+  ..userData['head_weight'] = true
+  ..visible = false
+  ..rotateX(-math.pi/2)
+  ..translateZ(0.55);
+
+  //StepEditSkeleton editSkeletonStep = StepEditSkeleton();
   StepWeightSkin weightSkinStep = StepWeightSkin();
   StepLoadModel loadModelStep = StepLoadModel();
 
+  List<three.AnimationClip>? animations;
   ModelPreviewDisplay meshPreviewDisplayType = ModelPreviewDisplay.weightPainted;
+  Function setState;
   
-  Mesh2Motion(this.renderer, this.globalKey){
+  Mesh2Motion(this.renderer, this.globalKey, this.setState){
+    MediaKit.ensureInitialized();
     _setup();
-  }
-
-  void selected(three.Object3D? rig){
-    selectedRig = rig;
-    setRiggingToolsVisible();
   }
 
   void _setup(){
@@ -83,9 +115,6 @@ class Mesh2Motion{
       bool isDragging = event.value == true;
       orbit.enabled = !isDragging;
       if (!isDragging) {
-        print("User STOPPED moving the control handle!");
-        
-        // B. Trigger your save, weight recalculation, or snapshot history logic here
         regenerateWeightPaintedPreviewMesh();
       }
     });
@@ -100,16 +129,14 @@ class Mesh2Motion{
     );
 
     scene.add( control );
-    scene.add( rigs );
-    scene.add( rigSkeletons );
-    _importRigs();
+    scene.add(_box);
+    _setDropDown();
   }
 
-  
-
-  Future<void> _importRigs() async{
-    contents = await syncAndProcessAssets(tempPath) ?? {};
-    loader.setPath(tempPath);
+  void _setDropDown() async{
+    contents = await syncAndProcessAssets('./m2m') ?? {};
+    final Directory baseDir = Directory.current;
+    loader.setPath('${baseDir.path}/m2m');
 
     rigSelector.add(
       DropdownMenuItem(
@@ -122,16 +149,9 @@ class Mesh2Motion{
     );
 
     for(final key in contents.keys){
-      final rig = await loader.fromAsset('${contents[key]['rig']}');
-      final obj = rig!.scene..name = key;
-      final seleton = SkeletonHelper(obj)..visible = false;
-      attachInteractivePointsToHelper(seleton, key);
-      obj.userData['skeleton'] = seleton;
-      rigSkeletons.add(seleton);
-      rigs.add(obj);
       rigSelector.add(
         DropdownMenuItem(
-            value: obj,
+            value: key,
             child: Text(
               LSIFunctions.capFirstLetter(key), 
               overflow: TextOverflow.ellipsis,
@@ -141,12 +161,40 @@ class Mesh2Motion{
     }
   }
 
+  Future<void> selected(String? key) async{
+    if(armature != null){
+      scene.remove( armature! );
+      armature = null;
+    }
+    if(skeleton != null){
+      scene.remove( skeleton! );
+      skeleton = null;
+    }
+
+    reference = null;
+
+    if(key != null){
+      final rig = await loader.fromAsset('${contents[key]['rig']}');
+      final obj = rig!.scene..name = key;
+      final seleton = SkeletonHelper(obj);
+      attachInteractivePointsToHelper(seleton, key);
+      obj.userData['skeleton'] = seleton;
+      skeleton = seleton;
+      armature = obj;
+
+      scene.add(armature);
+      scene.add(seleton);
+
+      reference = File('${baseDir.path}/m2m/${contents[key]['reference']}');
+    }
+  }
+
   void onPointerMove(three.Vector2 normalizedMouse) {
     // If the rigging tools are hidden, do nothing
-    if (selectedRig == null) return;
+    if (armature == null) return;
 
     raycaster.setFromCamera(normalizedMouse, camera);
-    final intersects = raycaster.intersectObjects(skeletonHandles[selectedRig!.name]!, true);
+    final intersects = raycaster.intersectObjects(skeletonHandles, true);
 
     if (intersects.isNotEmpty) {
       final hitClickMesh = intersects.first.object as three.Mesh?;
@@ -188,12 +236,12 @@ class Mesh2Motion{
     }
   }
   void onPointerDown(three.Vector2 normalizedMouse) {
-    if (control.dragging || selectedRig == null) return;
+    if (control.dragging || armature == null) return;
     control.detach();
 
     raycaster.setFromCamera(normalizedMouse, camera);
     
-    final intersects = raycaster.intersectObjects(skeletonHandles[selectedRig!.name]!, true);
+    final intersects = raycaster.intersectObjects(skeletonHandles, true);
     if (intersects.isNotEmpty) {
       final hitHandle = intersects.first.object;
       
@@ -204,55 +252,36 @@ class Mesh2Motion{
       if (underlyingBone != null) {
         print("Selected bone: ${underlyingBone.name}");
         control.attach(underlyingBone);
+        control.showY = true;
+        control.showX = true;
+        control.showZ = true;
+      }
+      else if(hitHandle.userData['head_weight'] = true){
+        control.attach(hitHandle);
+        control.showY = true;
+        control.showX = false;
+        control.showZ = false;
       }
     } 
   }
 
-  void setRiggingToolsVisible() {
-    bool visible = false;
-    // 2. Hide/Show the custom clickable interaction spheres
-    for(final rig in rigs.children){
-      rig.userData['skeleton'].visible = false;
-      if(selectedRig == rig){
-        rig.userData['skeleton'].visible = true;
-        visible = true;
-      }
-
-      for(final mesh in skeletonHandles[rig.name]!){
-        if(rig.name == selectedRig?.name){
-          mesh.visible = true;
-        }
-        else{
-          mesh.visible = false;
-        }
-      }
-    }
-    
-    // 3. Clean up the screen by hiding the transform arrows if turning off rigging tools
-    if (!visible) {
-      control.detach();
-    }
-  }
-
   void attachInteractivePointsToHelper(SkeletonHelper skeletonHelper,String key) {
-    // 1. Geometry and material for the tiny visual joints
+    skeletonHandles.clear();
+
     final visualGeom = three.SphereGeometry(0.01, 16, 16);
-
-
-    // 2. Geometry and material for the larger click targets
-    // Bump this radius up higher if you want an even bigger tap zone!
     final clickGeom = three.SphereGeometry(0.025, 16, 16);
     final clickMat = three.MeshBasicMaterial.fromMap({
       'color': 0xff0000, 
       'visible': false,
     });
 
-    // 3. Loop through the bones explicitly tracked by your current SkeletonHelper
     for (final bone in skeletonHelper.bones) {
       final visualMat = three.MeshBasicMaterial.fromMap({
-        'color': 0x00ff00, // Bright green joints
+        'color': 0x00ff00,
         'transparent': true,
-        'opacity': 0.8
+        'opacity': 0.8,
+        'depthWrite': false,
+        'depthTest': false,
       });
       // Create the visual dot
       final clickMesh = three.Mesh(clickGeom, clickMat);
@@ -260,25 +289,30 @@ class Mesh2Motion{
       clickMesh.userData['bone_target'] = bone;
       clickMesh.userData['visual_dot'] = visualMesh;
 
-      bone.add(clickMesh..add(visualMesh)..visible = false);
-      // CRITICAL: Push ONLY the large clickMesh to your raycaster tracking list!
-      if(skeletonHandles[key] == null) skeletonHandles[key] = [];
-      skeletonHandles[key]!.add(clickMesh);
+      bone.add(clickMesh..add(visualMesh));
+      skeletonHandles.add(_box);
+      skeletonHandles.add(clickMesh);
     }
   }
 
   void rotateX(){
-    animationObject?.rotateX(math.pi/2);
+    loadModelStep.setModelRotation(three.Euler(math.pi/2));
+    regenerateWeightPaintedPreviewMesh();
   }
   void rotateY(){
-    animationObject?.rotateY(math.pi/2);
+    loadModelStep.setModelRotation(three.Euler(0,math.pi/2));
+    regenerateWeightPaintedPreviewMesh();
   }
   void rotateZ(){
-    animationObject?.rotateZ(math.pi/2);
+    loadModelStep.setModelRotation(three.Euler(0,0,math.pi/2));
+    regenerateWeightPaintedPreviewMesh();
   }
-  List<Widget> animationVideos(String key) {
-    if (_cachedVideos[key] != null) return _cachedVideos[key]!;
-    
+  void scale(double scale){
+    loadModelStep.setModelScale(scale);
+    regenerateWeightPaintedPreviewMesh();
+  }
+
+  List<Widget> animationVideos(String key, double width, BuildContext context, String search) {  
     List<Widget> widgets = [];
     
     // Safety guard against missing or misconfigured dictionary keys
@@ -286,34 +320,76 @@ class Mesh2Motion{
       return [];
     }
 
+    final String query = search.toLowerCase().trim();
+
     // Iterate directly through the structured file paths array
     for (final dynamic path in contents[key]['previews']) {
       final String pathString = path.toString();
-      
-      // Normalize path separation boundaries depending on how tempPath handles slash prefixes
-      final String cleanPath = pathString.startsWith('/') ? pathString.substring(1) : pathString;
-      final File file = File('$tempPath/$cleanPath');
+      final name = pathString.split('/').last.split('.').first.replaceAll('_', ' ');
 
-      widgets.add(
-        InkWell(
-          onTap: () {
-            print("Tapped preview element target: ${file.path}");
-          },
-          child: Container(
-            width: 120,
-            height: 120,
-            margin: const EdgeInsets.symmetric(horizontal: 4),
+      if(query.isEmpty || name.toLowerCase().contains(query)){
+        // Normalize path separation boundaries depending on how tempPath handles slash prefixes
+        final String cleanPath = pathString.startsWith('/') ? pathString.substring(1) : pathString;
+        final File file = File('${baseDir.path}/m2m/$cleanPath');
+
+        //final width = 120.0;
+        final height = 200.0;
+
+        widgets.add(
+        Container(
+            height: height,
+            padding: EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.black12,
+              color: Theme.of(context).canvasColor,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: MediaKitVideoPreview(file: file),
-          ),
-        ),
-      );
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                InkWell(
+                  onTap: () {
+                    print("Tapped preview element target: ${file.path}");
+                  },
+                  child: Container(
+                    height: height-45,
+                    child: MediaKitVideoPreview(file: file),
+                  ),
+                ),
+                InkWell(
+                  onTap: (){
+                    if(!exportAnimations.contains(pathString)){
+                      exportAnimations.add(pathString);
+                    }
+                    else{
+                      exportAnimations.remove(pathString);
+                    }
+
+                    print(exportAnimations);
+                    setState(() {});
+                  },
+                  child: Container(
+                    alignment: Alignment.center,
+                    height:25,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).canvasColor,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      //mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        SavedWidgets.checkBox(exportAnimations.contains(pathString)),
+                        Text('${name.toUpperCase()}'),
+                      ]
+                    )
+                  )
+                ),
+              ],
+            )
+          )
+        );
+      }
     }
     
-    _cachedVideos[key] = widgets;
     return widgets;
   }
 
@@ -326,23 +402,55 @@ class Mesh2Motion{
 
   void start(ForgeScene newScene, three.Object3D object, [three.BoundingBox? box]){
     if(ForgeScene.main == newScene) return;
-    control.enabled = true;
+
+    exportAnimations.clear();
+
     orbit.enabled = true;
     if(animationObject != null){
       scene.remove(animationObject!);
       scene.remove(weightSkinStep.weightPaintedMeshGroup()!);
     }
-    forgeScene = newScene;
     loadModelStep.clearLoadedModelData();
     loadModelStep.loadGeometry(object);
-    _positionCamera(animationObject!,box);
 
-    setRiggingToolsVisible();
+    forgeScene = newScene;
+    
+    if(ForgeScene.rig == newScene){
+      control.enabled = true;
+      scene.add(animationObject);
+      //_positionCamera(animationObject!,box);
+    }
+    else{
+      scene.add(animationObject);
+      scene.add(SkeletonHelper(animationObject!));
+
+      loader.fromAsset('${contents['human']['animations'][0]}').then((gltf){
+        animations?.clear();
+        animations = [];
+
+        for(final a in gltf!.animations!){
+          if(a is three.AnimationClip) animations?.add(a);
+        }
+        final ao = animationObject as three.AnimationObject;
+        ao.animations.addAll(animations!);
+      });
+    }
   }
 
   void stop(){
     control.enabled = false;
     orbit.enabled = false;
+
+    if(armature != null){
+      scene.remove( armature! );
+      armature = null;
+    }
+    if(skeleton != null){
+      scene.remove( skeleton! );
+      skeleton = null;
+    }
+    reference = null;
+    exportAnimations.clear();
   }
 
   void _positionCamera(three.Object3D object, [three.BoundingBox? box]){
@@ -379,18 +487,27 @@ class Mesh2Motion{
     }
   }
 
-  void changedModelPreviewDisplay(ModelPreviewDisplay meshTexturedDisplayType) {
-    meshPreviewDisplayType = meshTexturedDisplayType;
+  void changeHeadWeightCorrection(){
+    useHeadWeightCorrection = !useHeadWeightCorrection;
+    _box.visible = useHeadWeightCorrection;
+  }
+
+  void changedModelPreviewDisplay() {
+    meshPreviewDisplayType = isTexture?ModelPreviewDisplay.weightPainted:ModelPreviewDisplay.textured;
 
     // show/hide loaded textured model depending on view
-    loadModelStep.modelMeshes()?.visible = meshPreviewDisplayType == ModelPreviewDisplay.textured;
+    loadModelStep.modelMeshes()?.visible = isTexture;
 
     if (meshPreviewDisplayType == ModelPreviewDisplay.weightPainted) {
       regenerateWeightPaintedPreviewMesh();
     }
 
     // show/hide weight painted mesh depending on view
-    weightSkinStep.weightPaintedMeshGroup()?.visible = meshPreviewDisplayType == ModelPreviewDisplay.weightPainted;
+    weightSkinStep.weightPaintedMeshGroup()?.visible = !isTexture;
+  }
+
+  void changeMirror(){
+    this.mirror = !mirror;
   }
 
   void regenerateWeightPaintedPreviewMesh() {
@@ -409,14 +526,14 @@ class Mesh2Motion{
 
     // clear out any existing skinned meshes in storage
     // needed for skinning process if we change modes
-    weightSkinStep.createBoneFormulaObject(selectedRig!, SkeletonType.fromString(selectedRig?.name));
+    weightSkinStep.createBoneFormulaObject(armature!, SkeletonType.fromString(armature?.name));
 
     // Pass head weight correction settings to the weight skin step
-    // weightSkinStep.setHeadWeightCorrectionSettings(
-    //   editSkeletonStep.useHeadWeightCorrection(),
-    //   editSkeletonStep.getPreviewPlaneHeight(),
-    // );
-    
+    weightSkinStep.setHeadWeightCorrectionSettings(
+      useHeadWeightCorrection,
+      previewPlaneHeight,
+    );
+    print(previewPlaneHeight);
     weightSkinStep.createBindingSkeleton();
 
     // add geometry data needed for skinning using explicit loop indexing
@@ -440,6 +557,87 @@ class Mesh2Motion{
     if (weightSkinStep.skeleton == null) {
       print('Tried to regenerate skeleton helper, but skeleton is undefined!');
     }
+  }
+
+  List<Widget> hud(BuildContext context){
+    return [
+        Positioned(
+          left: 10,
+          top: 10,
+          child: Column(
+            children: [
+              InkWell(
+                onTap: (){
+                  control.setMode(GizmoType.translate);
+                  setState((){});
+                },
+                child:Container(
+                  width: 25,
+                  height: 25,
+                  color: control.mode == GizmoType.translate? Theme.of(context).secondaryHeaderColor.withAlpha(200):Theme.of(context).cardColor.withAlpha(200),
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    Icons.control_camera,
+                    size: 20,
+                  ),
+                ),
+              ),
+              InkWell(
+                onTap: (){
+                  control.setMode(GizmoType.rotate);
+                  setState((){});
+                },
+                child:Container(
+                  width: 25,
+                  height: 25,
+                  margin: const EdgeInsets.only(top: 2),
+                  color: control.mode == GizmoType.rotate? Theme.of(context).secondaryHeaderColor.withAlpha(200):Theme.of(context).cardColor.withAlpha(200),
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    Icons.cached,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ],
+          )
+        ),
+        Row(
+          children: [
+            SizedBox(
+              width: 80,
+              height: 25, 
+              child: Navigation(
+                spacer: Text('|'),
+                navData: [
+                  NavItems(
+                    name: LSIFunctions.capFirstLetter(control.space),
+                    icon:  control.space == 'local'?Icons.view_in_ar_outlined:Icons.public,
+                    subItems: [
+                      NavItems(
+                        name: 'Global',
+                        icon: Icons.public,
+                        onTap: (data){
+                          control.space = 'global';
+                          setState((){});
+                        }
+                      ),
+                      NavItems(
+                        name: 'Local',
+                        icon: Icons.view_in_ar_outlined,
+                        onTap: (data){
+                          control.space = 'local';
+                          setState((){});
+                        }
+                      ),
+                    ]
+                  ),
+                ]
+              ),
+            ),
+          ]
+        ),
+    ];
   }
 }
 
@@ -478,7 +676,10 @@ class _MediaKitVideoPreviewState extends State<MediaKitVideoPreview> {
   @override
   void dispose() {
     // Release the active hardware controller tracking arrays safely
-    _player.dispose();
+    _player.stop().then((_){
+      _player.dispose();
+    });
+    
     super.dispose();
   }
 

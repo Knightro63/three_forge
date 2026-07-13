@@ -402,7 +402,8 @@ class Hud extends StatelessWidget{
             },
           ),
         ),
-        if(threeV.showHud) ...forge(context)
+        if(threeV.showHud) ...forge(context),
+        if(threeV.forgeScene == ForgeScene.rig) ...threeV.m2m.hud(context)
       ]
     );
   }

@@ -183,7 +183,7 @@ class ThreeViewer {
     threeJs.scene.add( light );
 
     thumbnail = Thumbnail(threeJs.renderer!);
-    m2m = Mesh2Motion(threeJs.renderer!, threeJs.globalKey);
+    m2m = Mesh2Motion(threeJs.renderer!, threeJs.globalKey, setState);
 
     orbit = three.OrbitControls(threeJs.camera, threeJs.globalKey);
     orbit.mouseButtons = {

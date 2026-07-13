@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:three_forge/src/m2m_viewer/src/model_cleanup_utility.dart';
+import 'package:three_js/three_js.dart';
 import 'package:three_js_core/three_js_core.dart';
 import 'package:three_js_math/three_js_math.dart';
 
@@ -15,7 +16,7 @@ class StepLoadModel{
   bool meshHasBrokenMaterial = false;
   bool preserveSkinnedMesh = false;
   
-  Object3D? finalMeshData; // mesh data used when creating the skinned mesh
+  AnimationObject? finalMeshData; // mesh data used when creating the skinned mesh
   Object3D? finalRetargetableModelData; // model data used for retargeting process
 
   int vertexCount = 0;
@@ -121,7 +122,7 @@ class StepLoadModel{
   
   void clearLoadedModelData() {
     originalModelData = Scene();
-    finalMeshData = Scene();
+    finalMeshData = AnimationObject();
     geometryList.clear();
     materialList.clear();
     originalGeometryPositions.clear();
@@ -159,6 +160,78 @@ class StepLoadModel{
     });
     finalMeshData?.position.setValues(0.0, 0.0, 0.0);
   }
+
+  void setModelRotation(Euler rot) {
+    // 1. Build a temporary matrix matching your target values
+    final matrix = Matrix4.identity();
+    
+    // Apply rotation and scale transformations to the matrix
+    matrix.makeRotationFromEuler(rot);
+
+    // 2. Traverse and apply this matrix to every geometry
+    finalMeshData?.traverse((obj) {
+      if (obj.type == 'Mesh') {
+        final mesh = obj as Mesh;
+        if (mesh.geometry != null) {
+          
+          // This physically alters the 'position' attributes array permanently
+          mesh.geometry!.applyMatrix4(matrix);
+          
+          // Notify the GPU and refresh bounding volumes
+          final positionAttribute = mesh.geometry!.attributes['position'];
+          if (positionAttribute != null) {
+            positionAttribute.needsUpdate = true;
+          }
+          mesh.geometry!.computeBoundingBox();
+          mesh.geometry!.computeBoundingSphere();
+        }
+      }
+    });
+  }
+
+  void setModelScale(double scale) {
+    // 1. Build a clean, isolated scaling matrix
+    final matrix = Matrix4.identity();
+    matrix.scaleByVector(Vector3(scale, scale, scale));
+
+    int i = 0;
+
+    // 2. Traverse and apply
+    finalMeshData?.traverse((obj) {
+      if (obj.type == 'Mesh') {
+        final mesh = obj as Mesh;
+        if (mesh.geometry != null) {
+          final positionAttribute = mesh.geometry!.attributes['position'];
+          
+          if (positionAttribute != null && i < originalGeometryPositions.length) {
+            // --- STEP A: Reset vertices to 100% original size first ---
+            final Float32List original = originalGeometryPositions[i++];
+            final Float32List currentArray = positionAttribute.array as Float32List;
+            
+            for (int k = 0; k < original.length; k++) {
+              if (k < currentArray.length) {
+                currentArray[k] = original[k];
+              }
+            }
+            
+            // --- STEP B: Apply the new absolute scale ---
+            mesh.geometry!.applyMatrix4(matrix);
+
+            // --- STEP C: Notify GPU and update bounds ---
+            positionAttribute.needsUpdate = true;
+            mesh.geometry!.computeBoundingBox();
+            mesh.geometry!.computeBoundingSphere();
+          }
+        }
+      }
+    });
+
+    // 3. Keep the scene node at 1.0 to prevent double-scaling
+    finalMeshData?.scale.setValues(1.0, 1.0, 1.0);
+    finalMeshData?.updateMatrixWorld(true);
+  }
+
+
 
   /// [preserve] Whether to maintain whole architecture skeletons structures
   void setPreserveSkinnedMesh(bool preserve) {
@@ -221,7 +294,7 @@ class StepLoadModel{
     }
 
     ModelCleanupUtility.scaleModelOnImportIfExtreme(cleanSceneWithOnlyModels);
-    calculateGeometryAndMaterials(cleanSceneWithOnlyModels!);
+    calculateGeometryAndMaterials(cleanSceneWithOnlyModels);
     calculateMeshMetrics(geometryList);
 
     print('Vertex count:$vertexCount Triangle Count:$triangleCount Object Count:$objectsCount');
@@ -245,12 +318,12 @@ class StepLoadModel{
     print('final mesh data should be prepared at this point: $finalMeshData');
   }
 
-  Object3D? modelMeshes() {
+  AnimationObject? modelMeshes() {
     if (finalMeshData?.children.isNotEmpty == true) {
       return finalMeshData!;
     }
 
-    final newScene = Scene();
+    final newScene = AnimationObject();
     newScene.name = modelDisplayName;
 
     // do a for loop to add all the meshes to the scene from the geometry and material list
