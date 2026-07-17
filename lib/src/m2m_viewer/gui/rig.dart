@@ -173,35 +173,37 @@ class _RigGuiState extends State<RigGui> {
                 child: Row(
                   //mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Mirror Left/Right Joints:\t\t\t'),
+                    Text('Mirror Joints:\t\t\t',
+                      style: Theme.of(context).textTheme.bodySmall,),
                     SavedWidgets.checkBox(m2m.mirror)
                   ]
                 )
               )
             ),
-            InkWell(
-              onTap: (){
-                //m2m.changedModelPreviewDisplay();
-                setState(() {});
-              },
-              child: Container(
-                margin: const EdgeInsets.fromLTRB(5, 10, 5, 5),
-                alignment: Alignment.center,
-                height:25,
-                padding: const EdgeInsets.only(left:10),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).canvasColor,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  //mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Move Bone Independently:\t\t\t'),
-                    SavedWidgets.checkBox(m2m.isTexture)
-                  ]
-                )
-              )
-            ),
+            // InkWell(
+            //   onTap: (){
+            //     //m2m.changedModelPreviewDisplay();
+            //     setState(() {});
+            //   },
+            //   child: Container(
+            //     margin: const EdgeInsets.fromLTRB(5, 10, 5, 5),
+            //     alignment: Alignment.center,
+            //     height:25,
+            //     padding: const EdgeInsets.only(left:10),
+            //     decoration: BoxDecoration(
+            //       color: Theme.of(context).canvasColor,
+            //       borderRadius: BorderRadius.circular(10),
+            //     ),
+            //     child: Row(
+            //       //mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            //       children: [
+            //         Text('Move Independently:\t\t\t',
+            //           style: Theme.of(context).textTheme.bodySmall,),
+            //         SavedWidgets.checkBox(m2m.isTexture)
+            //       ]
+            //     )
+            //   )
+            // ),
             InkWell(
               onTap: (){
                 m2m.changedModelPreviewDisplay();
@@ -219,7 +221,10 @@ class _RigGuiState extends State<RigGui> {
                 child: Row(
                   //mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Weight Painted:\t\t\t'),
+                    Text(
+                      'Weight Painted:\t\t\t',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                     SavedWidgets.checkBox(!m2m.isTexture)
                   ]
                 )
@@ -242,7 +247,8 @@ class _RigGuiState extends State<RigGui> {
                 child: Row(
                   //mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Use Weight Correction:\t\t\t'),
+                    Text('Weight Correction:\t\t\t',
+                      style: Theme.of(context).textTheme.bodySmall,),
                     SavedWidgets.checkBox(m2m.useHeadWeightCorrection)
                   ]
                 )
@@ -254,7 +260,9 @@ class _RigGuiState extends State<RigGui> {
           children: [
             InkWell(
               onTap: (){
-                //widget.threeV.changeScene(ForgeScene.main);
+                widget.threeV.forgeScene = ForgeScene.animate;
+                m2m.bind();
+                setState(() {});
               },
               child: Container(
                 //width: 65,
@@ -265,7 +273,7 @@ class _RigGuiState extends State<RigGui> {
                   color: Theme.of(context).canvasColor,
                   borderRadius: BorderRadius.circular(10)
                 ),
-                child: Text('Save'),
+                child: Text('Animate'),
               )
             ),
             InkWell(

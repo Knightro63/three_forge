@@ -26,7 +26,7 @@ dependencies:
   three_js_tjs_loader: ^0.3.0
   three_js_video_texture: ^0.1.0
   dart_eval: ^0.8.3
-  screen_recorder: ^0.3.0
+  tflite_flutter: ^0.12.1
   css:
     git:
       url: https://github.com/Knightro63/css.git
@@ -45,6 +45,26 @@ dependency_overrides:
       path: permission_handler_apple
   file_picker: ^10.1.9
   flutter_angle: ^0.4.1
+  three_js_advanced_exporters: 
+    path: ../three_js/packages/three_js_advanced_exporters
+  three_js_advanced_loaders: 
+    path: ../three_js/packages/three_js_advanced_loaders
+  three_js_math: 
+    path: ../three_js/packages/three_js_math
+  three_js_geometry: 
+    path: ../three_js/packages/three_js_geometry
+  three_js_sensors: 
+    path: ../three_js/packages/three_js_sensors
+  three_js_controls: 
+    path: ../three_js/packages/three_js_controls
+  three_js_animations: 
+    path: ../three_js/packages/three_js_animations
+  three_js_modifers: 
+    path: ../three_js/packages/three_js_modifers
+  three_js_helpers: 
+    path: ../three_js/packages/three_js_helpers
+  three_js_angle_renderer: 
+    path: ../three_js/packages/three_js_angle_renderer
 
 flutter:
   uses-material-design: true

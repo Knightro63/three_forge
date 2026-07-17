@@ -1,3 +1,6 @@
+import 'package:three_js/three_js.dart';
+import 'package:three_js_helpers/three_js_helpers.dart';
+
 import '../src/skeleton_type.dart';
 import '../src/generators.dart';
 import '../solvers/skinning_algorithm.dart';
@@ -15,7 +18,9 @@ class StepWeightSkin{
   Object3D? skinningArmature;
   SkinningAlgorithm? boneSkinningFormula;
   Skeleton? bindingSkeleton;
-  List<SkinnedMesh> skinnedMeshes = []; 
+  SkeletonHelper? helper;
+  List<Object3D> get _skinnedMeshes => skinnedObject.children;
+  AnimationObject skinnedObject = AnimationObject();
   List<BufferGeometry> allMeshGeometry = [];
   List<Material> allMeshMaterials = []; 
   final Group weightPaintedMeshPreview = Group();
@@ -64,7 +69,7 @@ class StepWeightSkin{
   /// so we need to clear out the data from the previous
   /// skinned mesh process
   void resetAllSkinProcessData() {
-    skinnedMeshes = [];
+    skinnedObject.children.clear();
     allMeshMaterials = [];
     allMeshGeometry = [];
 
@@ -105,8 +110,8 @@ class StepWeightSkin{
     return skinnedMesh;
   }
 
-  List<SkinnedMesh> finalSkinnedMeshes() {
-    return skinnedMeshes;
+  Group finalSkinnedObject() {
+    return skinnedObject;
   }
 
   Group? weightPaintedMeshGroup() {
@@ -145,7 +150,7 @@ class StepWeightSkin{
 
       final associatedMaterial = allMeshMaterials[idx];
       final tempSkinnedMesh = createSkinnedMesh(geometryData, associatedMaterial, idx);
-      skinnedMeshes.add(tempSkinnedMesh);
+      _skinnedMeshes.add(tempSkinnedMesh);
 
       if (regenerateWeightPaintedMesh) {
         final weightPaintedMesh = Generators.createWeightPaintedMesh(finalSkinIndices, geometryData);
@@ -155,7 +160,7 @@ class StepWeightSkin{
       }
     }
 
-    print('Final skinned meshes: $skinnedMeshes');
+    print('Final skinned meshes: $_skinnedMeshes');
     print('Preview weight painted mesh re-generated: $weightPaintedMeshPreview');
   }
 }

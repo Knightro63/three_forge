@@ -7,17 +7,17 @@ import 'package:three_forge/src/enums.dart';
 import 'package:three_forge/src/helpers/get_content.dart';
 import 'package:three_forge/src/m2m_viewer/src/model_preview_display.dart';
 import 'package:three_forge/src/m2m_viewer/src/skeleton_type.dart';
+import 'package:three_forge/src/m2m_viewer/steps/step_animations.dart';
+import 'package:three_forge/src/m2m_viewer/steps/step_edit_skeleton.dart';
 import 'package:three_forge/src/m2m_viewer/steps/step_load_model.dart';
 import 'package:three_forge/src/m2m_viewer/steps/step_weight_skin.dart';
 import 'package:three_forge/src/navigation/navigation.dart';
 import 'package:three_forge/src/styles/globals.dart';
 import 'package:three_forge/src/styles/lsi_functions.dart';
-import 'package:three_forge/src/styles/savedWidgets.dart';
 import 'package:three_js/three_js.dart' as three;
 import 'package:three_js_helpers/three_js_helpers.dart';
 import 'package:three_js_transform_controls/three_js_transform_controls.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:media_kit_video/media_kit_video.dart';
 
 class Mesh2Motion{
   ForgeScene? forgeScene;
@@ -28,8 +28,6 @@ class Mesh2Motion{
   late final three.Scene scene;
   late final three.Camera camera;
 
-  three.Object3D? armature;
-  SkeletonHelper? skeleton;
   File? reference;
   Directory get baseDir => Directory.current;
 
@@ -41,50 +39,26 @@ class Mesh2Motion{
   three.GLTFLoader loader = three.GLTFLoader();
   Map<String,dynamic> contents = {};
 
-  List<DropdownMenuItem<String>> rigSelector = [];
-  List<three.Mesh> skeletonHandles = [];
-  three.Raycaster raycaster = three.Raycaster();
-  three.Mesh? _hoveredClickMesh;
-
   bool get isTexture => meshPreviewDisplayType == ModelPreviewDisplay.textured;
-  bool mirror = false;
-
   bool useHeadWeightCorrection = false;
-  double get previewPlaneHeight => _box.position.y;
+  
+  List<DropdownMenuItem<String>> rigSelector = [];
 
-  List<String> exportAnimations = [];
+  late final StepEditSkeleton editSkeletonStep;
+  three.Mesh get _box => editSkeletonStep.selectBox;
+  three.Object3D? get armature => editSkeletonStep.armature;
+  SkeletonHelper? get skeleton => editSkeletonStep.skeleton;
+  bool get mirror => editSkeletonStep.mirror;
+  set mirror(bool value) => editSkeletonStep.mirror = value;
 
-  three.Mesh _plane = three.Mesh(three.PlaneGeometry(),three.MeshBasicMaterial.fromMap({
-    'color': 0x00ff00,
-    'transparent': true,
-    'opacity': 0.7,
-    //'depthWrite': true,
-    'depthTest': true,
-    'side': three.DoubleSide
-  }));
+  final StepWeightSkin weightSkinStep = StepWeightSkin();
+  late final StepAnimations animationsStep = StepAnimations(setState);
+  List<Widget> Function(String, double, BuildContext, Map<String, dynamic>, String) get animationVideos => animationsStep.animationVideos;
+  final StepLoadModel loadModelStep = StepLoadModel();
 
-  late three.Mesh _box = three.Mesh(
-    three.BoxGeometry(1,1,0.01),
-    three.MeshBasicMaterial.fromMap({
-      'color': 0xff0000,
-      'transparent': true,
-      'opacity': 0.2,
-      'visible': false
-    })
-  )..add(_plane)
-  ..userData['visual_dot'] = _plane
-  ..userData['head_weight'] = true
-  ..visible = false
-  ..rotateX(-math.pi/2)
-  ..translateZ(0.55);
-
-  //StepEditSkeleton editSkeletonStep = StepEditSkeleton();
-  StepWeightSkin weightSkinStep = StepWeightSkin();
-  StepLoadModel loadModelStep = StepLoadModel();
-
-  List<three.AnimationClip>? animations;
   ModelPreviewDisplay meshPreviewDisplayType = ModelPreviewDisplay.weightPainted;
   Function setState;
+  String key = 'human';
   
   Mesh2Motion(this.renderer, this.globalKey, this.setState){
     MediaKit.ensureInitialized();
@@ -116,9 +90,14 @@ class Mesh2Motion{
       orbit.enabled = !isDragging;
       if (!isDragging) {
         regenerateWeightPaintedPreviewMesh();
+        editSkeletonStep.applyMirrorMode();
       }
     });
 
+    control.addEventListener('change', (event) {
+      editSkeletonStep.applyMirrorMode();
+    });
+    
     viewHelper = ViewHelper(
       //size: 1.8,
       offsetType: OffsetType.topRight,
@@ -129,6 +108,7 @@ class Mesh2Motion{
     );
 
     scene.add( control );
+    editSkeletonStep = StepEditSkeleton(camera,control,setState);
     scene.add(_box);
     _setDropDown();
   }
@@ -164,135 +144,33 @@ class Mesh2Motion{
   Future<void> selected(String? key) async{
     if(armature != null){
       scene.remove( armature! );
-      armature = null;
+      editSkeletonStep.armature = null;
     }
     if(skeleton != null){
       scene.remove( skeleton! );
-      skeleton = null;
+      editSkeletonStep.skeleton = null;
     }
 
     reference = null;
 
     if(key != null){
+      this.key = key;
       final rig = await loader.fromAsset('${contents[key]['rig']}');
       final obj = rig!.scene..name = key;
-      final seleton = SkeletonHelper(obj);
-      attachInteractivePointsToHelper(seleton, key);
-      obj.userData['skeleton'] = seleton;
-      skeleton = seleton;
-      armature = obj;
-
-      scene.add(armature);
-      scene.add(seleton);
-
+      final skeleton = SkeletonHelper(obj);
+      editSkeletonStep.setArmature(obj, skeleton, scene);
       reference = File('${baseDir.path}/m2m/${contents[key]['reference']}');
     }
+
+    setState((){});
   }
 
   void onPointerMove(three.Vector2 normalizedMouse) {
-    // If the rigging tools are hidden, do nothing
-    if (armature == null) return;
-
-    raycaster.setFromCamera(normalizedMouse, camera);
-    final intersects = raycaster.intersectObjects(skeletonHandles, true);
-
-    if (intersects.isNotEmpty) {
-      final hitClickMesh = intersects.first.object as three.Mesh?;
-      
-      // If we hovered over a NEW joint handle mesh
-      if (hitClickMesh != _hoveredClickMesh) {
-        // 1. Reset the previous hovered item back to normal
-        _resetHoverState();
-
-        _hoveredClickMesh = hitClickMesh;
-
-        if (_hoveredClickMesh != null && _hoveredClickMesh!.userData['visual_dot'] != null) {
-          final three.Mesh visualDot = _hoveredClickMesh!.userData['visual_dot'];
-          final three.Material material = visualDot.material!;
-
-          // 2. Change the visual dot to a bright yellow/white highlight color
-          material.color.setFromHex32(0xff00ff); 
-          material.opacity = 1.0; // Crank up the opacity for max brightness
-          //material.needsUpdate = true;
-        }
-      }
-    } else {
-      // If the mouse is in empty space, reset whatever was highlighted
-      _resetHoverState();
-    }
+    editSkeletonStep.onPointerMove(normalizedMouse);
   }
 
-  // Helper to reset the dot back to its default semi-transparent green color
-  void _resetHoverState() {
-    if (_hoveredClickMesh != null && _hoveredClickMesh!.userData['visual_dot'] != null) {
-      final three.Mesh visualDot = _hoveredClickMesh!.userData['visual_dot'];
-      final three.Material material = visualDot.material!;
-
-      material.color.setFromHex32(0x00ff00); // Back to bright green
-      material.opacity = 0.8;          // Back to original transparency
-      material.needsUpdate = true;
-      
-      _hoveredClickMesh = null;
-    }
-  }
   void onPointerDown(three.Vector2 normalizedMouse) {
-    if (control.dragging || armature == null) return;
-    control.detach();
-
-    raycaster.setFromCamera(normalizedMouse, camera);
-    
-    final intersects = raycaster.intersectObjects(skeletonHandles, true);
-    if (intersects.isNotEmpty) {
-      final hitHandle = intersects.first.object;
-      
-      // Safety check against explicit hidden layer states
-      if (hitHandle == null || hitHandle.visible == false) return;
-
-      final three.Bone? underlyingBone = hitHandle.userData['bone_target'];
-      if (underlyingBone != null) {
-        print("Selected bone: ${underlyingBone.name}");
-        control.attach(underlyingBone);
-        control.showY = true;
-        control.showX = true;
-        control.showZ = true;
-      }
-      else if(hitHandle.userData['head_weight'] = true){
-        control.attach(hitHandle);
-        control.showY = true;
-        control.showX = false;
-        control.showZ = false;
-      }
-    } 
-  }
-
-  void attachInteractivePointsToHelper(SkeletonHelper skeletonHelper,String key) {
-    skeletonHandles.clear();
-
-    final visualGeom = three.SphereGeometry(0.01, 16, 16);
-    final clickGeom = three.SphereGeometry(0.025, 16, 16);
-    final clickMat = three.MeshBasicMaterial.fromMap({
-      'color': 0xff0000, 
-      'visible': false,
-    });
-
-    for (final bone in skeletonHelper.bones) {
-      final visualMat = three.MeshBasicMaterial.fromMap({
-        'color': 0x00ff00,
-        'transparent': true,
-        'opacity': 0.8,
-        'depthWrite': false,
-        'depthTest': false,
-      });
-      // Create the visual dot
-      final clickMesh = three.Mesh(clickGeom, clickMat);
-      final visualMesh = three.Mesh(visualGeom, visualMat);
-      clickMesh.userData['bone_target'] = bone;
-      clickMesh.userData['visual_dot'] = visualMesh;
-
-      bone.add(clickMesh..add(visualMesh));
-      skeletonHandles.add(_box);
-      skeletonHandles.add(clickMesh);
-    }
+    editSkeletonStep.onPointerDown(normalizedMouse);
   }
 
   void rotateX(){
@@ -312,87 +190,6 @@ class Mesh2Motion{
     regenerateWeightPaintedPreviewMesh();
   }
 
-  List<Widget> animationVideos(String key, double width, BuildContext context, String search) {  
-    List<Widget> widgets = [];
-    
-    // Safety guard against missing or misconfigured dictionary keys
-    if (contents[key] == null || contents[key]['previews'] == null) {
-      return [];
-    }
-
-    final String query = search.toLowerCase().trim();
-
-    // Iterate directly through the structured file paths array
-    for (final dynamic path in contents[key]['previews']) {
-      final String pathString = path.toString();
-      final name = pathString.split('/').last.split('.').first.replaceAll('_', ' ');
-
-      if(query.isEmpty || name.toLowerCase().contains(query)){
-        // Normalize path separation boundaries depending on how tempPath handles slash prefixes
-        final String cleanPath = pathString.startsWith('/') ? pathString.substring(1) : pathString;
-        final File file = File('${baseDir.path}/m2m/$cleanPath');
-
-        //final width = 120.0;
-        final height = 200.0;
-
-        widgets.add(
-        Container(
-            height: height,
-            padding: EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Theme.of(context).canvasColor,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                InkWell(
-                  onTap: () {
-                    print("Tapped preview element target: ${file.path}");
-                  },
-                  child: Container(
-                    height: height-45,
-                    child: MediaKitVideoPreview(file: file),
-                  ),
-                ),
-                InkWell(
-                  onTap: (){
-                    if(!exportAnimations.contains(pathString)){
-                      exportAnimations.add(pathString);
-                    }
-                    else{
-                      exportAnimations.remove(pathString);
-                    }
-
-                    print(exportAnimations);
-                    setState(() {});
-                  },
-                  child: Container(
-                    alignment: Alignment.center,
-                    height:25,
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).canvasColor,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      //mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        SavedWidgets.checkBox(exportAnimations.contains(pathString)),
-                        Text('${name.toUpperCase()}'),
-                      ]
-                    )
-                  )
-                ),
-              ],
-            )
-          )
-        );
-      }
-    }
-    
-    return widgets;
-  }
-
   void dispose(){
     control.dispose();
     orbit.dispose();
@@ -402,8 +199,7 @@ class Mesh2Motion{
 
   void start(ForgeScene newScene, three.Object3D object, [three.BoundingBox? box]){
     if(ForgeScene.main == newScene) return;
-
-    exportAnimations.clear();
+    animationsStep.start();
 
     orbit.enabled = true;
     if(animationObject != null){
@@ -411,71 +207,45 @@ class Mesh2Motion{
       scene.remove(weightSkinStep.weightPaintedMeshGroup()!);
     }
     loadModelStep.clearLoadedModelData();
-    loadModelStep.loadGeometry(object);
-
+    final m = object.children.first.userData['mainMaterial'];
+    final c = object.children.first.clone()..material = m;
+    loadModelStep.loadGeometry(c);
+    // animationObject?.material = m;
+    // animationObject?.material?.needsUpdate = true; // Inform Three.js that the material has changed
     forgeScene = newScene;
-    
+    scene.add(animationObject);
     if(ForgeScene.rig == newScene){
       control.enabled = true;
-      scene.add(animationObject);
-      //_positionCamera(animationObject!,box);
     }
     else{
-      scene.add(animationObject);
       scene.add(SkeletonHelper(animationObject!));
-
-      loader.fromAsset('${contents['human']['animations'][0]}').then((gltf){
-        animations?.clear();
-        animations = [];
-
-        for(final a in gltf!.animations!){
-          if(a is three.AnimationClip) animations?.add(a);
-        }
-        final ao = animationObject as three.AnimationObject;
-        ao.animations.addAll(animations!);
-      });
+      startAnimation();
     }
+  }
+
+  Future<void> startAnimation() async{
+    animationsStep.setModel(weightSkinStep.skinnedObject, weightSkinStep.helper);
+    for(final path in contents[key]['animations']){
+      final gltf = await loader.fromAsset(path);
+      animationsStep.addAnimations(
+        gltf!,
+        SkeletonType.fromString(key)
+      );
+    }
+    animationsStep.onAllAnimationsLoaded();
   }
 
   void stop(){
     control.enabled = false;
     orbit.enabled = false;
-
-    if(armature != null){
-      scene.remove( armature! );
-      armature = null;
-    }
-    if(skeleton != null){
-      scene.remove( skeleton! );
-      skeleton = null;
-    }
+    useHeadWeightCorrection = false;
+    mirror = true;
+    
+    removeSkinnedMeshesFromScene();
     reference = null;
-    exportAnimations.clear();
-  }
 
-  void _positionCamera(three.Object3D object, [three.BoundingBox? box]){
-    if(box == null){
-      box = three.BoundingBox();
-      box.setFromObject(object);
-    }
-
-    final size = box.getSize(three.Vector3());
-    final center = box.getCenter(three.Vector3());
-
-    // Position the camera to fit the model
-    final maxDim = math.max(size.x, math.max(size.y, size.z));
-    final fov = camera.fov * (math.pi / 180);
-    double cameraZ = (maxDim / 2 / math.tan(fov / 2)).abs();
-
-    if (size.x / size.y > fovAspect) {
-      cameraZ = (size.x / 2 / math.tan(fov / 2) / fovAspect).abs();
-    }
-
-    cameraZ *= 1.5; // Add some padding
-    camera.position.setValues(center.x, center.y, center.z + cameraZ);
-    camera.lookAt(center);
-
-    scene.add(object);
+    useHeadWeightCorrection = false;
+    animationsStep.stop();
   }
 
   void render(double dt){
@@ -485,6 +255,9 @@ class Mesh2Motion{
     if (viewHelper.animating ) {
       viewHelper.update( dt );
     }
+
+    editSkeletonStep.update();
+    animationsStep.update(dt);
   }
 
   void changeHeadWeightCorrection(){
@@ -511,16 +284,19 @@ class Mesh2Motion{
   }
 
   void regenerateWeightPaintedPreviewMesh() {
+    if(meshPreviewDisplayType == ModelPreviewDisplay.textured) return;
+    weightSkinStep.weightPaintedMeshGroup()?.visible = !isTexture;
     // needed for skinning process
     calculateSkinWeightingForModels();
 
     // if the weight painted mesh is not in scene, add it
     if (scene.getObjectByName('Weight Painted Mesh') == null) {
-      scene.add(weightSkinStep.weightPaintedMeshGroup()!);
+      scene.add(weightSkinStep.weightPaintedMeshGroup());
     }
   }
 
   void calculateSkinWeightingForModels() {
+    if(armature == null) return;
     // we only need one binding skeleton. All skinned meshes will use this.
     weightSkinStep.resetAllSkinProcessData();
 
@@ -531,9 +307,9 @@ class Mesh2Motion{
     // Pass head weight correction settings to the weight skin step
     weightSkinStep.setHeadWeightCorrectionSettings(
       useHeadWeightCorrection,
-      previewPlaneHeight,
+      editSkeletonStep.previewPlaneHeight,
     );
-    print(previewPlaneHeight);
+
     weightSkinStep.createBindingSkeleton();
 
     // add geometry data needed for skinning using explicit loop indexing
@@ -559,139 +335,29 @@ class Mesh2Motion{
     }
   }
 
-  List<Widget> hud(BuildContext context){
-    return [
-        Positioned(
-          left: 10,
-          top: 10,
-          child: Column(
-            children: [
-              InkWell(
-                onTap: (){
-                  control.setMode(GizmoType.translate);
-                  setState((){});
-                },
-                child:Container(
-                  width: 25,
-                  height: 25,
-                  color: control.mode == GizmoType.translate? Theme.of(context).secondaryHeaderColor.withAlpha(200):Theme.of(context).cardColor.withAlpha(200),
-                  alignment: Alignment.center,
-                  child: const Icon(
-                    Icons.control_camera,
-                    size: 20,
-                  ),
-                ),
-              ),
-              InkWell(
-                onTap: (){
-                  control.setMode(GizmoType.rotate);
-                  setState((){});
-                },
-                child:Container(
-                  width: 25,
-                  height: 25,
-                  margin: const EdgeInsets.only(top: 2),
-                  color: control.mode == GizmoType.rotate? Theme.of(context).secondaryHeaderColor.withAlpha(200):Theme.of(context).cardColor.withAlpha(200),
-                  alignment: Alignment.center,
-                  child: const Icon(
-                    Icons.cached,
-                    size: 20,
-                  ),
-                ),
-              ),
-            ],
-          )
-        ),
-        Row(
-          children: [
-            SizedBox(
-              width: 80,
-              height: 25, 
-              child: Navigation(
-                spacer: Text('|'),
-                navData: [
-                  NavItems(
-                    name: LSIFunctions.capFirstLetter(control.space),
-                    icon:  control.space == 'local'?Icons.view_in_ar_outlined:Icons.public,
-                    subItems: [
-                      NavItems(
-                        name: 'Global',
-                        icon: Icons.public,
-                        onTap: (data){
-                          control.space = 'global';
-                          setState((){});
-                        }
-                      ),
-                      NavItems(
-                        name: 'Local',
-                        icon: Icons.view_in_ar_outlined,
-                        onTap: (data){
-                          control.space = 'local';
-                          setState((){});
-                        }
-                      ),
-                    ]
-                  ),
-                ]
-              ),
-            ),
-          ]
-        ),
-    ];
-  }
-}
+  void bind(){
+    control.detach();
+    control.enabled = false; // shouldn't be editing bones
+    calculateSkinWeightingForModels();
+    removeSkinnedMeshesFromScene(); // clean up in case we had skinned meshes in scene previously
+    forgeScene = ForgeScene.animate;
 
-class MediaKitVideoPreview extends StatefulWidget {
-  final File file;
-
-  const MediaKitVideoPreview({Key? key, required this.file}) : super(key: key);
-
-  @override
-  State<MediaKitVideoPreview> createState() => _MediaKitVideoPreviewState();
-}
-
-class _MediaKitVideoPreviewState extends State<MediaKitVideoPreview> {
-  late final Player _player;
-  late final VideoController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    
-    // 1. Instantiate the background controller engine
-    _player = Player(
-      configuration: const PlayerConfiguration(
-        muted: true, // Auto-mute preview loops
-      ),
-    );
-
-    // 2. Link player instance straight to the native rendering controller layer
-    _controller = VideoController(_player);
-
-    // 3. Queue up the local system target path pointer and trigger continuous loops
-    _player.setPlaylistMode(PlaylistMode.loop);
-    _player.open(Media(widget.file.path), play: true);
+    weightSkinStep.helper = SkeletonHelper(weightSkinStep.skinnedObject);
+    editSkeletonStep.setArmature(weightSkinStep.skinnedObject, weightSkinStep.helper!, scene, true);
+    weightSkinStep.weightPaintedMeshGroup()?.visible = false; // hide weight painted mesh
+    startAnimation();
   }
 
-  @override
-  void dispose() {
-    // Release the active hardware controller tracking arrays safely
-    _player.stop().then((_){
-      _player.dispose();
-    });
-    
-    super.dispose();
+  void removeSkinnedMeshesFromScene(){
+    if(armature != null){
+      scene.remove( armature! );
+      editSkeletonStep.armature = null;
+    }
+    if(skeleton != null){
+      scene.remove( skeleton! );
+      editSkeletonStep.skeleton = null;
+    }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: Video(
-        controller: _controller,
-        controls: NoVideoControls, // Prevents showing play/pause/scrub overlay elements
-        fit: BoxFit.cover,        // Fits cleanly into fixed square frame metrics
-      ),
-    );
-  }
+  List<Widget> Function(BuildContext) get hud => forgeScene == ForgeScene.rig?editSkeletonStep.hud:animationsStep.hud;
 }

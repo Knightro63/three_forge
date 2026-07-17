@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:three_forge/src/enums.dart';
 import 'package:three_forge/src/m2m_viewer/m2m.dart';
+import 'package:three_forge/src/m2m_viewer/steps/step_animations.dart';
 import 'package:three_forge/src/styles/savedWidgets.dart';
 import 'package:three_forge/src/three_viewer/decimal_index_formatter.dart';
 import 'package:three_forge/src/three_viewer/viewer.dart';
 import 'package:three_js/three_js.dart' as three;
+import 'package:three_js_advanced_exporters/gltf_exporter.dart';
+import 'package:three_js_exporters/three_js_exporters.dart';
 
 class AnimateGui extends StatefulWidget {
   const AnimateGui({Key? key, required this.threeV}):super(key: key);
@@ -16,6 +19,7 @@ class AnimateGui extends StatefulWidget {
 
 class _AnimateGuiState extends State<AnimateGui> {
   Mesh2Motion get m2m => widget.threeV.m2m;
+  StepAnimations get animaion => m2m.animationsStep;
   three.Object3D? get selectedRig => m2m.armature;
 
   final TextEditingController scaleControllers = TextEditingController();
@@ -33,7 +37,7 @@ class _AnimateGuiState extends State<AnimateGui> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final width = size.width*.2-56;
-    final List vids = m2m.animationVideos('human', width, context, scaleControllers.text);
+    final List vids = m2m.animationVideos(m2m.key, width, context, m2m.contents, scaleControllers.text);
     return Column(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
@@ -52,18 +56,14 @@ class _AnimateGuiState extends State<AnimateGui> {
             textStyle: Theme.of(context).primaryTextTheme.bodySmall,
             color: Theme.of(context).canvasColor,
             onChanged: (val){
-              // this.scale = double.tryParse(val) ?? 0;
-              // m2m.scale(scale);
-              setState(() {
-                
-              });
+              setState(() {});
             },
             controller: scaleControllers,
           )
         ],
       ),
         SizedBox(
-          height: size.height-100, // Restrain the height of your horizontal list
+          height: size.height-200, // Restrain the height of your horizontal list
           child: GridView.builder(
             itemCount: vids.length,
             cacheExtent: 20.0, // Pre-loads items slightly off-screen
@@ -83,6 +83,43 @@ class _AnimateGuiState extends State<AnimateGui> {
               );
             },
           ),
+        ),
+        // Container(
+        //   child: Slider(
+        //     value: animaion.warpArmAmount, 
+        //     min: -70,
+        //     max: 100,
+        //     divisions: 171,
+        //     onChanged: (c){
+        //       animaion.updateAPoseValue(c);
+        //     },
+        //     thumbColor: Theme.of(context).primaryColor,
+        //   ),
+        // ),
+        InkWell(
+          onTap: (){
+            three.Object3D o = m2m.animationsStep.animationObject!;
+            GLTFExporter().export(
+              o.name, 
+              o,  
+              options: GLTFOptions(
+                type: ExportTypes.binary, 
+                animations: m2m.animationsStep.exportAnimations()
+              )
+            );
+            widget.threeV.changeScene(ForgeScene.main);
+          },
+          child: Container(
+            //width: 65,
+            height: 25,
+            alignment: Alignment.center,
+            margin: EdgeInsets.fromLTRB(10, 0, 10, 0),
+            decoration: BoxDecoration(
+              color: Theme.of(context).canvasColor,
+              borderRadius: BorderRadius.circular(10)
+            ),
+            child: Text('Save'),
+          )
         ),
         InkWell(
           onTap: (){

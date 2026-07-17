@@ -11,7 +11,7 @@ import 'package:three_forge/src/navigation/navData.dart';
 import 'package:three_forge/src/styles/globals.dart';
 import 'package:three_forge/src/three_viewer/import.dart';
 import 'package:three_forge/src/three_viewer/viewer.dart';
-import 'package:three_js_advanced_exporters/usdz_exporter.dart';
+import 'package:three_js_advanced_exporters/three_js_advanced_exporters.dart';
 import 'package:three_js_exporters/three_js_exporters.dart';
 import 'package:three_js/three_js.dart' as three;
 
@@ -366,6 +366,38 @@ class ScreenNavigator{
                 callBacks(call: LSICallbacks.updatedNav);
                 USDZExporter().exportScene('untilted', threeV.scene);
               }
+            ),
+            NavItems(
+              name: 'fbx',
+              icon: Icons.file_copy_outlined,
+              onTap: (data){
+                callBacks(call: LSICallbacks.updatedNav);
+                FBXExporter().export('untilted', threeV.scene);
+              }
+            ),
+            NavItems(
+              name: 'gltf/glb',
+              icon: Icons.file_copy_outlined,
+              subItems: [
+                NavItems(
+                  name: 'ascii',
+                  icon: Icons.file_copy_outlined,
+                  onTap: (data){
+                    callBacks(call: LSICallbacks.updatedNav);
+                    GLTFExporter().export('untilted', threeV.scene);
+                  }
+                ),
+                NavItems(
+                  name: 'binary',
+                  icon: Icons.image,
+                  onTap: (data){
+                    setState(() {
+                      callBacks(call: LSICallbacks.updatedNav);
+                      GLTFExporter().export('untilted', threeV.scene,options: GLTFOptions(type: ExportTypes.binary));
+                    });
+                  }
+                )
+              ]
             ),
             // NavItems(
             //   name: 'json',

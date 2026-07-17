@@ -1,113 +1,257 @@
-import 'dart:async';
-import 'package:three_forge/src/m2m_viewer/src/generators.dart';
-import 'package:three_forge/src/m2m_viewer/src/skeleton_type.dart';
+import 'dart:math' as math;
+import 'package:flutter/material.dart';
+import 'package:three_forge/src/m2m_viewer/src/model_preview_display.dart';
 import 'package:three_forge/src/m2m_viewer/src/utilities.dart';
-import 'package:three_forge/src/m2m_viewer/steps/independent_bone_movement.dart';
-import 'package:three_js_core/three_js_core.dart';
-import 'package:three_js_core_loaders/three_js_core_loaders.dart';
-import 'package:three_js_math/three_js_math.dart';
+import 'package:three_forge/src/navigation/navigation.dart';
+import 'package:three_forge/src/styles/lsi_functions.dart';
+import 'package:three_js/three_js.dart' as three;
+import 'package:three_js_helpers/three_js_helpers.dart';
+import 'package:three_js_transform_controls/three_js_transform_controls.dart';
 
 class StepEditSkeleton {
-  // Original armature data from the model data. A Skeleton type object is not
-  // part of the original model data that is loaded
-  Object3D editedArmature = Object3D();
+  final Function setState;
+  final TransformControls control;
+  final three.Camera camera;
+
+  List<three.Mesh> skeletonHandles = [];
+  three.Raycaster raycaster = three.Raycaster();
+  three.Mesh? _hoveredClickMesh;
+
+  double get previewPlaneHeight => selectBox.position.y;
+  three.Object3D? armature;
+  SkeletonHelper? skeleton;
+  ModelPreviewDisplay meshPreviewDisplayType = ModelPreviewDisplay.weightPainted;
+
+  bool _animating = true;
+  bool get animating => _animating;
+  set animating(bool val){
+    _animating = val;
+    showAll(_animating);
+  }
+
+  bool solving = false;
+  three.CCDIKSolver? ikSolver;
+
+  bool _mirror = true;
+  bool get mirror => _mirror;
+  set mirror(bool val){
+    _mirror = val;
+    _showRightSide(_mirror);
+  }
+
+  three.Mesh _plane = three.Mesh(three.PlaneGeometry(),three.MeshBasicMaterial.fromMap({
+      'color': 0x00ff00,
+      'transparent': true,
+      'opacity': 0.7,
+      //'depthWrite': true,
+      'depthTest': true,
+      'side': three.DoubleSide
+    }));
+
+    late three.Mesh selectBox = three.Mesh(
+      three.BoxGeometry(1,1,0.01),
+      three.MeshBasicMaterial.fromMap({
+        'color': 0xff0000,
+        'transparent': true,
+        'opacity': 0.2,
+        'visible': false
+      })
+    )..add(_plane)
+    ..userData['visual_dot'] = _plane
+    ..userData['head_weight'] = true
+    ..visible = false
+    ..rotateX(-math.pi/2)
+    ..translateZ(0.55);
+
+  StepEditSkeleton(this.camera,this.control, this.setState);
+
+  void setArmature(
+    three.Object3D armature, 
+    SkeletonHelper skeleton,
+    three.Scene scene,
+    [bool ik = false]
+  ){
+    this.armature = armature;
+    armature.userData['skeleton'] = skeleton;
+    this.skeleton = skeleton;
+
+    attachInteractivePointsToHelper(skeleton);
+
+    if(ik){
+      _mirror = false;
+      animating = false;
+      meshPreviewDisplayType = ModelPreviewDisplay.textured;
+      //ikSolver = three.CCDIKSolver(armature,armature.skeleton!);
+    }
+    else{
+      _mirror = true;
+      _animating = true;
+      meshPreviewDisplayType = ModelPreviewDisplay.weightPainted;
+    }
+
+    scene.add(armature);
+    scene.add(skeleton);
+  }
+
+  void attachInteractivePointsToHelper(SkeletonHelper skeletonHelper) {
+    skeletonHandles.clear();
+    skeletonHandles.add(selectBox);
+
+    final visualGeom = three.SphereGeometry(0.01, 16, 16);
+    final clickGeom = three.SphereGeometry(0.025, 16, 16);
+    final clickMat = three.MeshBasicMaterial.fromMap({
+      'color': 0xff0000, 
+      'visible': false,
+    });
+
+    for (final bone in skeletonHelper.bones) {
+      final visualMat = three.MeshBasicMaterial.fromMap({
+        'color': 0x00ff00,
+        'transparent': true,
+        'opacity': 0.8,
+        'depthWrite': false,
+        'depthTest': false,
+      });
+      // Create the visual dot
+      final clickMesh = three.Mesh(clickGeom, clickMat);
+      final visualMesh = three.Mesh(visualGeom, visualMat);
+      clickMesh.userData['bone_target'] = bone;
+      clickMesh.userData['visual_dot'] = visualMesh;
+
+      bone.add(clickMesh..add(visualMesh));
+      skeletonHandles.add(clickMesh);
+    }
+
+    _showRightSide(mirror);
+  }
+
+  void stop(){
+    selectBox.visible = false;
+    
+  }
+
+  void _showRightSide(bool value){
+    for(final handle in skeletonHandles){
+      final three.Bone? bone = handle.userData['bone_target'];
+      final three.Mesh? visualMesh = handle.userData['visual_dot'];
+      if(bone != null && isRightSideBone(bone)){
+        visualMesh?.material?.opacity = value?0.2:0.8;
+      }
+    }
+  }
   
-  // Skeleton created from the armature that Three.js uses
-  Skeleton threejsSkeleton = Skeleton([]);
-  
-  bool mirrorModeEnabled = true;
-  bool meshDragPlacementEnabled = true;
-  String? skinningAlgorithm;
-  bool showDebug = true;
-  Bone? currentlySelectedBone;
-  Object3D? jointHoverPoint;
-  Scene? mainSceneRef;
-  
-  // Preview plane state
-  bool enableHeadWeightCorrection = false;
-  double headWeightCorrectionHeight = 1.4; // default
-  
-  final Future<Texture?>? jointTexture = TextureLoader().fromAsset('assets/images/skeleton-joint-point.png');
-  bool addedEventListeners = false;
-  final IndependentBoneMovement independentBoneMovement = IndependentBoneMovement();
-  
-  // UI elements specific for this area
-  SkeletonType? currentSkeletonType;
-
-  // Stream infrastructure supporting modern platform notifications natively
-  final StreamController<String> _eventController = StreamController<String>.broadcast();
-  Stream<String> get stream => _eventController.stream;
-
-  StepEditSkeleton();
-
-  void begin(Scene mainScene, SkeletonType skeletonType) {
-    bool localMirrorModeEnabled = mirrorModeEnabled;
-
-    setMirrorModeEnabled(localMirrorModeEnabled);
-    setMeshDragPlacementEnabled(true);
-    mainSceneRef = mainScene;
+  void showAll(bool value){
+    for(final handle in skeletonHandles){
+      final three.Bone? bone = handle.userData['bone_target'];
+      final three.Mesh? visualMesh = handle.userData['visual_dot'];
+      if(bone != null){
+        visualMesh?.material?.opacity = !value?0.2:0.8;
+      }
+    }
   }
 
-  bool showDebugging() {
-    return showDebug;
+  void onPointerMove(three.Vector2 normalizedMouse) {
+    // If the rigging tools are hidden, do nothing
+    if (armature == null) return;
+
+    raycaster.setFromCamera(normalizedMouse, camera);
+    final intersects = raycaster.intersectObjects(skeletonHandles, true);
+
+    if (intersects.isNotEmpty) {
+      final hitClickMesh = intersects.first.object as three.Mesh?;
+      
+      // If we hovered over a NEW joint handle mesh
+      if (hitClickMesh != _hoveredClickMesh) {
+        final three.Bone? underlyingBone = hitClickMesh?.userData['bone_target'];
+        if(!isBoneSelectable(underlyingBone))return;
+
+        // 1. Reset the previous hovered item back to normal
+        _resetHoverState();
+        _hoveredClickMesh = hitClickMesh;
+
+        if (_hoveredClickMesh != null && _hoveredClickMesh!.userData['visual_dot'] != null) {
+          final three.Mesh visualDot = _hoveredClickMesh!.userData['visual_dot'];
+          final three.Material material = visualDot.material!;
+
+          // 2. Change the visual dot to a bright yellow/white highlight color
+          material.color.setFromHex32(0xff00ff); 
+          material.opacity = 1.0; // Crank up the opacity for max brightness
+          //material.needsUpdate = true;
+        }
+      }
+    } else {
+      // If the mouse is in empty space, reset whatever was highlighted
+      _resetHoverState();
+    }
   }
 
-  void dispose() {
-    _eventController.close();
+  // Helper to reset the dot back to its default semi-transparent green color
+  void _resetHoverState() {
+    if (_hoveredClickMesh != null && _hoveredClickMesh!.userData['visual_dot'] != null) {
+      final three.Mesh visualDot = _hoveredClickMesh!.userData['visual_dot'];
+      final three.Material material = visualDot.material!;
+
+      material.color.setFromHex32(0x00ff00); // Back to bright green
+      material.opacity = 0.8;          // Back to original transparency
+      material.needsUpdate = true;
+      
+      _hoveredClickMesh = null;
+    }
   }
 
-  /// [bone] The currently selected bone
-  /// This is the bone that is currently selected in the UI while editing the skeleton.
-  void setCurrentlySelectedBone(Bone? bone) {
-    currentlySelectedBone = bone;
+  void onPointerDown(three.Vector2 normalizedMouse) {
+    if (control.dragging || armature == null) return;
+    control.detach();
+
+    raycaster.setFromCamera(normalizedMouse, camera);
+    
+    final intersects = raycaster.intersectObjects(skeletonHandles, true);
+    if (intersects.isNotEmpty) {
+      final hitHandle = intersects.first.object;
+      
+      // Safety check against explicit hidden layer states
+      if (hitHandle == null || hitHandle.visible == false) return;
+
+      final three.Bone? underlyingBone = hitHandle.userData['bone_target'];
+
+      if (underlyingBone != null) {
+        if(!isBoneSelectable(underlyingBone))return;
+        print("Selected bone: ${underlyingBone.name}");
+        control.attach(underlyingBone);
+        control.showY = true;
+        control.showX = true;
+        control.showZ = true;
+      }
+      else if(hitHandle.userData['head_weight'] = true){
+        control.attach(hitHandle);
+        control.showY = true;
+        control.showX = false;
+        control.showZ = false;
+      }
+    } 
   }
 
-  Bone? getCurrentlySelectedBone() {
-    return currentlySelectedBone;
-  }
-
-  void setMirrorModeEnabled(bool value) {
-    mirrorModeEnabled = value;
-    _eventController.add('mirrorModeChanged');
-  }
-
-  bool isMirrorModeEnabled() {
-    return mirrorModeEnabled;
-  }
-
-  void setMeshDragPlacementEnabled(bool value) {
-    meshDragPlacementEnabled = value;
-    _eventController.add('boneEditModeChanged');
-  }
-
-  bool isMeshDragPlacementEnabled() {
-    return meshDragPlacementEnabled;
-  }
-
-  bool isBoneSelectable(Bone? bone) {
-    if (bone == null) {
+  bool isBoneSelectable(three.Bone? bone) {
+    if (bone == null || !_animating) {
       return false;
     }
-    if (!mirrorModeEnabled) {
+    if (!mirror) {
       return true;
     }
     return !isRightSideBone(bone);
   }
 
-  bool isRightSideBone(Bone bone) {
+  bool isRightSideBone(three.Bone bone) {
     final String normalizedBoneName = bone.name.toLowerCase();
     return RegExp(r'(^right_|^r_|_right$|_r$|\.right$|\.r$|-right$|-r$)').hasMatch(normalizedBoneName);
   }
 
-  /// Find the mirrored counterpart of a bone by stripping side suffixes and
-  /// matching against the rest of the skeleton. Returns null for centre-line
-  /// bones (spine, neck, head, etc.) that have no counterpart.
-  Bone? findMirrorBone(Bone bone) {
+  three.Bone? findMirrorBone(three.Bone bone) {
     final String baseName = Utility.calculateBoneBaseName(bone.name);
     
     // Explicit loop replacing JavaScript .find() for index and safety compliance
-    for (int i = 0; i < threejsSkeleton.bones.length; i++) {
-      final candidate = threejsSkeleton.bones[i];
+    for (int i = 0; i < (skeleton?.bones.length ?? 0); i++) {
+      final candidate = skeleton!.bones[i];
       final String candidateBase = Utility.calculateBoneBaseName(candidate.name);
       
       if (candidateBase == baseName && candidate.name != bone.name) {
@@ -117,97 +261,26 @@ class StepEditSkeleton {
     return null;
   }
 
-  String? algorithm() {
-    return skinningAlgorithm;
-  }
-
-  /// Toggle the visibility of the preview plane
-  /// [isEnabled] Whether the plane should be visible
-  void setUseHeadWeightCorrection(bool isEnabled) {
-    enableHeadWeightCorrection = isEnabled;
-  }
-
-  /// Get the current visibility state of the preview plane
-  bool useHeadWeightCorrection() {
-    return enableHeadWeightCorrection;
-  }
-
-  /// Set the height of the preview plane
-  /// [height] The Y coordinate height for the plane
-  void setPreviewPlaneHeight(double height) {
-    headWeightCorrectionHeight = height;
-  }
-
-  /// Get the current height of the preview plane
-  double getPreviewPlaneHeight() {
-    return headWeightCorrectionHeight;
-  }
-
-  void removeEventListeners() {
-    // Platform-independent layout cleanup stubs
-  }
-
-  void cleanupOnExitStep() {
-    removeEventListeners();
-    clearHoverPointIfExists();
-  }
-
-  void clearHoverPointIfExists() {
-    if (jointHoverPoint != null && mainSceneRef != null) {
-      mainSceneRef!.remove(jointHoverPoint!);
-      jointHoverPoint = null;
-    }
-  }
-  /// Take original armature that we are editing and create a skeleton that Three.js can use
-  void loadOriginalArmatureFromModel(Object3D armature) {
-    editedArmature = armature.clone();
-    createThreejsSkeletonObject();
-    independentBoneMovement.setRestPose(threejsSkeleton);
-  }
-
-  Skeleton createThreejsSkeletonObject() {
-    // create skeleton and helper to visualize
-    if (editedArmature.children.isNotEmpty) {
-      threejsSkeleton = Generators.createSkeleton(editedArmature.children[0]);
-    } else {
-      threejsSkeleton = Skeleton([]);
-    }
-        
-    // update the world matrix for the skeleton
-    // without this the skeleton helper won't appear when the bones are first loaded
-    if (threejsSkeleton.bones.isNotEmpty) {
-      threejsSkeleton.bones[0].updateWorldMatrix(true, true);
-    }
+  void applyMirrorMode(){
+    final three.Bone? selectedBone = control.object is three.Bone?control.object as three.Bone:null;
+    if(!mirror || selectedBone == null) return;
     
-    return threejsSkeleton;
-  }
-
-  Object3D armature() {
-    return editedArmature;
-  }
-
-  Skeleton skeleton() {
-    return threejsSkeleton;
-  }
-
-  void applyMirrorMode(Bone selectedBone, String transformType) {
+    final transformType = control.getMode();
     final mirrorBone = findMirrorBone(selectedBone);
     if (mirrorBone == null) {
-      return; // centre-line bone (head, neck, spine) — no counterpart
+      return;
     }
 
-    if (transformType == 'translate') {
-      // move the mirror bone in the -X value of the transform control
-      // this will mirror the movement of the bone
-      mirrorBone.position.setFrom(Vector3(
+    if (transformType == GizmoType.translate) {
+      mirrorBone.position.setFrom(three.Vector3(
         -selectedBone.position.x.toDouble(),
         selectedBone.position.y.toDouble(),
         selectedBone.position.z.toDouble(),
       ));
     }
 
-    if (transformType == 'rotate') {
-      final euler = Euler(
+    if (transformType == GizmoType.rotate) {
+      final euler = three.Euler(
         selectedBone.rotation.x.toDouble(),
         -selectedBone.rotation.y.toDouble(),
         -selectedBone.rotation.z.toDouble(),
@@ -215,67 +288,91 @@ class StepEditSkeleton {
       mirrorBone.quaternion.setFromEuler(euler);
     }
 
-    // updateWorldMatrix(updateParents, updateChildren) - propagate changes up and down the hierarchy
     mirrorBone.updateWorldMatrix(true, true);
   }
 
-  /// [event] This will be called every mouse move event
-  /// [hoverDistance] Maximum selection boundary distance
-  void calculateBoneHoverEffect(dynamic event, Camera camera, double hoverDistance) {
-    // create a raycaster to detect the bone that is being hovered over
-    // we will only have a hover effect if the mouse is close enough to the bone
-    final raycastResult = Utility.raycastClosestBoneTest(camera, event, threejsSkeleton);
-    final closestBone = raycastResult.bone;
-    final closestDistance = raycastResult.distance;
-
-    // only do selection if we are close
-    if (closestDistance > hoverDistance) {
-      updateBoneHoverPointPosition(null);
-      return;
-    }
-    if (!isBoneSelectable(closestBone)) {
-      updateBoneHoverPointPosition(null);
-      return;
-    }
-    
-    updateBoneHoverPointPosition(closestBone);
+  void update(){
+    ikSolver?.update();
   }
 
-  /// Create a hover effect for the bone that would be selected for bone editing
-  void updateBoneHoverPointPosition(Bone? bone) {
-    // create hover point sphere for when our mouse gets close to a bone joint
-    if (jointHoverPoint == null) {
-      // Create the hover point if it doesn't exist
-      final geometry = BufferGeometry();
-      geometry.setAttributeFromString('position', Float32BufferAttribute.fromList([0.0, 0.0, 0.0], 3)); // Single vertex at origin
-      
-      final material = PointsMaterial.fromMap({
-        'color': 0x69a1d0, // Blue color
-        'size': 30.0, // Size of the point in pixels
-        'sizeAttenuation': false, // Disable size attenuation
-        'depthTest': false, // always render on top
-        //'map': jointTexture, // Use a circular texture
-        'opacity': 0.7,
-        'transparent': true // Enable transparency for the circular texture
-      });
-      
-      jointHoverPoint = Points(geometry, material);
-      jointHoverPoint!.renderOrder = 100; // render on top of everything else
-      jointHoverPoint!.name = 'Joint Hover Point';
-      mainSceneRef?.add(jointHoverPoint!);
-    }
-
-    if (bone != null) {
-      // update the position of the hover point
-      final worldPosition = Utility.worldPositionFromObject(bone);
-      jointHoverPoint!.position.setFrom(worldPosition);
-      jointHoverPoint!.updateWorldMatrix(true, true);
-    } else {
-      // remove the hover point if we are not hovering over a bone
-      if (jointHoverPoint != null) {
-        mainSceneRef?.remove(jointHoverPoint!);
-        jointHoverPoint = null;
-      }
-    }
+  List<Widget> hud(BuildContext context){
+    return [
+        Positioned(
+          left: 10,
+          top: 10,
+          child: Column(
+            children: [
+              InkWell(
+                onTap: (){
+                  control.setMode(GizmoType.translate);
+                  setState((){});
+                },
+                child:Container(
+                  width: 25,
+                  height: 25,
+                  color: control.mode == GizmoType.translate? Theme.of(context).secondaryHeaderColor.withAlpha(200):Theme.of(context).cardColor.withAlpha(200),
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    Icons.control_camera,
+                    size: 20,
+                  ),
+                ),
+              ),
+              InkWell(
+                onTap: (){
+                  control.setMode(GizmoType.rotate);
+                  setState((){});
+                },
+                child:Container(
+                  width: 25,
+                  height: 25,
+                  margin: const EdgeInsets.only(top: 2),
+                  color: control.mode == GizmoType.rotate? Theme.of(context).secondaryHeaderColor.withAlpha(200):Theme.of(context).cardColor.withAlpha(200),
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    Icons.cached,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ],
+          )
+        ),
+        Row(
+          children: [
+            SizedBox(
+              width: 80,
+              height: 25, 
+              child: Navigation(
+                spacer: Text('|'),
+                navData: [
+                  NavItems(
+                    name: LSIFunctions.capFirstLetter(control.space),
+                    icon:  control.space == 'local'?Icons.view_in_ar_outlined:Icons.public,
+                    subItems: [
+                      NavItems(
+                        name: 'Global',
+                        icon: Icons.public,
+                        onTap: (data){
+                          control.space = 'global';
+                          setState((){});
+                        }
+                      ),
+                      NavItems(
+                        name: 'Local',
+                        icon: Icons.view_in_ar_outlined,
+                        onTap: (data){
+                          control.space = 'local';
+                          setState((){});
+                        }
+                      ),
+                    ]
+                  ),
+                ]
+              ),
+            ),
+          ]
+        ),
+    ];
   }
 }

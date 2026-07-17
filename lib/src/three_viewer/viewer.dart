@@ -901,6 +901,7 @@ class ThreeViewer {
       orbit.enabled = false;
       control.enabled = false;
       control.detach();
+      print(intersected.first.userData);
       rigging = intersected.first;
       intersected.clear();
       m2m.start(newScene,rigging!);

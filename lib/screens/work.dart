@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:three_forge/src/enums.dart';
-import 'package:three_forge/src/m2m_viewer/animate.dart';
-import 'package:three_forge/src/m2m_viewer/rig.dart';
+import 'package:three_forge/src/m2m_viewer/gui/animate.dart';
+import 'package:three_forge/src/m2m_viewer/gui/rig.dart';
 import 'package:three_forge/src/modifers/create_yaml.dart';
 import 'package:three_forge/src/navigation/screen_navigator.dart';
 import 'package:three_forge/src/three_viewer/file_navigation.dart';

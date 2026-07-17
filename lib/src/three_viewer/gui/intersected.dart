@@ -313,7 +313,7 @@ class _IntersectedGuiState extends State<IntersectedGui> {
           ]
         )
       ),
-      if(threeV.intersected.isNotEmpty && threeV.intersected[0].userData['skeleton'] is SkeletonHelper ) Container(
+      if(threeV.intersected.isNotEmpty) Container(// && threeV.intersected[0].userData['skeleton'] is SkeletonHelper 
         margin: const EdgeInsets.fromLTRB(5,5,5,5),
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
